@@ -1,0 +1,50 @@
+{% extends "base.html" %}{% set nav='messages' %}{% block title %}Berichten{% endblock %}
+{% block main %}
+<div class="head"><div><h1>Berichten aan klanten</h1><p>Het systeem stuurt nooit zelf iets naar een klant. Elke vraag of herinnering staat hier als concept tot een medewerker de tekst controleert en verstuurt. Zo kan een automatisch bericht nooit per ongeluk iets verraden over een melding of onderzoek (Wwft art. 23).</p></div></div>
+
+{% set open = messages|selectattr('status', 'equalto', 'draft')|list %}
+<div class="stack">
+{% for m in open %}{% set c = clients.get(m.client_nr) or {} %}
+<form class="card" method="post" action="/berichten/{{ m.id }}" id="{{ m.id }}">
+  <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+  <div class="card-h"><div><h2 style="margin:0">{{ c.name or 'Klant onbekend' }}</h2>
+    <div class="sub">{{ m.id }} · concept van {{ m.created_by }}, {{ m.created|dt }} · {{ m.reason }}{% if m.doc %} · <a href="/document/{{ m.doc }}">{{ m.doc }}</a>{% endif %}</div></div>
+    <span class="badge amber">Concept, niet verstuurd</span></div>
+  <div class="card-b stack" style="gap:12px">
+    {% if c.wwft_stop %}<div class="alert error"><span class="ic">!</span><div>Voor deze klant staat een <b>Wwft-stop</b>. Dit bericht kan niet worden verstuurd. Overleg met de Wwft-verantwoordelijke en verwijder het concept als het niet nodig is.</div></div>{% endif %}
+    <div class="grid2">
+      <div><label>Kanaal</label><input value="{{ channels[m.channel] }}" disabled></div>
+      <div><label>{{ 'E-mailadres' if m.channel == 'email' else 'WhatsApp-nummer' }}</label><input name="to" value="{{ m.to }}" placeholder="{{ 'klant@voorbeeld.nl' if m.channel == 'email' else '+31 6 …' }}"></div>
+      {% if m.channel == 'email' %}<div class="full" style="grid-column:1/-1"><label>Onderwerp</label><input name="subject" value="{{ m.subject or '' }}"></div>{% else %}<input type="hidden" name="subject" value="">{% endif %}
+    </div>
+    <div><label>Tekst</label><textarea name="body" rows="9" style="width:100%;font:inherit">{{ m.body }}</textarea></div>
+    <div class="approve">
+      <label style="display:flex;gap:8px;align-items:flex-start;font-weight:500"><input type="checkbox" name="confirm_read" value="1"> {{ confirm_read }}</label>
+      <label style="display:flex;gap:8px;align-items:flex-start;font-weight:500"><input type="checkbox" name="confirm_wwft" value="1"> {{ confirm_wwft }}</label>
+    </div>
+  </div>
+  <div class="actionbar">
+    <button class="btn go" name="action" value="send" {{ 'disabled' if c.wwft_stop }}>Goedkeuren en versturen</button>
+    <button class="btn" name="action" value="save">Concept opslaan</button>
+    <button class="btn danger" name="action" value="discard" style="margin-left:auto" onclick="return confirm('Concept verwijderen?')">Verwijderen</button>
+  </div>
+</form>
+{% else %}
+<div class="card"><div class="card-b empty">Geen concepten. Bij “Concept voor klant” op een document verschijnt hier een conceptbericht.</div></div>
+{% endfor %}
+
+{% set done = messages|rejectattr('status', 'equalto', 'draft')|list %}
+{% if done %}
+<div class="card tablewrap">
+  <div class="card-h"><h2>Afgehandeld</h2><span class="sub">{{ done|length }}</span></div>
+  <table><tr><th>Bericht</th><th>Klant</th><th>Kanaal</th><th>Status</th><th>Goedgekeurd door</th></tr>
+  {% for m in done %}<tr>
+    <td><b>{{ m.id }}</b><div class="sub">{{ m.subject or m.body[:60] }}</div></td>
+    <td>{{ (clients.get(m.client_nr) or {}).name or '?' }}</td><td>{{ channels[m.channel] }}</td>
+    <td>{% if m.status == 'sent' %}<span class="badge green">Verstuurd</span>{% elif m.status == 'approved' %}<span class="badge blue">Goedgekeurd</span><div class="sub">{{ m.sent.route }}</div>{% else %}<span class="badge grey">Verwijderd</span>{% endif %}</td>
+    <td>{% if m.approval %}{{ m.approval.by }}<div class="sub">{{ m.approval.at|dt }}</div>{% else %}–{% endif %}</td></tr>{% endfor %}
+  </table>
+</div>
+{% endif %}
+</div>
+{% endblock %}

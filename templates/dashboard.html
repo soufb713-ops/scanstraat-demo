@@ -1,0 +1,76 @@
+{% extends "base.html" %}{% set nav='overview' %}{% block title %}Overzicht{% endblock %}
+{% block main %}
+<div class="head">
+  <div><h1>{{ greeting }}{% if user %}, {{ user.name.split(' ')[0] }}{% endif %}</h1>
+  <p>Wat er gescand is, wat op controle wacht en wat al in MijnKantoor, Exact en het Excel-register staat.</p></div>
+  <div class="actions"><a class="btn" href="/afhandelen">Afhandelen</a><a class="btn primary" href="/scannen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Nieuwe scan</a></div>
+</div>
+
+<div class="kpis">
+  <div class="kpi hl"><div class="l">Wacht op controle</div><div class="v">{{ k.review }}</div><div class="s">{% if k.errors %}{{ k.errors }} met een fout, die staan bovenaan{% else %}geen fouten open{% endif %}</div>{% if queue %}<a class="cover" href="/document/{{ queue[0].id }}" aria-label="Begin met controleren"></a>{% endif %}</div>
+  <div class="kpi"><div class="l">Pagina's gescand deze week</div><div class="v">{{ k.pages_week }}</div><div class="s">{{ k.blank_removed }} lege pagina's en {{ k.covers }} scheidingsbladen eruit gehaald</div></div>
+  <div class="kpi"><div class="l">Documenten herkend</div><div class="v">{{ k.docs_total }}</div><div class="s">{% if k.sec_per_doc %}gemiddeld {{ k.sec_per_doc|string|replace('.', ',') }} s per document, gemeten{% else %}nog niets verwerkt{% endif %}</div></div>
+  <div class="kpi"><div class="l">Handwerk bespaard</div>{% if k.hours_saved is defined %}<div class="v">{{ k.hours_saved|string|replace('.', ',') }} u</div><div class="s">op basis van uw eigen {{ k.manual_minutes|int }} min per document</div>{% else %}<div class="v" style="font-size:18px;margin-top:10px">Vul uw eigen tijd in</div><div class="s">{% if user.role == 'admin' %}<a href="/koppelingen#general">Minuten per document nu, met de hand</a>{% else %}Beheerder vult dit in{% endif %}</div>{% endif %}</div>
+</div>
+
+<div class="flow">
+  <div class="st code"><div class="k"><i>code</i>Scannen</div><div class="n">{{ k.pages_total }}</div><div class="t">pagina's ingelezen</div></div>
+  <div class="st ai"><div class="k"><i>AI</i>Splitsen en lezen</div><div class="n">{{ k.docs_total }}</div><div class="t">documenten met voorstel</div></div>
+  <div class="st human"><div class="k"><i>mens</i>Controle</div><div class="n">{{ k.approved }}</div><div class="t">goedgekeurd · {{ k.asked }} vraag aan klant</div></div>
+  <div class="st code"><div class="k"><i>code</i>MijnKantoor</div><div class="n">{{ k.mk_done }}<span class="sub"> / {{ k.approved }}</span></div><div class="t">in het klantdossier</div></div>
+  <div class="st code"><div class="k"><i>code</i>Exact en Excel</div><div class="n">{{ k.exact_done }}<span class="sub"> / {{ k.bookable }}</span></div><div class="t">geboekt · {{ k.excel_done }} in register</div></div>
+</div>
+
+<div class="split">
+  <div class="stack">
+    <div class="card">
+      <div class="card-h"><h2>Eerst controleren</h2>{% if queue %}<a class="btn sm primary" href="/document/{{ queue[0].id }}">Begin met controleren</a>{% endif %}</div>
+      <table>
+      {% for d in queue %}{% set c = clients.get(d.client_nr) %}
+        <tr class="link" onclick="location='/document/{{ d.id }}'">
+          <td style="width:54px"><img src="/pagina/{{ d.batch }}/{{ d.pages[0] }}.jpg?t=1" alt="" style="width:38px;height:52px;object-fit:cover;border-radius:3px;border:1px solid var(--line)"></td>
+          <td><b>{{ d.result.counterparty or KINDS[d.kind] }}</b><div class="sub">{{ KINDS[d.kind] }} · {{ c.name if c else 'klant onbekend' }}</div></td>
+          <td class="sub" style="max-width:280px">{% set top = (d.flags|selectattr('level','equalto','error')|list + d.flags|selectattr('level','equalto','warning')|list) %}{{ top[0].message[:90] if top else 'Geen bijzonderheden' }}{% if top and top[0].message|length > 90 %}…{% endif %}</td>
+          <td class="num">{% if d.light == 'red' %}<span class="badge red">Fout</span>{% elif d.light == 'amber' %}<span class="badge amber">Let op</span>{% else %}<span class="badge green">In orde</span>{% endif %}</td>
+        </tr>
+      {% else %}<tr><td class="empty">Niets te controleren. <a href="/scannen">Scan een nieuwe stapel</a>.</td></tr>{% endfor %}
+      </table>
+    </div>
+  </div>
+  <div class="stack">
+    <div class="card">
+      <div class="card-h"><h2>Laatste scans</h2><a class="sub" href="/scannen">Nieuwe scan</a></div>
+      <table>
+      {% for b in batches %}<tr class="link" onclick="location='/scan/{{ b.id }}'">
+        <td><b style="word-break:break-all">{{ b.name }}</b><div class="sub">{{ b.created|dt }} · {{ {'scanner':'Scanmap','upload':'Geüpload','voorbeeld':'Voorbeeld'}.get(b.source, b.source) }} · {{ b.pages|length }} pag.</div></td>
+        <td class="num">{% if b.status == 'processing' %}<span class="badge blue">Bezig</span>{% elif b.status == 'error' %}<span class="badge red">Mislukt</span>{% else %}<span class="badge grey plain">{{ b.docs|length }} doc.</span>{% endif %}</td></tr>
+      {% else %}<tr><td class="empty">Nog geen scans.</td></tr>{% endfor %}
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-h"><h2>Koppelingen</h2>{% if user.role == 'admin' %}<a class="sub" href="/koppelingen">Instellen</a>{% endif %}</div>
+      <div class="card-b stack" style="gap:10px">
+        {% for key, label, color, ico in [('scanner','Scanner','#0f766e','S'),('mijnkantoor','MijnKantoor','#1f5b98','MK'),('exact','Exact Online','#e11d48','E'),('excel','Excel','#15803d','X')] %}
+        <div style="display:flex;align-items:center;gap:10px"><span class="ico" style="width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:#fff;font-weight:700;font-size:11px;background:{{ color }}">{{ ico }}</span>
+          <div style="flex:1"><b style="font-size:13px">{{ label }}</b><div class="sub"><span class="dot {{ 'ok' if integ[key].ok }}"></span>{{ integ[key].text }}</div></div></div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+<div style="margin-top:18px">
+    <div class="card tablewrap">
+      <div class="card-h"><h2>Per klant</h2><a class="sub" href="/klanten">Klanten en scheidingsbladen</a></div>
+      <table><tr><th>Klant</th><th class="num">Documenten</th><th class="num">Te controleren</th><th class="num">Vraag klant</th><th class="num">Goedgekeurd</th><th class="num">In dossier</th></tr>
+      {% for r in per_client %}<tr>
+        <td><b>{{ r.client.name }}</b><div class="sub">Relatie {{ r.client.nr }}{% if r.client.city %} · {{ r.client.city }}{% endif %}</div></td>
+        <td class="num">{{ r.total }}</td>
+        <td class="num">{% if r.review %}{{ r.review }}{% if r.red %} <span class="badge red plain">{{ r.red }} fout</span>{% endif %}{% else %}<span class="muted">0</span>{% endif %}</td>
+        <td class="num">{{ r.asked or '' }}</td><td class="num">{{ r.approved or '' }}</td><td class="num">{{ r.delivered or '' }}</td></tr>
+      {% endfor %}
+      {% if unknown %}<tr><td><b>Klant onbekend</b><div class="sub">Geen scheidingsblad en niet herkend</div></td><td class="num">{{ unknown|length }}</td><td class="num"><span class="badge red plain">{{ unknown|length }}</span></td><td></td><td></td><td></td></tr>{% endif %}
+      </table>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}{% if batches and batches[0].status == 'processing' %}<script>setTimeout(()=>location.reload(),4000)</script>{% endif %}{% endblock %}

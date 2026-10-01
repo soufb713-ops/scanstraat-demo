@@ -1,0 +1,29 @@
+[
+ {
+  "nr": "1001",
+  "name": "Studio Lindewerf B.V.",
+  "kvk": "90412276",
+  "vat": "NL865512093B01",
+  "city": "Rotterdam",
+  "exact_division": "",
+  "chart": "lindewerf"
+ },
+ {
+  "nr": "1002",
+  "name": "Fietsenmakerij De Spaak B.V.",
+  "kvk": "93120458",
+  "vat": "NL866230417B01",
+  "city": "Delft",
+  "exact_division": "",
+  "chart": "standaard"
+ },
+ {
+  "nr": "1003",
+  "name": "Bakkerij Van Oord B.V.",
+  "kvk": "91877302",
+  "vat": "NL865990214B01",
+  "city": "Schiedam",
+  "exact_division": "",
+  "chart": "standaard"
+ }
+]

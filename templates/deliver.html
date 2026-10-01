@@ -1,0 +1,68 @@
+{% extends "base.html" %}{% set nav='deliver' %}{% block title %}Afhandelen{% endblock %}
+{% block main %}
+<div class="head"><div><h1>Afhandelen</h1><p>Alleen goedgekeurde documenten komen hier. Kies per bestemming wat er gebeurt; alles wordt vastgelegd in de auditlog.</p></div></div>
+
+{% set unconf_mk = docs|selectattr('exports.mijnkantoor')|selectattr('exports.mijnkantoor.confirmed', 'sameas', false)|list %}
+{% set unconf_ex = docs|selectattr('exports.exact')|selectattr('exports.exact.confirmed', 'sameas', false)|list %}
+{% if unconf_mk or unconf_ex %}
+<div class="card" style="margin-bottom:18px;border-color:#f59e0b">
+  <div class="card-h"><h2>Bevestig de import</h2><span class="sub">daarna worden de originelen hier gewist</span></div>
+  <div class="card-b stack">
+    <p class="sub" style="margin:0">Een ZIP of importbestand is een download: alleen jij kunt zien of de import in MijnKantoor of Exact gelukt is. Na je bevestiging wissen we het origineel, de paginabeelden en de koppeltabel van die documenten (als ook de andere verplichte bestemming klaar is).</p>
+    {% for key, list_, name in [('mijnkantoor', unconf_mk, 'MijnKantoor (ZIP)'), ('exact', unconf_ex, 'Exact (importbestand)')] %}{% if list_ %}
+    <form method="post" action="/afhandelen/bevestigen" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="key" value="{{ key }}">
+      {% for d in list_ %}<input type="hidden" name="ids" value="{{ d.id }}">{% endfor %}
+      <span><b>{{ name }}:</b> {{ list_|length }} document{{ 'en' if list_|length != 1 }}</span>
+      <button class="btn primary sm" onclick="return confirm('Staan deze {{ list_|length }} documenten echt in {{ name }}? Daarna wissen we de originelen hier.')">Import gelukt, bevestigen</button>
+    </form>{% endif %}{% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="grid3" style="margin-bottom:18px">
+  <div class="route">
+    <div class="top"><span class="ico" style="background:#1f5b98">MK</span><div><b>MijnKantoor</b><div class="sub">{{ pending.mijnkantoor }} nog te archiveren</div></div></div>
+    <p>Elk document als eigen pdf in de juiste map van het klantdossier, met een nette bestandsnaam.</p>
+    <div class="btns">
+      {% if s.mk_route == 'folder' and s.mk_sync_dir %}
+      <form method="post" action="/afhandelen/mijnkantoor"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="route" value="folder"><button class="btn primary" {{ 'disabled' if not pending.mijnkantoor }}>In dossiermap zetten</button></form>
+      {% endif %}
+      <form method="post" action="/afhandelen/mijnkantoor"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><button class="btn {{ 'primary' if not (s.mk_route == 'folder' and s.mk_sync_dir) }}" {{ 'disabled' if not pending.mijnkantoor }}>ZIP voor upload</button></form>
+    </div>
+    <div class="honest">{% if s.mk_route == 'folder' and s.mk_sync_dir %}Schrijft naar de map die MijnKantoor via SharePoint synchroniseert.{% else %}ZIP met de mappen per klant: uitpakken en in het dossier slepen. Automatisch kan via de SharePoint-synchronisatie van MijnKantoor{% if user.role == 'admin' %} (<a href="/koppelingen#mijnkantoor">instellen</a>){% endif %}.{% endif %}</div>
+  </div>
+  <div class="route">
+    <div class="top"><span class="ico" style="background:#e11d48">E</span><div><b>Exact Online</b><div class="sub">{{ pending.exact if bookable else 0 }} boekingen klaar</div></div></div>
+    <p>Inkoop- en verkoopfacturen als boeking, met de pdf als bijlage. Brieven en afschriften niet.</p>
+    <div class="btns">
+      {% if exact_tok %}<form method="post" action="/afhandelen/exact"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="format" value="api"><button class="btn primary" {{ 'disabled' if not pending.exact }}>Boeken in Exact</button></form>{% endif %}
+      <form method="post" action="/afhandelen/exact"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="format" value="xml"><button class="btn {{ 'primary' if not exact_tok }}" {{ 'disabled' if not pending.exact }}>Importbestand (XML)</button></form>
+      <form method="post" action="/afhandelen/exact"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="format" value="csv"><button class="btn" {{ 'disabled' if not pending.exact }}>CSV</button></form>
+    </div>
+    <div class="honest">{% if exact_tok %}Gekoppeld met administratie {{ exact_tok.division }}.{% else %}Nog niet gekoppeld: het importbestand is nog niet getest in een echte Exact-administratie, dus eerst één boeking proberen.{% endif %}{% if not integ.vat_map %} Btw-codes nog niet gekoppeld aan de codes in Exact{% if user.role == 'admin' %} (<a href="/koppelingen#exact">instellen</a>){% endif %}.{% endif %}</div>
+  </div>
+  <div class="route">
+    <div class="top"><span class="ico" style="background:#15803d">X</span><div><b>Excel-register</b><div class="sub">{{ pending.excel }} nieuw sinds het laatste register</div></div></div>
+    <p>Eén overzicht met alle gescande documenten, bedragen, map en wie het controleerde. Tweede tab: boekingsregels.</p>
+    <div class="btns"><a class="btn primary" href="/afhandelen/register.xlsx">Nieuwe regels (.xlsx)</a><a class="btn" href="/afhandelen/register.xlsx?all=1">Alles</a></div>
+    <div class="honest">Vervangt het overtypen in Excel. Kolommen zijn aan te passen aan jullie huidige sheet.</div>
+  </div>
+</div>
+
+<div class="card tablewrap">
+  <div class="card-h"><h2>Goedgekeurde documenten</h2><span class="sub">{{ docs|length }}</span></div>
+  <table><tr><th>Document</th><th>Klant</th><th>Map en bestand</th><th class="num">Totaal</th><th>MijnKantoor</th><th>Exact</th><th>Excel</th><th>Origineel</th></tr>
+  {% for d in docs %}{% set c = clients.get(d.client_nr) %}<tr class="link" onclick="location='/document/{{ d.id }}'">
+    <td><b>{{ d.result.counterparty or KINDS[d.kind] }}</b><div class="sub">{{ d.id }} · {{ KINDS[d.kind] }} · {{ d.approved.by }}</div></td>
+    <td>{{ c.name if c else '?' }}</td>
+    <td class="sub" style="max-width:320px;word-break:break-all">{{ d.filing.folder }}/<br>{{ d.filing.filename }}</td>
+    <td class="num">{{ d.result.gross_total|eur }}</td>
+    <td>{% if d.exports.mijnkantoor %}<span class="tick">✓</span> <span class="sub">{{ d.exports.mijnkantoor.route }}{{ ' · niet bevestigd' if d.exports.mijnkantoor.confirmed is sameas false }}</span>{% else %}<span class="badge amber plain">Open</span>{% endif %}</td>
+    <td>{% if d.kind not in ('inkoopfactuur','kassabon','creditnota','verkoopfactuur') %}<span class="sub">n.v.t.</span>{% elif d.exports.exact %}<span class="tick">✓</span> <span class="sub">{{ d.exports.exact.route }}{{ ' · niet bevestigd' if d.exports.exact.confirmed is sameas false }}</span>{% else %}<span class="badge amber plain">Open</span>{% endif %}</td>
+    <td>{% if d.exports.excel %}<span class="tick">✓</span>{% else %}<span class="sub">–</span>{% endif %}</td>
+    <td>{% if d.purged %}<span class="badge grey">Gewist</span>{% else %}<span class="sub">Versleuteld bewaard</span>{% endif %}</td></tr>
+  {% else %}<tr><td colspan="8" class="empty">Nog niets goedgekeurd. <a href="/">Naar controleren</a>.</td></tr>{% endfor %}
+  </table>
+</div>
+{% endblock %}

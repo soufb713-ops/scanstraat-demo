@@ -1,0 +1,25 @@
+# Demo hosting on Render (Frankfurt), fictional data only, no AI (replay mode).
+# Not the production setup: production waits for the DPA, terms and BV (see README).
+# Data lives in the container and resets on every redeploy or restart. That is fine for a demo.
+services:
+  - type: web
+    name: scanstraat-demo
+    runtime: docker
+    region: frankfurt
+    plan: free
+    dockerfilePath: ./deploy/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: SCAN_AI
+        value: replay
+      - key: SECURE_COOKIES
+        value: "1"
+      - key: ADMIN_NAME
+        value: Soufyan
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true

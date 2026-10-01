@@ -1,0 +1,11 @@
+vat_code,name,rate_pct,vat_return_box,description
+V21,Voorbelasting 21%,21,5b,"Dutch purchase at 21%, VAT deductible"
+V9,Voorbelasting 9%,9,5b,"Dutch purchase at 9% (food, public transport, books), deductible"
+V0,0% / geen btw op factuur,0,,"Supplier charged no VAT (e.g. KOR supplier, exempt service)"
+EU_DIENST_VERL,"Dienst uit EU, btw verlegd",21,4b + 5b,"Service from another EU country: self-assess 21% in 4b, deduct in 5b"
+EU_GOED_VERL,Goederen uit EU (ICV),21,4b + 5b,Intra-EU acquisition of goods (not in this set)
+NL_VERL,Binnenlands verlegd,21,2a + 5b,"Domestic reverse charge (e.g. subcontracting), not in this set"
+GEEN_AFTREK,Btw niet aftrekbaar,,,VAT on the document but excluded from deduction; book gross
+PRIVE,"Privé, buiten btw",,,Private expense via the DGA current account; no VAT deduction
+GEEN,"Geen btw (bank, verzekering)",,,Exempt or outside the scope of VAT
+O21,Omzet 21%,21,1a,Sales at 21%

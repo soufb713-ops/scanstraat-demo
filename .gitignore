@@ -1,0 +1,10 @@
+.venv
+data
+.env
+__pycache__
+scans
+mijnkantoor-sync
+*.zip
+.vault-key
+.backup-key
+backups

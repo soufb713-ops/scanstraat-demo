@@ -1,0 +1,12 @@
+flask>=3.0
+gunicorn>=22
+anthropic>=1.9
+cryptography>=42
+pillow>=10
+pypdfium2>=4
+numpy>=1.26
+opencv-python-headless>=4.9
+qrcode>=7.4
+reportlab>=4.0
+openpyxl>=3.1
+pytest>=8

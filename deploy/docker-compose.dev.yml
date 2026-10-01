@@ -1,0 +1,22 @@
+# DEVELOPMENT ONLY, on your own computer:  docker compose -f deploy/docker-compose.dev.yml up --build
+# Then: docker compose -f deploy/docker-compose.dev.yml exec ollama ollama pull qwen2.5vl:7b
+#       docker compose -f deploy/docker-compose.dev.yml exec ollama ollama pull qwen2.5:7b
+# The app listens on 127.0.0.1 only. Production deployment (Hetzner fsn1, backups, https) is not in this
+# folder yet: it follows once the DPA, terms and BV are confirmed (see README).
+services:
+  app:
+    build: { context: .., dockerfile: deploy/Dockerfile }
+    env_file: ../.env
+    environment:
+      OLLAMA_URL: http://ollama:11434
+      APP_ENV: development
+    ports: ["127.0.0.1:5000:5000"]
+    volumes:
+      - data:/data
+      - keys:/keys
+      - ../scans:/scans
+    depends_on: [ollama]
+  ollama:
+    image: ollama/ollama
+    volumes: [ "models:/root/.ollama" ]
+volumes: { data: {}, keys: {}, models: {} }

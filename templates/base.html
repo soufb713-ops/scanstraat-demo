@@ -1,0 +1,41 @@
+<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}{{ brand }}{% endblock %} · {{ brand }}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230e2a47'/><path d='M8 11h16M8 16h16M8 21h10' stroke='%232dd4bf' stroke-width='2.6' stroke-linecap='round'/></svg>">
+</head><body>
+{% block body %}
+<div class="shell">
+  <aside class="side">
+    <a class="logo" href="/"><span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg></span><span>{{ brand }}<small>Van papier naar dossier</small></span></a>
+    <nav class="nav">
+      <a href="/" class="{{ 'on' if nav=='overview' }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Overzicht{% if open_count %}<span class="count">{{ open_count }}</span>{% endif %}</a>
+      <a href="/scannen" class="{{ 'on' if nav=='scan' }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 17v4h10v-4M7 13h.01"/></svg>Scannen</a>
+      <a href="/afhandelen" class="{{ 'on' if nav=='deliver' }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 12l9 4 9-4M3 17l9 4 9-4"/></svg>Afhandelen</a>
+      <a href="/klanten" class="{{ 'on' if nav=='clients' }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h12l4 4v12H4z"/><path d="M8 12h8M8 16h5"/></svg>Klanten &amp; bladen</a>
+      <a href="/berichten" class="{{ 'on' if nav=='messages' }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16v11H8l-4 4z"/></svg>Berichten{% if draft_count %}<span class="count">{{ draft_count }}</span>{% endif %}</a>
+      <a href="/beveiliging" class="{{ 'on' if nav=='security' }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Privacy &amp; beveiliging</a>
+      <a href="/auditlog" class="{{ 'on' if nav=='audit' }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5h11M9 12h11M9 19h11M4 5h.01M4 12h.01M4 19h.01"/></svg>Auditlog</a>
+      {% if user and user.role == 'admin' %}
+      <div class="sect">Beheer</div>
+      <a href="/koppelingen" class="{{ 'on' if nav=='integrations' }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1"/></svg>Koppelingen</a>
+      <a href="/gebruikers" class="{{ 'on' if nav=='users' }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0114 0M17 11a3 3 0 100-6M22 21a6 6 0 00-5-6"/></svg>Gebruikers</a>
+      {% endif %}
+    </nav>
+    <div class="foot">
+      <div class="who">{{ user.name }}</div><div class="role">{{ user.email }}</div>
+      <div class="row"><a href="/account/wachtwoord">Wachtwoord</a>
+      <form method="post" action="/logout"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><button>Uitloggen</button></form></div>
+      <div class="mode {{ 'live' if live else 'replay' }}" title="Zie Privacy &amp; beveiliging"><i></i>{{ ai_label }}</div>
+    </div>
+  </aside>
+  <div class="main">
+    <div class="notice">Demo-omgeving met fictieve klanten. Scan geen papieren van echte klanten.</div>
+    <div class="page {% block pageclass %}{% endblock %}">
+      {% with msgs = get_flashed_messages(with_categories=true) %}{% for cat, m in msgs %}<div class="flash {{ 'error' if cat=='error' }}">{{ m }}</div>{% endfor %}{% endwith %}
+      {% block main %}{% endblock %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}{% endblock %}
+</body></html>

@@ -1,0 +1,73 @@
+{% extends "base.html" %}{% set nav='scan' %}{% block title %}Scan {{ b.id }}{% endblock %}
+{% block main %}
+<div class="crumbs"><a href="/">Overzicht</a> / Scan {{ b.id }}</div>
+<div class="head"><div><h1 style="word-break:break-all">{{ b.name }}</h1>
+<p>{{ b.created|dt }} · {{ {'scanner':'Via de scanmap','upload':'Geüpload door ' ~ b.by,'voorbeeld':'Voorbeeldscan','whatsapp':'Via WhatsApp'}.get(b.source, b.source) }}{% if b.seconds %} · verwerkt in {{ b.seconds|string|replace('.', ',') }} seconden{% endif %}{% if b.mode == 'replay' %} · replay (geen AI){% elif b.mode == 'local' %} · lokale AI, niets naar buiten{% elif b.mode == 'hybrid' %} · hybride: alleen geanonimiseerde tekst naar Claude{% endif %}</p></div>
+{% if b.status == 'done' %}{% set first = docs|selectattr('status','equalto','review')|first %}<div class="actions">{% if first %}<a class="btn primary" href="/document/{{ first.id }}">Controleren</a>{% else %}<a class="btn primary" href="/afhandelen">Afhandelen</a>{% endif %}</div>{% endif %}</div>
+
+{% if b.status != 'done' %}
+<div class="card card-b" id="prog" style="margin-bottom:18px">
+  {% if b.status == 'error' %}<div class="alert error"><span class="ic">!</span>Verwerking mislukt: {{ b.error }}</div>
+  {% else %}
+  <div style="display:flex;justify-content:space-between;margin-bottom:8px"><b id="stepname">{{ steps[b.step] if b.step < steps|length else 'Klaar' }}</b><span class="sub" id="detail">{{ b.detail }}</span></div>
+  <div class="progress"><i id="bar" style="width:{{ (b.step / steps|length * 100)|int }}%"></i></div>
+  <div class="pipe">{% for s in steps %}<span class="{{ 'done' if loop.index0 < b.step else 'now' if loop.index0 == b.step }}">{{ s }}</span>{% endfor %}</div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% for w in b.get('warnings', []) %}<div class="alert warning"><span class="ic">!</span>{{ w }}</div>{% endfor %}
+
+{% if b.pages %}
+<div class="card" style="margin-bottom:18px">
+  <div class="card-h"><h2>De stapel zoals gescand</h2><span class="sub">{{ b.pages|length }} pagina's · {{ b.pages|selectattr('kind','equalto','blank')|list|length }} leeg · {{ b.pages|selectattr('kind','equalto','cover')|list|length }} scheidingsblad</span></div>
+  <div class="card-b" style="padding-bottom:6px"><div class="strip">
+    {% set ns = namespace(idx={}, n=0) %}
+    {% for p in b.pages %}
+      {% if p.doc and p.doc not in ns.idx %}{% set _ = ns.idx.update({p.doc: ns.n}) %}{% set ns.n = ns.n + 1 %}{% endif %}
+      <div class="pg k-{{ p.kind }}"><div class="im {{ 'c' ~ (ns.idx[p.doc] % 5) if p.doc }}" style="background-image:url('/pagina/{{ b.id }}/{{ p.n }}.jpg?t=1')">
+        {% if p.kind == 'cover' %}<span class="tag">Klant {{ p.client_nr }}</span>{% elif p.kind == 'blank' %}<span class="tag">Leeg</span>{% elif p.doc %}<span class="tag">{{ p.doc }}</span>{% endif %}</div>{{ p.n }}</div>
+    {% endfor %}
+  </div></div>
+</div>
+{% endif %}
+
+{% if docs %}
+{% set groups = {} %}{% for d in docs %}{% set _ = groups.setdefault(d.client_nr or '', []).append(d) %}{% endfor %}
+{% for nr, ds in groups.items() %}{% set c = clients.get(nr) %}
+<div class="grp">
+  <div class="grp-h"><span class="av">{{ nr or '?' }}</span><div style="flex:1"><b>{{ c.name if c else 'Klant onbekend' }}</b><div class="sub">{{ ds|length }} documenten{% if ds[0].client_via %} · klant via {{ ds[0].client_via }}{% endif %}</div></div></div>
+  {% for d in ds %}
+  <div class="doc-row">
+    <div class="thumbs">{% for p in d.pages[:3] %}<img src="/pagina/{{ b.id }}/{{ p }}.jpg?t=1" alt="">{% endfor %}</div>
+    <div class="meta">
+      <b>{% if d.result %}{{ d.result.counterparty or KINDS[d.kind] }}{% else %}Wordt gelezen…{% endif %}</b>
+      {% if d.result and d.result.gross_total is not none %} <span class="muted">{{ d.result.gross_total|eur }}</span>{% endif %}
+      <div class="sub"><span>{{ d.id }}</span><span>{{ KINDS[d.kind] }}</span><span>{{ d.pages|length }} pag. ({{ d.pages|join(', ') }})</span>{% if d.filing %}<span>{{ d.filing.folder }}</span>{% endif %}</div>
+    </div>
+    <div class="tools">
+      {% if d.status == 'reading' %}<span class="badge blue">Lezen</span>
+      {% elif d.status == 'approved' %}<span class="badge green">Goedgekeurd</span>
+      {% elif d.status == 'asked' %}<span class="badge blue">Vraag klant</span>
+      {% elif d.status == 'rejected' %}<span class="badge grey">Eruit</span>
+      {% elif d.light == 'red' %}<span class="badge red">Fout</span>{% elif d.light == 'amber' %}<span class="badge amber">Let op</span>{% else %}<span class="badge green">In orde</span>{% endif %}
+      {% if b.status == 'done' and d.status in ('review','asked') %}
+        {% if b.docs.index(d.id) > 0 %}<form method="post" action="/scan/{{ b.id }}/indeling" class="inline"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="doc" value="{{ d.id }}"><button class="btn sm ghost" name="action" value="merge" title="Deze pagina's horen bij het vorige document">↑ Hoort bij vorige</button></form>{% endif %}
+        {% if d.pages|length > 1 %}<form method="post" action="/scan/{{ b.id }}/indeling" class="inline" style="display:inline-flex;gap:4px"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="doc" value="{{ d.id }}"><input type="hidden" name="action" value="split"><select name="after" style="width:auto;padding:4px 6px;font-size:12px">{% for p in d.pages[:-1] %}<option value="{{ p }}">na pag. {{ p }}</option>{% endfor %}</select><button class="btn sm ghost">Splitsen</button></form>{% endif %}
+      {% endif %}
+      {% if d.status != 'reading' %}<a class="btn sm {{ 'primary' if d.status == 'review' }}" href="/document/{{ d.id }}">{{ 'Controleren' if d.status == 'review' else 'Bekijken' }}</a>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endfor %}
+{% endif %}
+{% endblock %}
+{% block scripts %}{% if b.status == 'processing' %}<script>
+const steps={{ steps|tojson }};let last=null;
+async function poll(){try{const r=await fetch('/api/scan/{{ b.id }}');const j=await r.json();
+ const bar=document.getElementById('bar');if(bar){bar.style.width=Math.round(j.step/steps.length*100)+'%';document.getElementById('stepname').textContent=steps[j.step]||'Klaar';document.getElementById('detail').textContent=j.detail||''}
+ const sig=j.status+j.step+':'+j.pages+':'+j.docs+':'+j.read;
+ if(j.status!=='processing'){location.reload();return}
+ if(last!==null&&sig!==last&&(j.step>=2)){location.reload();return}last=sig}catch(e){}setTimeout(poll,1200)}
+poll();</script>{% endif %}{% endblock %}

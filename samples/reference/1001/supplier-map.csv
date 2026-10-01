@@ -1,0 +1,13 @@
+supplier,usual_account,usual_vat_code,frequency,notes
+Belnet Mobiel B.V.,4310,V21,monthly,direct debit ~15th
+Pandhuis Rotterdam Beheer B.V.,4100,V21,monthly,invoiced ~22nd for next month
+Vektorhub Ltd,4330,EU_DIENST_VERL,monthly,"direct debit ~4th, Ireland"
+Hostvlak B.V.,4340,V21,monthly,direct debit ~5th
+Kantoorhuis Maas B.V.,4320,V21,ad hoc,
+Drukkerij Van Wijk B.V.,4600,V21,ad hoc,
+Schoonmaakbedrijf Blinkend,4110,V21,monthly,invoiced end of month
+Fotografie Noorderlicht,4700,V21,ad hoc,eenmanszaak: mask person name
+TankPunt A20 Nieuwerkerk,4410,V21,ad hoc,card
+SuperVers Kralingen,4530,V9/V21,ad hoc,"card, mixed rates"
+RailNed Reizigers B.V.,4510,V9,ad hoc,
+ParkeerCentrum Blaak,4420,V21,ad hoc,

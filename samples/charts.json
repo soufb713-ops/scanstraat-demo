@@ -1,0 +1,178 @@
+{
+ "lindewerf": [
+  [
+   "0210",
+   "Computers en hardware"
+  ],
+  [
+   "0215",
+   "Afschrijving computers en hardware"
+  ],
+  [
+   "1100",
+   "Bank (zakelijke rekening)"
+  ],
+  [
+   "1300",
+   "Debiteuren"
+  ],
+  [
+   "1400",
+   "Vooruitbetaalde kosten"
+  ],
+  [
+   "1510",
+   "Te vorderen btw (voorbelasting)"
+  ],
+  [
+   "1520",
+   "Af te dragen btw"
+  ],
+  [
+   "1530",
+   "Btw verlegd (af te dragen)"
+  ],
+  [
+   "1600",
+   "Crediteuren"
+  ],
+  [
+   "1800",
+   "Rekening-courant DGA"
+  ],
+  [
+   "1900",
+   "Vraagposten / kruisposten"
+  ],
+  [
+   "4000",
+   "Brutolonen"
+  ],
+  [
+   "4100",
+   "Huur bedrijfsruimte"
+  ],
+  [
+   "4110",
+   "Schoonmaakkosten"
+  ],
+  [
+   "4310",
+   "Telefoon en internet"
+  ],
+  [
+   "4320",
+   "Kantoorbenodigdheden"
+  ],
+  [
+   "4330",
+   "Software en abonnementen"
+  ],
+  [
+   "4340",
+   "Hosting en domeinnamen"
+  ],
+  [
+   "4410",
+   "Brandstof auto"
+  ],
+  [
+   "4420",
+   "Parkeerkosten"
+  ],
+  [
+   "4510",
+   "Reiskosten openbaar vervoer en taxi"
+  ],
+  [
+   "4520",
+   "Representatiekosten"
+  ],
+  [
+   "4530",
+   "Kantinekosten"
+  ],
+  [
+   "4600",
+   "Reclame- en advertentiekosten"
+  ],
+  [
+   "4700",
+   "Uitbesteed werk / inhuur derden"
+  ],
+  [
+   "4800",
+   "Bankkosten"
+  ],
+  [
+   "4900",
+   "Kleine aanschaffingen / overige kosten"
+  ],
+  [
+   "8000",
+   "Omzet ontwerp en webdesign 21%"
+  ]
+ ],
+ "standaard": [
+  [
+   "0210",
+   "Inventaris en gereedschap"
+  ],
+  [
+   "1100",
+   "Bank"
+  ],
+  [
+   "1600",
+   "Crediteuren"
+  ],
+  [
+   "1800",
+   "Rekening-courant DGA"
+  ],
+  [
+   "4100",
+   "Huur bedrijfsruimte"
+  ],
+  [
+   "4310",
+   "Telefoon en internet"
+  ],
+  [
+   "4320",
+   "Kantoorbenodigdheden"
+  ],
+  [
+   "4410",
+   "Brandstof auto"
+  ],
+  [
+   "4530",
+   "Kantinekosten"
+  ],
+  [
+   "4600",
+   "Reclamekosten"
+  ],
+  [
+   "4800",
+   "Bankkosten"
+  ],
+  [
+   "4900",
+   "Klein gereedschap en overige kosten"
+  ],
+  [
+   "7000",
+   "Inkoopwaarde onderdelen"
+  ],
+  [
+   "8000",
+   "Omzet 21%"
+  ],
+  [
+   "8100",
+   "Omzet 9%"
+  ]
+ ]
+}

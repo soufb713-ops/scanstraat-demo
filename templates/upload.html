@@ -1,0 +1,62 @@
+{% extends "base.html" %}{% set nav='scan' %}{% block title %}Scannen{% endblock %}
+{% block main %}
+<div class="head"><div><h1>Nieuwe scan</h1><p>Scan de hele stapel in één keer, met een scheidingsblad bovenop de papieren van elke klant. Lege achterkanten, scheidingsbladen en het splitsen per document doet het systeem.</p></div>
+<div class="actions"><a class="btn" href="/klanten/scheidingsbladen.pdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M8 14h8v7H8z"/></svg>Scheidingsbladen printen</a></div></div>
+<div class="split">
+  <div class="stack">
+    <form class="card card-b" method="post" enctype="multipart/form-data" id="up">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <label class="drop" id="drop">
+        <input type="file" name="files" id="files" multiple accept=".pdf,.jpg,.jpeg,.png,.tif,.tiff,.heic,.webp,image/*,application/pdf">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 16V4M6 10l6-6 6 6"/><path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg>
+        <b>Sleep de scan hierheen of kies bestanden</b>
+        <span class="sub">Pdf van de scanner (één groot bestand mag), tiff of foto's. Op de telefoon kun je ook direct een foto maken.</span>
+        <div class="files" id="list"></div>
+      </label>
+      <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+        <button class="btn primary" id="go" disabled>Verwerken</button>
+        {% if sample %}<button class="btn" name="sample" value="1" formnovalidate>Voorbeeldscan laden (16 pagina's, 2 klanten)</button>{% endif %}
+      </div>
+    </form>
+    <div class="card">
+      <div class="card-h"><h2>Wat er met de scan gebeurt</h2></div>
+      <div class="card-b">
+        <ol class="steps">
+          <li><b>Pagina's inlezen</b><span class="sub">Elke pagina wordt een afbeelding. Lege achterkanten van dubbelzijdig scannen gaan eruit. Vaste code, geen AI.</span></li>
+          <li><b>Verdelen per klant</b><span class="sub">De QR-code op het scheidingsblad zegt zeker bij welke klant de volgende pagina's horen. Zonder blad zoekt de AI de klant op het document; twijfel gaat naar controle.</span></li>
+          <li><b>Splitsen per document</b><span class="sub">De AI ziet welke pagina's één document zijn: een factuur van 2 pagina's blijft één pdf. Je kunt samenvoegen of splitsen.</span></li>
+          <li><b>Lezen en voorstel maken</b><span class="sub">Soort, wederpartij, bedragen, btw, de map in MijnKantoor, een bestandsnaam en de Exact-boeking uit het rekeningschema van de klant.</span></li>
+          <li><b>Controles en goedkeuring</b><span class="sub">Rekenfouten, btw, IBAN, dubbele facturen en termijnen met vaste regels. Pas na goedkeuring door een medewerker gaat iets naar MijnKantoor, Exact of Excel.</span></li>
+        </ol>
+      </div>
+    </div>
+  </div>
+  <div class="stack">
+    <div class="card">
+      <div class="card-h"><h2>Direct vanaf de scanner</h2><span class="badge teal">aanrader</span></div>
+      <div class="card-b">
+        <p style="margin-top:0">Stel op de multifunctional <b>Scannen naar map</b> in. Elk bestand dat in deze map komt wordt vanzelf verwerkt, zonder uploaden:</p>
+        <code style="display:block;padding:8px 10px;font-size:12.5px">{{ inbox }}</code>
+        <p class="sub" style="margin-bottom:0">Instelling scanner: pdf, 200 dpi, grijstinten of kleur, dubbelzijdig, één bestand per scan. Staat de server in de cloud, dan zet je een kleine synchronisatie op van de scanmap op kantoor. Zie de README.</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h2>Scheidingsbladen</h2></div>
+      <div class="card-b">
+        <p style="margin-top:0">Print per klant één blad en leg het bij de scanner. Het blad wordt niet opgeslagen en is steeds opnieuw te gebruiken.</p>
+        <a class="btn sm" href="/klanten">Klanten en bladen beheren</a>
+      </div>
+    </div>
+    {% if not live %}<div class="alert warning"><span class="ic">!</span><div>Replay-modus (SCAN_AI=replay): het systeem speelt alleen de voorbeeldscan af. Andere scans worden per pagina gesplitst zonder uitlezen.</div></div>{% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script>
+const inp=document.getElementById('files'),drop=document.getElementById('drop'),list=document.getElementById('list'),go=document.getElementById('go');
+function show(){const f=[...inp.files];list.textContent=f.length?f.map(x=>x.name).join(', '):'';go.disabled=!f.length}
+inp.addEventListener('change',show);
+['dragover','dragenter'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add('over')}));
+['dragleave','drop'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.remove('over')}));
+drop.addEventListener('drop',ev=>{inp.files=ev.dataTransfer.files;show()});
+document.getElementById('up').addEventListener('submit',()=>{go.textContent='Uploaden…'});
+</script>{% endblock %}

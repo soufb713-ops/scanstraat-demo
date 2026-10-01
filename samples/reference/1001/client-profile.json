@@ -1,0 +1,16 @@
+{
+  "name": "Studio Lindewerf B.V.",
+  "legal_form": "BV",
+  "activity": "Grafisch ontwerp en webdesign (SBI 74.10)",
+  "address": "Hoogstraat 118, 3011 PV Rotterdam",
+  "kvk": "90412276",
+  "vat_id": "NL865512093B01",
+  "iban": "NL93DEMO0123456789",
+  "vat_frequency": "quarter",
+  "kor": false,
+  "employees": 2,
+  "company_car": "Bestelauto op naam van de BV (zakelijk), brandstof via bankpas",
+  "dga_current_account": "1800 Rekening-courant DGA",
+  "period": "2026-07-01 / 2026-09-30 (Q3 2026)",
+  "notes": "Fictional client. The DGA is not named anywhere; private purchases go to the current account."
+}

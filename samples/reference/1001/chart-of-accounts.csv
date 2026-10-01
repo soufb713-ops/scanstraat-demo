@@ -1,0 +1,29 @@
+account,name,type,rgs_code,rgs_code_verified
+0210,Computers en hardware,balance,BMvaBedInvCom,False
+0215,Afschrijving computers en hardware,balance,BMvaBedInvCmaAfs,False
+1100,Bank (zakelijke rekening),balance,BLimBanRba,False
+1300,Debiteuren,balance,BVorDebHad,False
+1400,Vooruitbetaalde kosten,balance,BVorOvaVoo,False
+1510,Te vorderen btw (voorbelasting),balance,BSchBepBtwVoo,False
+1520,Af te dragen btw,balance,BSchBepBtwAfg,False
+1530,Btw verlegd (af te dragen),balance,BSchBepBtwVer,False
+1600,Crediteuren,balance,BSchCreHac,False
+1800,Rekening-courant DGA,balance,BSchSchRcd,False
+1900,Vraagposten / kruisposten,balance,BLimKru,False
+4000,Brutolonen,pl,WPerLesSal,False
+4100,Huur bedrijfsruimte,pl,WBedHuiBeh,True
+4110,Schoonmaakkosten,pl,WBedHuiSch,False
+4310,Telefoon en internet,pl,WBedKanTef,True
+4320,Kantoorbenodigdheden,pl,WBedKanKan,True
+4330,Software en abonnementen,pl,WBedKanSof,False
+4340,Hosting en domeinnamen,pl,WBedKanSof,False
+4410,Brandstof auto,pl,WBedAutBra,False
+4420,Parkeerkosten,pl,WBedAutPar,False
+4510,Reiskosten openbaar vervoer en taxi,pl,WBedVkkRei,False
+4520,Representatiekosten,pl,WBedVkkRep,True
+4530,Kantinekosten,pl,WBedAlkKan,False
+4600,Reclame- en advertentiekosten,pl,WBedVkkRec,False
+4700,Uitbesteed werk / inhuur derden,pl,WBedOvpUit,False
+4800,Bankkosten,pl,WFinRfkBan,False
+4900,Kleine aanschaffingen / overige kosten,pl,WBedAlkOal,False
+8000,Omzet ontwerp en webdesign 21%,pl,WOmzNopOlh,False

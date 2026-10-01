@@ -1,0 +1,38 @@
+{% extends "base.html" %}{% block title %}Tweestapsverificatie{% endblock %}
+{% block body %}
+<div class="auth">
+  <div class="brandside">
+    <div class="logo" style="padding:0"><span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg></span><span>{{ brand }}<small>Van papier naar dossier</small></span></div>
+    <div>
+      <h2>Scan de hele stapel in één keer. De rest staat klaar om te controleren.</h2>
+      <ul>
+        <li>Scheidingsblad per klant: de stapel wordt automatisch per klant verdeeld</li>
+        <li>Lege achterkanten eruit, pagina's per document samengevoegd</li>
+        <li>Voorstel voor de MijnKantoor-map, de Exact-boeking en het Excel-register</li>
+        <li>Niets gaat door zonder goedkeuring van een medewerker</li>
+        <li>Lokaal verwerkt; naar Claude gaat hooguit geanonimiseerde tekst, nooit een scan</li>
+      </ul>
+      <div class="chain"><span>Scanner</span><em>→</em><span>Splitsen</span><em>→</em><span>Controle</span><em>→</em><span>MijnKantoor</span><em>+</em><span>Exact</span><em>+</em><span>Excel</span></div>
+    </div>
+    <div class="sub" style="color:#8fa6bf">Demo-omgeving · fictieve klanten</div>
+  </div>
+  <div class="formside">
+    <form method="post">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      {% if mode == 'setup' %}
+      <h1 style="margin-bottom:6px">Tweestapsverificatie instellen</h1>
+      <p class="muted" style="margin:0 0 16px">Verplicht voor elk account. Scan de QR-code met een authenticator-app (bijvoorbeeld Microsoft Authenticator, Google Authenticator of 1Password) en vul de code van 6 cijfers in.</p>
+      <div style="display:flex;gap:16px;align-items:center;margin-bottom:16px"><div style="width:168px;height:168px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:4px" class="qr">{{ qr|safe }}</div>
+      <div class="sub">Lukt scannen niet? Typ deze sleutel in de app:<br><code style="font-size:13px;word-break:break-all">{{ secret }}</code></div></div>
+      {% else %}
+      <h1 style="margin-bottom:6px">Code invoeren</h1>
+      <p class="muted" style="margin:0 0 22px">Open je authenticator-app en vul de code van 6 cijfers in.</p>
+      {% endif %}
+      {% if error %}<div class="alert error"><span class="ic">!</span>{{ error }}</div>{% endif %}
+      <div class="f"><label for="code">Code</label><input id="code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{6,7}" maxlength="7" required autofocus></div>
+      <button class="btn primary block" style="margin-top:6px">{{ 'Bevestigen en inloggen' if mode == 'setup' else 'Inloggen' }}</button>
+      <p class="sub" style="margin-top:18px">Telefoon kwijt? Vraag de beheerder om je tweestapsverificatie opnieuw in te stellen.</p>
+    </form>
+  </div>
+</div>
+{% endblock %}

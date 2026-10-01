@@ -1,0 +1,40 @@
+{% extends "base.html" %}{% set nav='clients' %}{% block title %}Klanten{% endblock %}
+{% block main %}
+<div class="head"><div><h1>Klanten en scheidingsbladen</h1><p>Elke klant heeft een scheidingsblad met een QR-code. Print het één keer en leg het bij de scanner. Het relatienummer is hetzelfde als in MijnKantoor, zodat de dossiermap klopt. Een <b>Wwft-stop</b> blokkeert alle berichten aan die klant, bijvoorbeeld zolang een melding aan FIU-Nederland wordt overwogen; de reden leg je vast in je eigen Wwft-dossier, niet hier.</p></div>
+<div class="actions"><a class="btn primary" href="/klanten/scheidingsbladen.pdf">Alle bladen printen</a></div></div>
+<div class="card tablewrap" style="margin-bottom:18px">
+  <table><tr><th>Relatie</th><th>Klant</th><th>KvK / btw</th><th>Rekeningschema</th><th>Exact-divisie</th><th>E-mail voor vragen</th><th class="num">Documenten</th><th>Wwft</th><th></th></tr>
+  {% for c in clients %}<tr>
+    <td class="strong">{{ c.nr }}</td><td><b>{{ c.name }}</b><div class="sub">{{ c.city }}</div></td>
+    <td class="sub">{{ c.kvk or '–' }}<br>{{ c.vat or '' }}</td>
+    {% if user.role == 'admin' %}<td colspan="3"><form method="post" style="display:flex;gap:6px;align-items:center"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="action" value="update"><input type="hidden" name="nr" value="{{ c.nr }}">
+      <select name="chart" style="width:auto">{% for k in charts %}<option value="{{ k }}" {{ 'selected' if k == c.chart }}>{{ k }}</option>{% endfor %}</select>
+      <input name="exact_division" value="{{ c.exact_division }}" placeholder="bijv. 123456" style="width:120px"><input name="email" type="email" value="{{ c.email or '' }}" placeholder="klant@voorbeeld.nl" style="width:180px"><button class="btn sm">Opslaan</button></form></td>
+    {% else %}<td>{{ c.chart }}</td><td>{{ c.exact_division or '–' }}</td><td>{{ c.email or '–' }}</td>{% endif %}
+    <td class="num">{{ counts.get(c.nr, 0) }}</td>
+    <td>{% if user.role == 'admin' %}<form method="post"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="action" value="wwft_stop"><input type="hidden" name="nr" value="{{ c.nr }}">
+      <button class="btn sm {{ 'danger' if c.wwft_stop }}" title="Zet aan als er een melding of onderzoek speelt: dan kan geen bericht naar deze klant worden verstuurd" onclick="return confirm('Wwft-stop {{ 'uitzetten' if c.wwft_stop else 'aanzetten' }} voor {{ c.name }}?')">{{ 'Stop aan' if c.wwft_stop else 'Geen stop' }}</button></form>
+      {% else %}{% if c.wwft_stop %}<span class="badge red">Stop</span>{% else %}<span class="sub">–</span>{% endif %}{% endif %}</td>
+    <td class="num"><a class="btn sm" href="/klanten/scheidingsbladen.pdf?nr={{ c.nr }}" target="_blank">Scheidingsblad</a></td></tr>
+  {% endfor %}
+  </table>
+</div>
+{% if user.role == 'admin' %}
+<form class="card" method="post" style="max-width:820px">
+  <input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="action" value="add">
+  <div class="card-h"><h2>Klant toevoegen</h2></div>
+  <div class="card-b">
+    <div class="grid2">
+      <div><label>Relatienummer (zoals in MijnKantoor)</label><input name="nr" inputmode="numeric" required></div>
+      <div><label>Naam</label><input name="name" required></div>
+      <div><label>KvK-nummer</label><input name="kvk"></div>
+      <div><label>Btw-nummer</label><input name="vat"></div>
+      <div><label>Plaats</label><input name="city"></div>
+      <div><label>Rekeningschema</label><select name="chart">{% for k in charts %}<option value="{{ k }}" {{ 'selected' if k == 'standaard' }}>{{ k }}</option>{% endfor %}</select></div>
+      <div><label>Exact-divisie (administratienummer)</label><input name="exact_division"><div class="hint">Leeg: de standaardadministratie van de Exact-koppeling.</div></div>
+    </div>
+    <button class="btn primary" style="margin-top:14px">Toevoegen</button>
+  </div>
+</form>
+{% endif %}
+{% endblock %}

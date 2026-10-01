@@ -1,0 +1,73 @@
+{% extends "base.html" %}{% set nav='security' %}{% block title %}Privacy en beveiliging{% endblock %}
+{% block main %}
+<div class="head"><div><h1>Privacy en beveiliging</h1><p>Wat er nu echt aanstaat, rechtstreeks uit het systeem. Geen marketing: wat niet getest is, staat erbij.</p></div></div>
+
+<div class="stack">
+<div class="grid3">
+  <div class="card"><div class="card-b">
+    <h3>AI-verwerking</h3>
+    <p><b>{{ label }}</b></p>
+    <p class="sub">{% if mode == 'local' %}Lezen, splitsen en voorstellen gebeuren op deze machine. Er gaat niets naar een AI-dienst.{% elif mode == 'hybrid' %}Scans blijven hier. Alleen tekst waarin persoonsgegevens zijn vervangen gaat naar Claude (Anthropic, VS). Documenten met mogelijk bijzondere gegevens (zorg, vakbond, geloof, strafrecht) blijven altijd lokaal.{% else %}Replay: er draait geen AI, alleen de voorbeeldscan wordt afgespeeld.{% endif %}</p>
+  </div></div>
+  <div class="card"><div class="card-b">
+    <h3>Naar buiten (Claude)</h3>
+    <p><b>{{ sent }}</b> keer tekst verzonden · <b>{{ blocked }}</b> keer geblokkeerd</p>
+    <p class="sub">Paginabeelden kunnen technisch niet mee: de enige uitgang (egress.py) accepteert alleen tekst en controleert die opnieuw op IBAN, BSN, e-mail, telefoon, geboortedatum en bijzondere gegevens.</p>
+  </div></div>
+  <div class="card"><div class="card-b">
+    <h3>Hosting</h3>
+    <p><b>{{ region.env|capitalize }}</b></p>
+    <p class="sub">{{ region.text }}</p>
+  </div></div>
+</div>
+
+<div class="card tablewrap">
+  <div class="card-h"><h2>Lokale modellen en licentie</h2><span class="sub">alleen Apache 2.0 mag draaien</span></div>
+  <table><tr><th>Model</th><th>Taak</th><th>Licentie</th><th>Status</th></tr>
+  {% for m in models %}<tr><td><b>{{ m.model }}</b>{% if m.upstream %}<div class="sub"><a href="{{ m.card }}" target="_blank" rel="noopener">{{ m.upstream }}</a></div>{% endif %}</td>
+    <td>{{ 'Scans lezen en splitsen' if 'vl' in m.model else 'Namen en adressen vinden (anonimiseren)' }}</td>
+    <td>{{ m.why }}</td>
+    <td>{% if not m.ok %}<span class="badge red">Geweigerd</span>{% elif m.installed %}<span class="badge green">Klaar</span>{% else %}<span class="badge amber">Niet gedownload / Ollama uit</span>{% endif %}</td></tr>{% endfor %}
+  </table>
+  <div class="card-b sub">qwen2.5:3b is vervangen door qwen2.5:7b: de 3B-versie valt onder de Qwen Research License (niet voor commercieel gebruik). Gecontroleerd op de Hugging Face-modelkaarten op 1 oktober 2026.</div>
+</div>
+
+<div class="grid2">
+  <div class="card"><div class="card-b">
+    <h3>Versleuteling</h3>
+    <p class="sub">Alles wat het systeem bewaart staat versleuteld (AES-256-GCM): scans, paginabeelden, pdf's, gelezen gegevens, koppeltabellen, gebruikers met 2FA-sleutels, berichten en de auditlog. De sleutel staat buiten de datamap. Dit beschermt tegen een gestolen schijf of uitgelekte back-up, niet tegen iemand die de draaiende server overneemt.</p>
+  </div></div>
+  <div class="card"><div class="card-b">
+    <h3>Inloggen</h3>
+    <p class="sub">Tweestapsverificatie is {{ 'verplicht voor iedereen en niet uit te zetten' if require_2fa else 'UIT' }}. {{ users.values()|selectattr('totp_secret')|list|length }} van {{ users|length }} accounts hebben hem ingesteld; de rest stelt hem in bij de volgende login. Na 5 foute pogingen 15 minuten geblokkeerd.</p>
+  </div></div>
+  <div class="card"><div class="card-b">
+    <h3>Berichten aan klanten</h3>
+    <p class="sub">Goedkeuring door een medewerker is {{ 'verplicht (vast in de code)' if approval else 'UIT' }}. Het systeem verstuurt nooit zelf herinneringen of vragen. Wwft-stop per klant onder Klanten.</p>
+  </div></div>
+  <form class="card" method="post" action="/beveiliging/bewaren" id="bewaren"><div class="card-b">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <h3>Bewaren en wissen</h3>
+    <p class="sub">Origineel, paginabeelden en koppeltabel worden gewist zodra het doorzetten is bevestigd naar:
+    {% if user.role == 'admin' %}
+      <label style="display:inline-flex;gap:4px;font-weight:500;margin:0 6px"><input type="checkbox" name="mijnkantoor" value="1" {{ 'checked' if 'mijnkantoor' in s.retention_required }}> MijnKantoor</label>
+      <label style="display:inline-flex;gap:4px;font-weight:500"><input type="checkbox" name="exact" value="1" {{ 'checked' if 'exact' in s.retention_required }}> Exact (alleen facturen en bonnen)</label>
+      <button class="btn sm">Opslaan</button>
+    {% else %}{{ s.retention_required|join(' en ') }}.{% endif %}</p>
+    <p class="sub">Direct na bevestiging, en als vangnet elke {{ (interval/60)|round|int }} minuten. Uit de stapel gehaalde documenten na {{ grace|round|int }} uur. Nu gewist: <b>{{ purged }}</b> · goedgekeurd en wachtend op doorzetten: <b>{{ waiting }}</b>. Back-ups van vóór het wissen verlopen na de bewaartermijn van de back-ups.</p>
+  </div></form>
+</div>
+
+<div class="card tablewrap">
+  <div class="card-h"><h2>Uitgaande verzoeken naar Claude</h2><span class="sub">laatste 50</span></div>
+  <table><tr><th>Tijd</th><th>Doel</th><th>Document</th><th>Resultaat</th><th>Controlegetal</th></tr>
+  {% for e in egress %}<tr><td class="sub">{{ e.at|dt }}</td><td>{{ 'Splitsen' if e.purpose == 'split' else 'Lezen' }}</td><td>{{ e.doc or '–' }}</td>
+    <td>{% if e.result == 'sent' %}<span class="badge green">Verzonden</span> <span class="sub">{{ e.chars }} tekens</span>{% else %}<span class="badge red">Geblokkeerd</span><div class="sub">{{ e.reason }}</div>{% endif %}</td>
+    <td><code>{{ e.sha256[:16] }}</code></td></tr>
+  {% else %}<tr><td colspan="5" class="empty">Nog niets. {% if mode == 'local' %}In lokale modus gaat er nooit iets naar Claude.{% endif %}</td></tr>{% endfor %}
+  </table>
+</div>
+
+{% if routes %}<div class="card"><div class="card-b sub">Waar documenten gelezen zijn: {% for r, n in routes.items() %}{{ r }}: {{ n }}{{ ' · ' if not loop.last }}{% endfor %}</div></div>{% endif %}
+</div>
+{% endblock %}

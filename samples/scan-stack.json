@@ -1,0 +1,441 @@
+{
+ "file": "scan_2026-09-30_0915.pdf",
+ "sha256": "0f32044cfae1c12efd1d73de9859c7863a32c88b868a637eaa004215a86b049c",
+ "documents": [
+  {
+   "key": "L-BELNET",
+   "pages": [
+    2
+   ],
+   "answer": {
+    "kind": "inkoopfactuur",
+    "client_hint": "Studio Lindewerf B.V.",
+    "counterparty": "Belnet Mobiel B.V.",
+    "reference": "BM26-0948817",
+    "doc_date": "2026-09-01",
+    "net_total": 40.0,
+    "vat_lines": [
+     {
+      "rate": 21,
+      "base": 40.0,
+      "amount": 8.4
+     }
+    ],
+    "gross_total": 48.4,
+    "lines": [
+     {
+      "account": "4310",
+      "vat_code": "V21",
+      "amount_excl": 40.0,
+      "vat_amount": 8.4,
+      "description": "Mobiel abonnement september"
+     }
+    ],
+    "description": "Mobiel abonnement september",
+    "currency": "EUR",
+    "due_date": null,
+    "supplier_vat_number": "NL858104221B01",
+    "supplier_kvk": "71829304",
+    "iban": "NL70TEST4410020011",
+    "booking_reason": "Vaste leverancier: zelfde rekening en btw-code als juli en augustus.",
+    "uncertain_fields": [],
+    "issues": []
+   }
+  },
+  {
+   "key": "L-PANDHUIS",
+   "pages": [
+    4,
+    5
+   ],
+   "answer": {
+    "kind": "inkoopfactuur",
+    "client_hint": "Studio Lindewerf B.V.",
+    "counterparty": "Pandhuis Rotterdam Beheer B.V.",
+    "reference": "2026-10-HS118",
+    "doc_date": "2026-09-22",
+    "net_total": 1250.0,
+    "vat_lines": [
+     {
+      "rate": 21,
+      "base": 1250.0,
+      "amount": 262.5
+     }
+    ],
+    "gross_total": 1512.5,
+    "lines": [
+     {
+      "account": "4100",
+      "vat_code": "V21",
+      "amount_excl": 1250.0,
+      "vat_amount": 262.5,
+      "description": "Huur oktober 2026"
+     }
+    ],
+    "description": "Huur bedrijfsruimte oktober 2026",
+    "currency": "EUR",
+    "due_date": "2026-10-01",
+    "supplier_vat_number": "NL811720934B01",
+    "supplier_kvk": "24387716",
+    "iban": "NL21TEST7001882233",
+    "booking_reason": "Vaste huur.",
+    "uncertain_fields": [],
+    "issues": [
+     {
+      "level": "info",
+      "message": "Factuur in september voor huur oktober: kosten eventueel naar 1400 Vooruitbetaalde kosten."
+     }
+    ],
+    "split_reason": "Pagina 2 is de specificatie bij dezelfde factuur (zelfde afzender en factuurnummer)."
+   }
+  },
+  {
+   "key": "L-SUPERVERS",
+   "pages": [
+    6
+   ],
+   "answer": {
+    "kind": "kassabon",
+    "client_hint": "Studio Lindewerf B.V.",
+    "counterparty": "SuperVers Kralingen",
+    "reference": "BON 4471",
+    "doc_date": "2026-09-17",
+    "net_total": 29.73,
+    "vat_lines": [
+     {
+      "rate": 9,
+      "base": 21.33,
+      "amount": 1.92
+     },
+     {
+      "rate": 21,
+      "base": 8.4,
+      "amount": 1.77
+     }
+    ],
+    "gross_total": 33.42,
+    "lines": [
+     {
+      "account": "4530",
+      "vat_code": "V9",
+      "amount_excl": 21.33,
+      "vat_amount": 1.92,
+      "description": "Koffie, melk, fruit"
+     },
+     {
+      "account": "4530",
+      "vat_code": "V21",
+      "amount_excl": 8.4,
+      "vat_amount": 1.77,
+      "description": "Schoonmaakmiddelen"
+     }
+    ],
+    "description": "Boodschappen pantry",
+    "currency": "EUR",
+    "due_date": null,
+    "supplier_vat_number": null,
+    "supplier_kvk": null,
+    "iban": null,
+    "booking_reason": "Kantinekosten, één regel per btw-tarief (regel R02).",
+    "uncertain_fields": [],
+    "issues": []
+   }
+  },
+  {
+   "key": "L-DRUKKERIJ",
+   "pages": [
+    7
+   ],
+   "answer": {
+    "kind": "inkoopfactuur",
+    "client_hint": "Studio Lindewerf B.V.",
+    "counterparty": "Drukkerij Van Wijk B.V.",
+    "reference": "F26-1187",
+    "doc_date": "2026-09-10",
+    "net_total": 310.0,
+    "vat_lines": [
+     {
+      "rate": 21,
+      "base": 310.0,
+      "amount": 65.1
+     }
+    ],
+    "gross_total": 375.1,
+    "lines": [
+     {
+      "account": "4600",
+      "vat_code": "V21",
+      "amount_excl": 310.0,
+      "vat_amount": 65.1,
+      "description": "Flyers najaarscampagne"
+     }
+    ],
+    "description": "Flyers najaarscampagne",
+    "currency": "EUR",
+    "due_date": "2026-09-24",
+    "supplier_vat_number": "NL801992311B01",
+    "supplier_kvk": "24101199",
+    "iban": "NL48TEST2410119900",
+    "booking_reason": "Drukwerk voor reclame: 4600.",
+    "uncertain_fields": [],
+    "issues": []
+   }
+  },
+  {
+   "key": "L-BLINKEND",
+   "pages": [
+    8
+   ],
+   "answer": {
+    "kind": "inkoopfactuur",
+    "client_hint": "Studio Lindewerf B.V.",
+    "counterparty": "Schoonmaakbedrijf Blinkend",
+    "reference": "2026-0913",
+    "doc_date": "2026-09-26",
+    "net_total": 180.0,
+    "vat_lines": [
+     {
+      "rate": 21,
+      "base": 180.0,
+      "amount": 38.8
+     }
+    ],
+    "gross_total": 218.8,
+    "lines": [
+     {
+      "account": "4110",
+      "vat_code": "V21",
+      "amount_excl": 180.0,
+      "vat_amount": 37.8,
+      "description": "Schoonmaak september"
+     }
+    ],
+    "description": "Schoonmaak kantoor september",
+    "currency": "EUR",
+    "due_date": "2026-10-10",
+    "supplier_vat_number": "NL860998121B01",
+    "supplier_kvk": "77120445",
+    "iban": "NL13TEST7712044500",
+    "booking_reason": "Vaste leverancier. Btw op de factuur is fout; boekvoorstel gebruikt de juiste 37,80.",
+    "uncertain_fields": [],
+    "issues": []
+   }
+  },
+  {
+   "key": "L-VPB",
+   "pages": [
+    9
+   ],
+   "answer": {
+    "kind": "belastingdienst",
+    "client_hint": "Studio Lindewerf B.V.",
+    "counterparty": "Belastingdienst",
+    "reference": "8655.12.093.V.76.0001",
+    "doc_date": "2026-09-22",
+    "due_date": "2026-10-31",
+    "description": "Voorlopige aanslag vennootschapsbelasting 2026, EUR 3.420 in 3 termijnen",
+    "gross_total": 3420.0,
+    "net_total": null,
+    "vat_lines": [],
+    "lines": [],
+    "currency": "EUR",
+    "booking_reason": "Geen inkoopboeking: aanslag gaat naar het dossier en de termijnen naar de agenda.",
+    "uncertain_fields": [],
+    "issues": [
+     {
+      "level": "warning",
+      "message": "Eerste termijn EUR 1.140 uiterlijk 31 oktober 2026. Bezwaartermijn 6 weken na 22 september."
+     }
+    ]
+   }
+  },
+  {
+   "key": "S-LINDE",
+   "pages": [
+    12
+   ],
+   "answer": {
+    "kind": "inkoopfactuur",
+    "client_hint": "Fietsenmakerij De Spaak B.V.",
+    "counterparty": "Fietsgroothandel Van der Linde B.V.",
+    "reference": "VDL-2026-10442",
+    "doc_date": "2026-09-15",
+    "net_total": 529.5,
+    "vat_lines": [
+     {
+      "rate": 21,
+      "base": 529.5,
+      "amount": 111.2
+     }
+    ],
+    "gross_total": 640.7,
+    "lines": [
+     {
+      "account": "7000",
+      "vat_code": "V21",
+      "amount_excl": 529.5,
+      "vat_amount": 111.2,
+      "description": "Onderdelen voorraad"
+     }
+    ],
+    "description": "Binnenbanden, remblokken, kettingen",
+    "currency": "EUR",
+    "due_date": "2026-10-15",
+    "supplier_vat_number": "NL853997120B01",
+    "supplier_kvk": "60114587",
+    "iban": "NL35TEST0600114587",
+    "booking_reason": "Onderdelen voor verkoop: inkoopwaarde 7000.",
+    "uncertain_fields": [],
+    "issues": []
+   }
+  },
+  {
+   "key": "S-LINDE-2",
+   "pages": [
+    13
+   ],
+   "answer": {
+    "kind": "inkoopfactuur",
+    "client_hint": "Fietsenmakerij De Spaak B.V.",
+    "counterparty": "Fietsgroothandel Van der Linde B.V.",
+    "reference": "VDL-2026-10442",
+    "doc_date": "2026-09-15",
+    "net_total": 529.5,
+    "vat_lines": [
+     {
+      "rate": 21,
+      "base": 529.5,
+      "amount": 111.2
+     }
+    ],
+    "gross_total": 640.7,
+    "lines": [
+     {
+      "account": "7000",
+      "vat_code": "V21",
+      "amount_excl": 529.5,
+      "vat_amount": 111.2,
+      "description": "Onderdelen voorraad"
+     }
+    ],
+    "description": "Binnenbanden, remblokken, kettingen",
+    "currency": "EUR",
+    "due_date": "2026-10-15",
+    "supplier_vat_number": "NL853997120B01",
+    "supplier_kvk": "60114587",
+    "iban": "NL35TEST0600114587",
+    "booking_reason": "Onderdelen voor verkoop: inkoopwaarde 7000.",
+    "uncertain_fields": [],
+    "issues": []
+   }
+  },
+  {
+   "key": "S-VERKOOP",
+   "pages": [
+    14
+   ],
+   "answer": {
+    "kind": "verkoopfactuur",
+    "client_hint": "Fietsenmakerij De Spaak B.V.",
+    "counterparty": "Hotel De Vliet B.V.",
+    "reference": "2026-0187",
+    "doc_date": "2026-09-18",
+    "net_total": 588.0,
+    "vat_lines": [
+     {
+      "rate": 21,
+      "base": 588.0,
+      "amount": 123.48
+     }
+    ],
+    "gross_total": 711.48,
+    "lines": [
+     {
+      "account": "8000",
+      "vat_code": "O21",
+      "amount_excl": 588.0,
+      "vat_amount": 123.48,
+      "description": "Onderhoud huurfietsen"
+     }
+    ],
+    "description": "Onderhoud en banden huurfietsen",
+    "currency": "EUR",
+    "due_date": null,
+    "supplier_vat_number": null,
+    "supplier_kvk": null,
+    "iban": null,
+    "booking_reason": "Eigen verkoopfactuur van de klant: omzet 21%.",
+    "uncertain_fields": [],
+    "issues": []
+   }
+  },
+  {
+   "key": "S-BANK",
+   "pages": [
+    15
+   ],
+   "answer": {
+    "kind": "bankafschrift",
+    "client_hint": "Fietsenmakerij De Spaak B.V.",
+    "counterparty": "Demobank",
+    "reference": "Afschrift 9/2026",
+    "doc_date": "2026-09-30",
+    "due_date": null,
+    "description": "Rekeningoverzicht september 2026, eindsaldo EUR 6.952,02",
+    "gross_total": null,
+    "net_total": null,
+    "vat_lines": [],
+    "lines": [],
+    "currency": "EUR",
+    "booking_reason": "Geen boeking: bankmutaties komen via de bankkoppeling. Alleen archiveren.",
+    "uncertain_fields": [],
+    "issues": [
+     {
+      "level": "info",
+      "message": "2 pinbetalingen zonder bon op dit afschrift (Tankstation 61,20 en Bouwmarkt 48,95)."
+     }
+    ]
+   }
+  },
+  {
+   "key": "S-MULLER",
+   "pages": [
+    16
+   ],
+   "answer": {
+    "kind": "inkoopfactuur",
+    "client_hint": "Fietsenmakerij De Spaak B.V.",
+    "counterparty": "Radteile Müller GmbH",
+    "reference": "RM-26-5531",
+    "doc_date": "2026-09-20",
+    "net_total": 327.0,
+    "vat_lines": [
+     {
+      "rate": 19,
+      "base": 327.0,
+      "amount": 62.13
+     }
+    ],
+    "gross_total": 389.13,
+    "lines": [
+     {
+      "account": "4900",
+      "vat_code": "GEEN_AFTREK",
+      "amount_excl": 389.13,
+      "vat_amount": 0,
+      "description": "Montagestandaard en spakensleutels"
+     }
+    ],
+    "description": "Montageständer, Speichenschlüssel",
+    "currency": "EUR",
+    "due_date": "2026-10-04",
+    "supplier_vat_number": "DE298877341",
+    "supplier_kvk": null,
+    "iban": "DE90285500000012345678",
+    "booking_reason": "Duitse btw is niet aftrekbaar in NL: bruto op kosten. Leverancier vragen om factuur met btw verlegd.",
+    "uncertain_fields": [],
+    "issues": []
+   }
+  }
+ ]
+}

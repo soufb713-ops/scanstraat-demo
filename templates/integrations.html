@@ -1,0 +1,59 @@
+{% extends "base.html" %}{% set nav='integrations' %}{% block title %}Koppelingen{% endblock %}
+{% block main %}
+<div class="head"><div><h1>Koppelingen</h1><p>Hoe scans binnenkomen en waar goedgekeurde documenten heen gaan. Wachtwoorden en sleutels staan nooit op deze pagina: die staan in het bestand <code>.env</code> op de server.</p></div></div>
+<div class="stack">
+
+<form class="card" method="post" id="general"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="section" value="general">
+  <div class="card-h"><h2>Scanner en AI</h2><span class="badge {{ 'green' if live_key else 'amber' }}">{{ ai_label }}</span></div>
+  <div class="card-b grid2">
+    <div><label>Scanmap (Scannen naar map)</label><code style="display:block;padding:8px 10px">{{ inbox }}</code>
+      <label style="display:flex;gap:8px;margin-top:10px;font-weight:500"><input type="checkbox" name="watch_inbox" value="1" {{ 'checked' if s.watch_inbox }}> Deze map bewaken en nieuwe scans vanzelf verwerken</label>
+      <div class="hint">Nieuwe bestanden worden na verwerking verplaatst naar de submap <code>verwerkt</code>.</div></div>
+    <div><label>Minuten per document nu, met de hand</label><input name="manual_minutes" inputmode="decimal" value="{{ s.manual_minutes|string|replace('.', ',') if s.manual_minutes else '' }}" placeholder="Jullie eigen gemeten tijd">
+      <div class="hint">Scannen, bestand hernoemen, in de juiste map zetten, overtypen in Excel of Exact. Alleen gebruikt voor "Handwerk bespaard" op het overzicht.</div>
+      <p class="sub" style="margin-bottom:0">AI: {{ ai_label }}. Wijzigen met SCAN_AI in .env (local, hybrid of replay) en herstarten. Details onder <a href="/beveiliging">Privacy &amp; beveiliging</a>.</p></div>
+  </div>
+  <div class="actionbar"><button class="btn primary">Opslaan</button></div>
+</form>
+
+<form class="card" method="post" id="mijnkantoor"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="section" value="mijnkantoor">
+  <div class="card-h"><h2>MijnKantoor</h2><span class="badge {{ 'green' if integ.mijnkantoor.ok else 'grey' }}">{{ integ.mijnkantoor.text }}</span></div>
+  <div class="card-b stack">
+    <div class="grid2">
+      <div><label>Route</label>
+        <label style="display:flex;gap:8px;font-weight:500"><input type="radio" name="mk_route" value="folder" {{ 'checked' if s.mk_route == 'folder' }}> Synchronisatiemap (SharePoint / OneDrive)</label>
+        <label style="display:flex;gap:8px;font-weight:500"><input type="radio" name="mk_route" value="zip" {{ 'checked' if s.mk_route != 'folder' }}> ZIP downloaden en in het dossier slepen</label></div>
+      <div><label>Pad naar de gesynchroniseerde dossiermap</label><input name="mk_sync_dir" value="{{ s.mk_sync_dir }}" placeholder="/data/sharepoint/Relatiedossiers">
+        <div class="hint">MijnKantoor kan dossiers twee kanten op synchroniseren met SharePoint. Documenten die hier in <code>nummer - naam/map</code> komen, verschijnen in het klantdossier.</div></div>
+    </div>
+    <div><label>Mappen in het klantdossier per soort document</label>
+      <div class="grid3" style="gap:10px">{% for k, v in folders.items() %}<div><span class="sub">{{ KINDS[k] }}</span><input name="folder_{{ k }}" value="{{ s.folders.get(k, v) }}"></div>{% endfor %}</div>
+      <div class="hint">Gebruik {jaar}, {kwartaal} en {maand}. Neem de mapnamen over die jullie in MijnKantoor gebruiken (Beheer › Dossier).</div></div>
+    <div class="honest">MijnKantoor heeft een Public API (developers.mijnkantoor.nl). De documentatie daarvan is alleen met een account in te zien, dus die route is nog niet gebouwd. Met toegang kan de upload rechtstreeks, zonder map of ZIP.</div>
+  </div>
+  <div class="actionbar"><button class="btn primary">Opslaan</button></div>
+</form>
+
+<form class="card" method="post" id="exact"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="section" value="exact">
+  <div class="card-h"><h2>Exact Online</h2><span class="badge {{ 'green' if exact_tok else 'grey' }}">{{ integ.exact.text }}</span></div>
+  <div class="card-b stack">
+    {% if exact_tok %}
+      <div class="alert success"><span class="ic">✓</span><div>Gekoppeld als {{ exact_tok.user or 'Exact-gebruiker' }}, standaardadministratie {{ exact_tok.division }}. Per klant kun je een eigen administratie invullen bij Klanten.</div></div>
+    {% elif exact_ready %}
+      <div><a class="btn primary" href="/koppelingen/exact/verbinden">Koppelen met Exact Online</a><div class="hint">Je logt in bij Exact en geeft toestemming. Redirect-URI in de Exact App Center: <code>{{ redirect_uri }}</code></div></div>
+    {% else %}
+      <div class="honest">Nog niet ingesteld. Registreer gratis een app in de Exact App Center (eigen gebruik), redirect-URI <code>{{ redirect_uri }}</code>, en zet <code>EXACT_CLIENT_ID</code> en <code>EXACT_CLIENT_SECRET</code> in <code>.env</code>. Tot dan: importbestand (XML of CSV) bij Afhandelen.</div>
+    {% endif %}
+    <div class="grid2">
+      <div><label>Dagboek inkoop</label><input name="journal_purchase" value="{{ s.journal_purchase }}"></div>
+      <div><label>Dagboek verkoop</label><input name="journal_sales" value="{{ s.journal_sales }}"></div>
+    </div>
+    <div><label>Btw-codes: onze code → code in Exact</label>
+      <div class="grid3" style="gap:10px">{% for k, v in VAT_CODES.items() %}<div><span class="sub">{{ k }} · {{ v }}</span><input name="vat_{{ k }}" value="{{ s.vat_map.get(k, '') }}" placeholder="code in Exact"></div>{% endfor %}</div>
+      <div class="hint">Overnemen uit Exact › Stamgegevens › Btw-codes. Dagboekcodes staan onder Stamgegevens › Dagboeken. Controleer ze; de standaardwaarden hierboven zijn een aanname.</div></div>
+  </div>
+  <div class="actionbar"><button class="btn primary">Opslaan</button>{% if exact_tok %}<button class="btn danger" formaction="/koppelingen/exact/ontkoppelen" formnovalidate>Ontkoppelen</button>{% endif %}</div>
+</form>
+
+</div>
+{% endblock %}

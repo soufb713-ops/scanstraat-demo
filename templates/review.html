@@ -1,0 +1,142 @@
+{% extends "base.html" %}{% set nav='scan' %}{% block title %}{{ doc.id }}{% endblock %}{% block pageclass %}wide{% endblock %}
+{% block main %}
+{% set r = doc.result or {} %}{% set locked = doc.status in ('approved','rejected') %}
+{% set bad = doc.flags|map(attribute='field')|list %}
+<div class="head" style="margin-bottom:16px">
+  <div><div class="crumbs"><a href="/">Overzicht</a> / <a href="/scan/{{ b.id }}">Scan {{ b.id }}</a> / {{ doc.id }}</div>
+  <h1>{{ r.counterparty or KINDS[doc.kind] }} {% if r.reference %}<span class="muted" style="font-weight:500">· {{ r.reference }}</span>{% endif %}</h1></div>
+  <div class="docnav"><span class="sub">Document {{ pos }} van {{ total }} in deze scan</span>
+    {% if prev %}<a class="btn sm" href="/document/{{ prev }}">‹ Vorige</a>{% endif %}{% if next %}<a class="btn sm" href="/document/{{ next }}">Volgende ›</a>{% endif %}</div>
+</div>
+
+<div class="review">
+  <div class="viewer">
+    {% if doc.purged %}
+    <div class="vh"><span>Origineel gewist</span></div>
+    <div class="honest" style="margin:16px">Het origineel, de paginabeelden en de koppeltabel zijn op {{ doc.purged.at|dt }} gewist, nadat het doorzetten was bevestigd. Het document staat nu in de systemen van het kantoor. Controlegetal (SHA-256): <code>{{ (doc.purged.sha256 or '')[:16] }}…</code></div>
+    {% else %}
+    <div class="vh"><span>{{ doc.pages|length }} pagina{{ "'s" if doc.pages|length > 1 }} uit de scan (pag. {{ doc.pages|join(', ') }})</span><a href="/document/{{ doc.id }}.pdf" target="_blank">Pdf openen</a></div>
+    {% for p in doc.pages %}<img src="/pagina/{{ b.id }}/{{ p }}.jpg" alt="Pagina {{ p }}">{% endfor %}
+    {% endif %}
+  </div>
+
+  <form class="card" method="post" id="f">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <div class="card-h">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        {% if doc.status == 'approved' %}<span class="badge green">Goedgekeurd door {{ doc.approved.by }}</span>
+        {% elif doc.status == 'asked' %}<span class="badge blue">Vraag aan klant</span>
+        {% elif doc.status == 'rejected' %}<span class="badge grey">Uit de stapel gehaald</span>
+        {% elif doc.light == 'red' %}<span class="badge red">Fout gevonden</span>{% elif doc.light == 'amber' %}<span class="badge amber">Let op</span>{% else %}<span class="badge green">Klaar voor goedkeuring</span>{% endif %}
+        <span class="sub">{{ doc.id }} · gelezen in {{ (doc.seconds or 0)|string|replace('.', ',') }} s{% if b.mode == 'replay' %} · replay{% endif %}</span>
+      </div>
+      {% if not doc.purged %}<a class="sub" href="/document/{{ doc.id }}.pdf?download=1">Download</a>{% endif %}
+    </div>
+    <div class="card-b stack" style="gap:20px">
+
+      <div class="fields">
+        <div><label>Klant</label>
+          <select name="client_nr" class="{{ 'bad' if 'client' in bad }}" {{ 'disabled' if locked }}>
+            <option value="">– kies de klant –</option>
+            {% for nr, c in clients.items() %}<option value="{{ nr }}" {{ 'selected' if nr == doc.client_nr }}>{{ nr }} · {{ c.name }}</option>{% endfor %}
+          </select>
+          <div class="hint">{% if doc.client_via %}Via {{ doc.client_via }}{% else %}Niet automatisch gevonden{% endif %}</div></div>
+        <div><label>Soort document</label>
+          <select name="kind" {{ 'disabled' if locked }}>{% for k, v in KINDS.items() %}<option value="{{ k }}" {{ 'selected' if k == doc.kind }}>{{ v }}</option>{% endfor %}</select>
+          <div class="hint">{{ doc.split_reason }}</div></div>
+      </div>
+
+      {% set t = doc.trail or {} %}
+      <details class="trail"><summary><b>Verwerkingsspoor:</b> {{ t.route or 'onbekend' }}{% if t.why_local %} · lokaal gehouden{% endif %}</summary>
+        <div class="sub" style="margin-top:8px;line-height:1.6">
+        {% if t.model %}Model: {{ t.model }} op deze machine (Apache 2.0).<br>{% endif %}
+        {% if t.why_local %}Niet naar Claude, want: {{ t.why_local }}.<br>{% endif %}
+        {% if mapping_kinds %}Vervangen vóór verzending: {% for k, n in mapping_kinds.items() %}{{ n }}× {{ k|lower }}{{ ', ' if not loop.last }}{% endfor %}. De koppeltabel staat versleuteld in de kluis en wordt gewist na doorzetten.<br>{% endif %}
+        {% if t.sha256 %}Controlegetal van wat verzonden is: <code>{{ t.sha256[:16] }}…</code> (zie Privacy &amp; beveiliging).<br>{% endif %}
+        {% if t.error %}Fout: {{ t.error }}<br>{% endif %}
+        </div>
+        {% if t.sent_text %}<div class="sub" style="margin-top:6px">Precies deze tekst ging naar Claude (geen afbeelding):</div><pre class="sent">{{ t.sent_text }}</pre>{% endif %}
+      </details>
+
+      {% if doc.flags %}<div>
+        <h3>Controles</h3>
+        {% for f in doc.flags|sort(attribute='level') %}<div class="alert {{ f.level }}"><span class="ic">{{ '!' if f.level == 'error' else '?' if f.level == 'warning' else 'i' }}</span><div>{{ f.message }}</div></div>{% endfor %}
+      </div>{% else %}<div class="alert success"><span class="ic">✓</span><div>Alle controles in orde: bedragen, btw, IBAN, datum en geen dubbele.</div></div>{% endif %}
+
+      <div class="filing">
+        <h3 style="color:#0f766e">Archiveren in MijnKantoor</h3>
+        <div class="fields">
+          <div><label>Map in het klantdossier</label><input name="folder" value="{{ doc.filing.folder if doc.filing }}" {{ 'disabled' if locked }}></div>
+          <div><label>Bestandsnaam</label><input name="filename" value="{{ doc.filing.filename if doc.filing }}" {{ 'disabled' if locked }}></div>
+        </div>
+        <div class="path" style="margin-top:8px">{{ (client.nr ~ ' - ' ~ client.name) if client else '? - klant onbekend' }} / {{ doc.filing.folder if doc.filing }} / {{ doc.filing.filename if doc.filing }}</div>
+      </div>
+
+      <div>
+        <h3>Gegevens van het document</h3>
+        <div class="fields">
+          {% set unc = r.uncertain_fields or [] %}
+          <div><label>{{ 'Leverancier' if doc.kind in ('inkoopfactuur','kassabon','creditnota') else 'Klant van de klant' if doc.kind == 'verkoopfactuur' else 'Afzender' }}</label><input name="counterparty" value="{{ r.counterparty or '' }}" class="{{ 'warn' if 'counterparty' in unc }}" {{ 'disabled' if locked }}></div>
+          <div><label>Kenmerk / factuurnummer</label><input name="reference" value="{{ r.reference or '' }}" class="{{ 'warn' if 'reference' in unc }} {{ 'bad' if 'invoice_number' in bad and doc.light == 'red' }}" {{ 'disabled' if locked }}></div>
+          <div><label>Datum</label><input name="doc_date" type="date" value="{{ r.doc_date or '' }}" class="{{ 'warn' if 'doc_date' in unc }}" {{ 'disabled' if locked }}></div>
+          <div><label>Vervaldatum / termijn</label><input name="due_date" type="date" value="{{ r.due_date or '' }}" {{ 'disabled' if locked }}></div>
+          <div><label>Bedrag excl. btw</label><input name="net_total" inputmode="decimal" value="{{ '%.2f'|format(r.net_total)|replace('.', ',') if r.net_total is not none else '' }}" class="{{ 'warn' if 'net_total' in unc }}" {{ 'disabled' if locked }}></div>
+          <div><label>Totaal</label><input name="gross_total" inputmode="decimal" value="{{ '%.2f'|format(r.gross_total)|replace('.', ',') if r.gross_total is not none else '' }}" class="{{ 'warn' if 'gross_total' in unc }} {{ 'bad' if 'gross_total' in bad }}" {{ 'disabled' if locked }}></div>
+          {% if doc.kind in ('inkoopfactuur','kassabon','creditnota') %}
+          <div><label>Btw-nummer leverancier</label><input name="supplier_vat_number" value="{{ r.supplier_vat_number or '' }}" {{ 'disabled' if locked }}></div>
+          <div><label>IBAN</label><input name="iban" value="{{ r.iban or '' }}" class="{{ 'bad' if 'iban' in bad }}" {{ 'disabled' if locked }}></div>
+          {% endif %}
+          <div class="full"><label>Omschrijving</label><input name="description" value="{{ r.description or '' }}" {{ 'disabled' if locked }}></div>
+          {% if r.vat_lines %}<div class="full sub">Btw op het document: {% for v in r.vat_lines %}{{ v.rate|int if v.rate == v.rate|int else v.rate }}% over {{ v.base|eur }} = <b class="{{ 'bad' if 'vat_lines' in bad }}">{{ v.amount|eur }}</b>{{ ' · ' if not loop.last }}{% endfor %}</div>{% endif %}
+        </div>
+      </div>
+
+      {% if doc.kind in ('inkoopfactuur','kassabon','creditnota','verkoopfactuur') %}
+      <div>
+        <h3>Boeking voor Exact ({{ 'verkoopboek' if doc.kind == 'verkoopfactuur' else 'inkoopboek' }})</h3>
+        {% if not client %}<div class="alert warning"><span class="ic">?</span>Kies eerst de klant: het rekeningschema hangt van de klant af.</div>{% endif %}
+        <div class="tablewrap"><table class="lines">
+          <tr><th>Grootboek</th><th>Btw-code</th><th>Excl.</th><th>Btw</th><th>Omschrijving</th></tr>
+          {% set lines = (r.lines or []) + ([{}] if not locked else []) %}
+          {% for l in lines %}<tr>
+            <td style="min-width:150px"><select name="line_account" {{ 'disabled' if locked }}><option value="">–</option>{% for a, n in chart %}<option value="{{ a }}" {{ 'selected' if a == l.account }}>{{ a }} {{ n }}</option>{% endfor %}</select></td>
+            <td style="min-width:110px"><select name="line_vat" {{ 'disabled' if locked }}>{% for k, v in VAT_CODES.items() %}<option value="{{ k }}" {{ 'selected' if k == (l.vat_code or ('O21' if doc.kind == 'verkoopfactuur' else 'V21')) }} title="{{ v }}">{{ k }}</option>{% endfor %}</select></td>
+            <td style="width:95px"><input name="line_excl" inputmode="decimal" value="{{ '%.2f'|format(l.amount_excl)|replace('.', ',') if l.amount_excl is not none and l.amount_excl is defined else '' }}" {{ 'disabled' if locked }}></td>
+            <td style="width:85px"><input name="line_vatamt" inputmode="decimal" value="{{ '%.2f'|format(l.vat_amount)|replace('.', ',') if l.vat_amount is defined and l.vat_amount is not none else '' }}" {{ 'disabled' if locked }}></td>
+            <td><input name="line_desc" value="{{ l.description or '' }}" placeholder="{{ 'Extra regel' if not l }}" {{ 'disabled' if locked }}></td></tr>{% endfor %}
+        </table></div>
+        {% if r.booking_reason %}<div class="hint" style="margin-top:6px">Waarom: {{ r.booking_reason }}</div>{% endif %}
+      </div>
+      {% else %}
+      <div class="honest">Geen boeking in Exact voor dit soort document. Het gaat alleen naar het klantdossier in MijnKantoor en in het Excel-register.{% if r.booking_reason %} {{ r.booking_reason }}{% endif %}</div>
+      {% endif %}
+
+      {% if doc.corrections %}<div><h3>Correcties</h3>{% for c in doc.corrections %}<div class="corr">{{ c.field }}: {% if c['from'] is string or c['from'] is number %}<s>{{ c['from'] }}</s> → {% endif %}{% if c.to is string or c.to is number %}{{ c.to }}{% else %}aangepast{% endif %} <span class="sub">· {{ c.by }}, {{ c.at|dt }}</span></div>{% endfor %}</div>{% endif %}
+
+      {% if doc.status == 'asked' %}<div class="alert info"><span class="ic">i</span><div>Vraag voor de klant klaargezet door {{ doc.asked.by }} ({{ doc.asked.at|dt }}): “{{ doc.asked.note }}”. {% if doc.asked.message %}Dit is een concept: het gaat pas weg als een medewerker het onder <a href="/berichten#{{ doc.asked.message }}">Berichten</a> goedkeurt.{% endif %}</div></div>{% endif %}
+      {% if doc.status == 'rejected' %}<div class="alert info"><span class="ic">i</span>Eruit gehaald door {{ doc.rejected.by }}: {{ doc.rejected.note }}</div>{% endif %}
+      {% if doc.status == 'approved' %}
+      <div class="dest">
+        <div class="d"><b>MijnKantoor</b><span>{% if doc.exports.mijnkantoor %}<span class="tick">✓</span> {{ 'in synchronisatiemap' if doc.exports.mijnkantoor.route == 'map' else 'in ZIP' }}, {{ doc.exports.mijnkantoor.at|dt }}{% if doc.exports.mijnkantoor.confirmed is sameas false %} · import nog niet bevestigd{% endif %}{% else %}Klaar om te archiveren{% endif %}</span></div>
+        <div class="d"><b>Exact Online</b><span>{% if doc.kind not in ('inkoopfactuur','kassabon','creditnota','verkoopfactuur') %}Niet van toepassing{% elif doc.exports.exact %}<span class="tick">✓</span> {{ 'geboekt, nr ' ~ doc.exports.exact.entry_number if doc.exports.exact.route == 'api' else 'in importbestand' }}{% else %}Klaar om te boeken{% endif %}</span></div>
+        <div class="d"><b>Excel-register</b><span>{% if doc.exports.excel %}<span class="tick">✓</span> {{ doc.exports.excel.at|dt }}{% else %}Komt in het volgende register{% endif %}</span></div>
+      </div>{% endif %}
+    </div>
+
+    <div class="actionbar">
+      {% if doc.status in ('review','asked') %}
+        <button class="btn go" name="action" value="approve"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5L20 7"/></svg>Goedkeuren</button>
+        <button class="btn" name="action" value="save">Opslaan</button>
+        {% if doc.light == 'red' %}<label style="display:flex;gap:6px;align-items:center;margin:0;font-weight:500"><input type="checkbox" name="ack" value="1"> Ik heb de fouten gezien</label>{% endif %}
+        <details class="more" style="margin-left:auto"><summary>Vraag aan klant of eruit halen</summary>
+          <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><input name="note" placeholder="Vraag of reden" style="flex:1;min-width:200px">
+          <select name="channel" style="width:auto"><option value="email">E-mail</option><option value="whatsapp">WhatsApp</option></select>
+          <button class="btn sm" name="action" value="ask">Concept voor klant</button><button class="btn sm danger" name="action" value="reject" formnovalidate>Eruit halen</button></div></details>
+      {% elif doc.status == 'approved' and not doc.exports.mijnkantoor and not doc.exports.exact %}
+        <a class="btn primary" href="/afhandelen">Naar afhandelen</a><button class="btn" name="action" value="reopen">Heropenen</button>
+      {% elif doc.status == 'rejected' %}<button class="btn" name="action" value="reopen">Terugzetten</button>
+      {% else %}<a class="btn" href="/afhandelen">Naar afhandelen</a>{% endif %}
+    </div>
+  </form>
+</div>
+{% endblock %}

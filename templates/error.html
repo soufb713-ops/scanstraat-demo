@@ -1,0 +1,3 @@
+{% extends "base.html" %}{% block title %}Fout {{ code }}{% endblock %}
+{% block body %}{% if user %}{{ super() }}{% else %}<div class="auth" style="grid-template-columns:1fr"><div class="formside"><div class="card card-b" style="max-width:420px"><h1>{{ message }}</h1><p><a href="/">Terug naar {{ brand }}</a></p></div></div></div>{% endif %}{% endblock %}
+{% block main %}<div class="card card-b" style="max-width:560px"><h1 style="margin-bottom:8px">{{ message }}</h1><a class="btn" href="/">Naar het overzicht</a></div>{% endblock %}

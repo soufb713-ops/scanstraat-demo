@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% set nav='audit' %}{% block title %}Auditlog{% endblock %}
+{% block main %}
+<div class="head"><div><h1>Auditlog</h1><p>Elke stap met tijdstip en wie het deed: scan ontvangen, gelezen, gecorrigeerd, goedgekeurd, doorgezet en inlogpogingen. Regels worden alleen toegevoegd, nooit gewijzigd.</p></div></div>
+<div class="card tablewrap">
+  <div class="card-h"><h2>Laatste gebeurtenissen</h2><span class="sub">{{ total }} in totaal{% if total > 500 %}, laatste 500 getoond{% endif %}</span></div>
+  <table><tr><th>Tijdstip</th><th>Gebeurtenis</th><th>Door</th><th>Scan</th><th>Document</th><th>Details</th></tr>
+  {% for e in entries %}<tr>
+    <td class="muted nowrap">{{ e.ts|dt('%d-%m-%Y %H:%M:%S') }}</td>
+    <td><span class="badge plain {{ 'red' if e.event in ('login_failed','failed','rejected','export_failed') else 'green' if e.event in ('approved','exported') else 'grey' }}">{{ LABELS.get(e.event, e.event) }}</span></td>
+    <td>{{ e.actor }}</td><td class="muted">{{ e.batch if e.batch != '-' }}</td>
+    <td>{% if e.doc and e.doc != '-' %}<a href="/document/{{ e.doc }}">{{ e.doc }}</a>{% endif %}</td>
+    <td class="muted" style="font-size:12.5px">{% set x = e.details %}{% if x.changes %}Aangepast: {{ x.changes.keys()|join(', ') }}{% elif x.format %}{{ x.format }}{% if x.documents %} ({{ x.documents }} documenten){% endif %}{% elif x.open_flags %}{{ x.open_flags|length }} open punt(en) gezien{% elif x.error %}{{ x.error }}{% elif x.email %}{{ x.email }}{% elif x.deleted is defined %}{{ x.deleted }} bestanden gewist{% if x.why %} ({{ x.why }}){% endif %}{% elif x.reason %}{{ x.reason }}{% elif x.purpose %}{{ 'splitsen' if x.purpose == 'split' else 'lezen' }} · {{ x.destination }} · {{ x.sha256 }}{% elif x.message %}{{ x.message }}{% if x.route %} · {{ x.route }}{% endif %}{% elif x.destination %}{{ x.destination }}{% elif x.files %}{{ x.files|join(', ') }} · {{ x.source }}{% elif x.documents is defined %}{{ x.documents }} documenten in {{ x.seconds }} s{% elif x.model %}{{ 'Antwoordsleutel (replay)' if x.model == 'replay' else x.route or x.model }}{% elif x.client %}{{ x.client }}{% elif x.section %}{{ x.section }}{% elif x.action %}{{ 'samengevoegd' if x.action == 'merge' else 'gesplitst' }}{% endif %}{% if x.note %} · “{{ x.note }}”{% endif %}</td></tr>
+  {% else %}<tr><td colspan="6" class="empty">Nog niets vastgelegd.</td></tr>{% endfor %}
+  </table>
+</div>
+{% endblock %}
