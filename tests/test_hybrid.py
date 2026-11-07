@@ -148,6 +148,8 @@ def test_egress_log_and_gate(batch):
         egress.send("read", "sys", [b"\xff\xd8\xff jpeg"], {})
     with pytest.raises(egress.EgressBlocked):
         egress.send("read", "sys", ["Contributie FNV september"], {})
+    with pytest.raises(egress.EgressBlocked):  # page images only ever leave a demo instance
+        egress.send_images("read", "sys", [b"\xff\xd8\xff jpeg"], [], {})
     assert appmod.vault.read_lines(appmod.EGRESS_LOG)[-1]["result"] == "blocked"
 
 

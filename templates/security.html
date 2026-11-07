@@ -7,12 +7,12 @@
   <div class="card"><div class="card-b">
     <h3>AI-verwerking</h3>
     <p><b>{{ label }}</b></p>
-    <p class="sub">{% if mode == 'local' %}Lezen, splitsen en voorstellen gebeuren op deze machine. Er gaat niets naar een AI-dienst.{% elif mode == 'hybrid' %}Scans blijven hier. Alleen tekst waarin persoonsgegevens zijn vervangen gaat naar Claude (Anthropic, VS). Documenten met mogelijk bijzondere gegevens (zorg, vakbond, geloof, strafrecht) blijven altijd lokaal.{% else %}Replay: er draait geen AI, alleen de voorbeeldscan wordt afgespeeld.{% endif %}</p>
+    <p class="sub">{% if mode == 'local' %}Lezen, splitsen en voorstellen gebeuren op deze machine. Er gaat niets naar een AI-dienst.{% elif mode == 'hybrid' %}Scans blijven hier. Alleen tekst waarin persoonsgegevens zijn vervangen gaat naar Claude ({{ destination }}). Documenten met mogelijk bijzondere gegevens (zorg, vakbond, geloof, strafrecht) blijven altijd lokaal.{% elif mode == 'demo' %}Demo-omgeving: paginabeelden van fictieve documenten (of de eigen papieren van de presentator) gaan naar Claude via {{ destination }}. Kan alleen met DEMO_INSTANCE=1 en nooit met APP_ENV=production. Echte klantstukken lopen via de hybride route: alleen geanonimiseerde tekst.{% else %}Replay: er draait geen AI, alleen de voorbeeldscan wordt afgespeeld.{% endif %}</p>
   </div></div>
   <div class="card"><div class="card-b">
     <h3>Naar buiten (Claude)</h3>
-    <p><b>{{ sent }}</b> keer tekst verzonden · <b>{{ blocked }}</b> keer geblokkeerd</p>
-    <p class="sub">Paginabeelden kunnen technisch niet mee: de enige uitgang (egress.py) accepteert alleen tekst en controleert die opnieuw op IBAN, BSN, e-mail, telefoon, geboortedatum en bijzondere gegevens.</p>
+    <p><b>{{ sent }}</b> keer verzonden · <b>{{ blocked }}</b> keer geblokkeerd</p>
+    <p class="sub">{% if mode == 'demo' %}Op deze demo-omgeving gaan paginabeelden via een aparte demo-uitgang naar {{ destination }}. Op een productie-omgeving is die uitgang dicht: dan accepteert egress.py alleen tekst en controleert die opnieuw op IBAN, BSN, e-mail, telefoon, geboortedatum en bijzondere gegevens.{% else %}Paginabeelden kunnen technisch niet mee: de enige uitgang (egress.py) accepteert alleen tekst en controleert die opnieuw op IBAN, BSN, e-mail, telefoon, geboortedatum en bijzondere gegevens.{% endif %}</p>
   </div></div>
   <div class="card"><div class="card-b">
     <h3>Hosting</h3>

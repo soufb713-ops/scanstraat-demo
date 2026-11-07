@@ -1,5 +1,6 @@
 """Stand-in servers for testing without a GPU or an API key (never for real use):
   Ollama on :11555 and an Anthropic-compatible /v1/messages on :11556 that records every request it gets.
+  The Anthropic stand-in also answers demo-mode requests (page images) with fixed answers, for plumbing tests.
 
     python tests/standins.py &
     OLLAMA_URL=http://127.0.0.1:11555 ANTHROPIC_BASE_URL=http://127.0.0.1:11556 ANTHROPIC_API_KEY=x SCAN_AI=hybrid python app.py
@@ -99,6 +100,20 @@ def mask_like(ans, text):
     return ans
 
 
+def vision_answer(b, schema):
+    """Demo mode (page images): one document per image for a split, the first answer of the key for a read."""
+    n = sum(1 for m in b["messages"] for c in m["content"] if c.get("type") == "image")
+    if "documents" in schema["properties"]:
+        return {"documents": [{"pages": [i], "kind": "inkoopfactuur", "client_hint": "Studio Lindewerf B.V.",
+                               "reason": "Stand-in: elke pagina apart"} for i in range(1, n + 1)]}
+    out = {k: None for k in schema["required"]} | {"vat_lines": [], "lines": [], "uncertain_fields": [], "issues": [],
+                                                  "booking_reason": "", "kind": "overig"}
+    out.update({k: v for k, v in KEY[0]["answer"].items() if k in schema["properties"]})
+    out["lines"] = [ln for ln in out.get("lines") or [] if ln.get("account") in
+                    schema["properties"]["lines"]["items"]["properties"]["account"]["enum"]]
+    return out
+
+
 class Anthropic(Base):
     def do_POST(self):
         b = self.body()
@@ -106,7 +121,9 @@ class Anthropic(Base):
             fh.write(json.dumps(b) + "\n")
         schema = b["output_config"]["format"]["schema"]
         text = "\n".join(c.get("text", "") for m in b["messages"] for c in m["content"])
-        if "documents" in schema["properties"]:
+        if any(c.get("type") == "image" for m in b["messages"] for c in m["content"]):
+            out = vision_answer(b, schema)
+        elif "documents" in schema["properties"]:
             pages = re.split(r"--- Page (\d+) ---", text)[1:]
             docs, last = [], None
             for i in range(0, len(pages), 2):

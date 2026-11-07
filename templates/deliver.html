@@ -20,7 +20,7 @@
 </div>
 {% endif %}
 
-<div class="grid3" style="margin-bottom:18px">
+<div class="grid-auto" style="margin-bottom:18px">
   <div class="route">
     <div class="top"><span class="ico" style="background:#1f5b98">MK</span><div><b>MijnKantoor</b><div class="sub">{{ pending.mijnkantoor }} nog te archiveren</div></div></div>
     <p>Elk document als eigen pdf in de juiste map van het klantdossier, met een nette bestandsnaam.</p>
@@ -47,6 +47,15 @@
     <p>Eén overzicht met alle gescande documenten, bedragen, map en wie het controleerde. Tweede tab: boekingsregels.</p>
     <div class="btns"><a class="btn primary" href="/afhandelen/register.xlsx">Nieuwe regels (.xlsx)</a><a class="btn" href="/afhandelen/register.xlsx?all=1">Alles</a></div>
     <div class="honest">Vervangt het overtypen in Excel. Kolommen zijn aan te passen aan jullie huidige sheet.</div>
+  </div>
+  <div class="route">
+    <div class="top"><span class="ico" style="background:#6d28d9;font-size:12px">UBL</span><div><b>UBL voor SnelStart en andere pakketten</b><div class="sub">{{ pending.ubl }} inkoopstukken klaar</div></div></div>
+    <p>Elke goedgekeurde inkoopfactuur, bon of creditnota als UBL 2.1 (NLCIUS) met de pdf erin. Voor de UBL-mailbox van SnelStart en de UBL-import van Yuki, Twinfield, Moneybird en andere pakketten.</p>
+    <div class="btns">
+      {% if not guest %}<form method="post" action="/afhandelen/ubl"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><button class="btn primary" {{ 'disabled' if not pending.ubl }}>UBL-bestanden (ZIP)</button></form>{% endif %}
+      {% if sample_ubl %}<a class="btn" href="/document/{{ sample_ubl.id }}/ubl.xml">Voorbeeld (.xml)</a>{% endif %}
+    </div>
+    <div class="honest">Nog niet door een officiële validator gehaald: per pakket eerst één bestand proberen. Alleen goedgekeurde stukken; het voorbeeld uit de fictieve scan heet CONCEPT.</div>
   </div>
 </div>
 

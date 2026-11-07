@@ -38,19 +38,31 @@ bash setup.sh demo     # no AI, replays the sample scan; quickest way to see the
 
 Open http://localhost:5000, log in, scan the QR code with an authenticator app. Next time: `bash start.sh`. Docker for development: `deploy/docker-compose.dev.yml` (app + Ollama, listens on 127.0.0.1 only). Keys: `.vault-key` and `.backup-key`, mode 600. Lose the vault key and the data is gone; keep a copy apart from the backups. Windows: use WSL.
 
-Tests: `bash tests/run.sh` (22 tests). `tests/standins.py` starts a fake Ollama and a fake Anthropic server that records every request, for trying hybrid mode without a GPU or key.
+Tests: `bash tests/run.sh` (33 tests). `tests/standins.py` starts a fake Ollama and a fake Anthropic server that records every request, for trying hybrid and demo mode without a GPU or key.
+
+## Hosted demo (Render) and live reading
+
+The hosted demo (`render.yaml`) is a **demo instance**: `DEMO_INSTANCE=1`, fictional clients only, never `APP_ENV=production` (the app refuses that combination).
+
+- **Live reading** (`SCAN_AI=demo`): page images of fictional documents, or the presenter's own papers, go to Claude through `egress.send_images`. Default provider `AI_PROVIDER=bedrock`: Claude in Amazon Bedrock in an EU region (`AWS_REGION=eu-west-1`; the app refuses a non-`eu-` region). Use a regional (in-region) endpoint, not the global one, when processing must stay in the EU. Set `AWS_BEARER_TOKEN_BEDROCK` in the Render dashboard and turn on model access for Claude in that region in the AWS console. Real client documents never use this mode: real pilots use `hybrid` (pseudonymised text only).
+- **Guest tour** (`GUEST_TOUR=1`): `/rondleiding` (the QR code in the letters) opens a read-only session without an account. Guests see only the fictional sample scan: no uploads, no changes, no audit log, nothing a staff member scanned. Optional `TOUR_CONTACT` adds a contact line for visitors.
+- **Restarts**: the free plan wipes the disk on every restart. The app replays the sample scan on each start; `ADMIN_EMAIL`, `ADMIN_PASSWORD` and `ADMIN_TOTP_SECRET` recreate the admin with the same login and the same authenticator codes. Make a key once with `python -c "import base64,os;print(base64.b32encode(os.urandom(20)).decode())"`, put it in Render, and type the same key into the authenticator app ("sleutel invoeren"). Starter instance type keeps the demo awake.
+- **UBL**: Afhandelen has a UBL card: each approved purchase invoice, receipt or credit note as UBL 2.1 (NLCIUS) with the PDF embedded, for SnelStart's UBL mailbox and the UBL import of other packages. Only approved fields; the fictional sample can be previewed as a CONCEPT. Not yet run through an official validator: try one file per package first.
+- **Any messy paper, on your own laptop**: `python test_real_ingestion.py bon.jpg facturen.pdf screenshot.png` splits, reads, checks and writes UBL files for whatever you drop in, and logs a SHA-256 of every request. `--dry-run` sends nothing. Only fictional documents or your own.
 
 ## What was tested and what was not
 
 Tested in the build container: all 22 tests pass. The full app ran in hybrid mode with real Tesseract OCR on the 16-page sample scan, a stand-in Ollama, and a stand-in Anthropic endpoint reached through the real Anthropic SDK. The 11 recorded requests contained only text: no image, no IBAN. A photographed physiotherapy invoice stayed local.
 
-**Not tested:** the real `qwen2.5vl:7b` and `qwen2.5:7b` models (reading quality and speed on a laptop CPU), a real Claude call, real SMTP or WhatsApp sending, the Docker build, a production server, restoring a backup on another machine, Exact and MijnKantoor against the real services.
+Demo mode (7 Nov): the full pipeline ran with page images against the stand-in through the real Anthropic SDK (request shape, image count, egress log, guest isolation, UBL from approved fields). The Bedrock client is constructed for `eu-west-1` but has not made a real call.
+
+**Not tested:** the real `qwen2.5vl:7b` and `qwen2.5:7b` models (reading quality and speed on a laptop CPU), a real Claude call (Anthropic API or Bedrock), a UBL import into a real SnelStart or Yuki administration, real SMTP or WhatsApp sending, the Docker build, a production server, restoring a backup on another machine, Exact and MijnKantoor against the real services.
 
 ## Before production (held back on purpose)
 
 The production deployment (Hetzner server in `fsn1`, https, firewall, nightly encrypted backup to a Storage Box in Germany, cron for retention and backups) is not written until you confirm:
 
-1. A finished **verwerkersovereenkomst** naming every sub-processor: Anthropic (only in hybrid mode), Hetzner, Meta (only with WhatsApp), your mail provider.
+1. A finished **verwerkersovereenkomst** naming every sub-processor: Anthropic or AWS (Claude in Bedrock, EU region; only in hybrid mode), Hetzner, Meta (only with WhatsApp), your mail provider.
 2. **Algemene voorwaarden** with a liability cap at the last 12 months' fees, indirect damage excluded.
 3. The operating entity is a **BV** (or you consciously start as eenmanszaak with insurance).
 
@@ -58,4 +70,4 @@ Also before real client data: a security test, a breach procedure, and the Wwft 
 
 ## Files
 
-`app.py` pages and pipeline · `ai.py` local/hybrid/replay AI · `models.py` licence gate · `privacy.py` OCR, special category screen, pseudonymiser · `egress.py` the only exit to Claude · `vault.py` encryption at rest · `outbox.py` message drafts and approval · `auth.py` accounts and 2FA · `region.py` EU lock · `backup.py`, `retention.py` cron jobs · `scan.py`, `checks.py`, `exports.py`, `exact_api.py`, `coversheet.py`, `whatsapp.py` from earlier versions, adapted to the vault · `tests/`.
+`app.py` pages and pipeline · `ai.py` local/hybrid/replay/demo AI · `ubl.py` UBL 2.1 export · `test_real_ingestion.py` live reading of any file (demo use) · `models.py` licence gate · `privacy.py` OCR, special category screen, pseudonymiser · `egress.py` the only exit to Claude · `vault.py` encryption at rest · `outbox.py` message drafts and approval · `auth.py` accounts and 2FA · `region.py` EU lock · `backup.py`, `retention.py` cron jobs · `scan.py`, `checks.py`, `exports.py`, `exact_api.py`, `coversheet.py`, `whatsapp.py` from earlier versions, adapted to the vault · `tests/`.

@@ -60,6 +60,7 @@ h3{font-size:11.5px;margin:0 0 10px;font-weight:600;color:var(--mute);text-trans
 .stack{display:flex;flex-direction:column;gap:18px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.grid-auto{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
 .split{display:grid;grid-template-columns:1.55fr 1fr;gap:18px;align-items:start}
 table{width:100%;border-collapse:collapse}
 th{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--mute);font-weight:600;text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);background:#fafbfc}

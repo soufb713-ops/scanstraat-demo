@@ -8,7 +8,8 @@ Flow per scan:
   4. read        fields + MijnKantoor folder + booking proposal                ai.py: local model, or hybrid
   5. check       arithmetic, VAT, IBAN, duplicates, deadlines                 checks.py, no AI
   6. review      a person approves, corrects, asks the client or discards
-  7. deliver     MijnKantoor folder/ZIP, Exact API or import file, Excel      exports.py, exact_api.py
+  7. deliver     MijnKantoor folder/ZIP, Exact API or import file, Excel,     exports.py, exact_api.py,
+                 UBL 2.1 (NLCIUS) for SnelStart, Yuki and other packages      ubl.py
 Nothing leaves step 6 without a person's approval.
 
 Privacy controls (see README): local-first AI with an Apache 2.0 licence gate (models.py); in hybrid mode only
@@ -16,6 +17,10 @@ pseudonymised text goes to Claude through one checked door (egress.py), never a 
 encrypted (vault.py); originals and pseudonymisation mappings are deleted once the export is confirmed
 (retention below); messages to clients are drafts until a staff member approves them (outbox.py); 2FA (auth.py);
 EU-only production (region.py).
+
+Demo instances (DEMO_INSTANCE=1, never production) may also run SCAN_AI=demo, where page images of fictional
+documents go to Claude in an EU region, and may offer a read-only guest tour (GUEST_TOUR=1, auth.py) that only
+shows the fictional sample scan.
 """
 import csv
 import hashlib
@@ -31,8 +36,8 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-from flask import (Flask, abort, flash, jsonify, redirect, render_template, request, send_file, session,
-                   url_for)
+from flask import (Flask, abort, flash, has_request_context, jsonify, redirect, render_template, request,
+                   send_file, session, url_for)
 from werkzeug.utils import secure_filename
 
 import envfile  # noqa: F401  (loads .env before the modules below read their settings)
@@ -48,6 +53,7 @@ import models
 import outbox as outbox_mod
 import privacy
 import scan
+import ubl
 import whatsapp
 from exact_api import Exact, ExactError, auth_url as exact_auth_url, configured as exact_configured
 
@@ -56,6 +62,8 @@ SAMPLES = HERE / "samples"
 DATA = Path(os.environ.get("SCAN_DATA", HERE / "data"))
 DATA.mkdir(parents=True, exist_ok=True)
 region.enforce()
+if os.environ.get("DEMO_INSTANCE") == "1" and region.production():
+    raise SystemExit("DEMO_INSTANCE=1 kan niet samen met APP_ENV=production: een productie-omgeving is nooit een demo.")
 vault.init(DATA)
 BATCHES = DATA / "batches"
 MAPS = DATA / "vault" / "maps"
@@ -66,6 +74,8 @@ INBOX = Path(os.environ.get("SCAN_INBOX", DATA / "scanner-inbox"))
 AUDIT = DATA / "audit.jsonl"
 BRAND = os.environ.get("BRAND_NAME", "Scanstraat")
 ALLOWED = {".pdf", ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".heic", ".webp"}
+UBL_KINDS = {"inkoopfactuur", "kassabon", "creditnota"}  # purchase side: what a package imports as UBL
+TOUR_CONTACT = os.environ.get("TOUR_CONTACT", "").strip()
 
 app = Flask(__name__)
 
@@ -195,6 +205,29 @@ def who():
     return (auth.current_user() or {}).get("name", "Systeem")
 
 
+def guest():
+    return has_request_context() and (auth.current_user() or {}).get("role") == "guest"
+
+
+def visible_batches():
+    """Guests on the tour see only the fictional sample scan, never anything a staff member uploaded."""
+    batches = list(state["batches"].values())
+    return [b for b in batches if b.get("source") == "voorbeeld"] if guest() else batches
+
+
+def visible_docs():
+    docs = list(state["docs"].values())
+    if not guest():
+        return docs
+    ok = {b["id"] for b in visible_batches()}
+    return [d for d in docs if d["batch"] in ok]
+
+
+def guest_may_see(batch_id):
+    if guest() and (state["batches"].get(batch_id) or {}).get("source") != "voorbeeld":
+        abort(404)
+
+
 # ---------------------------------------------------------------- template helpers
 @app.template_filter("eur")
 def eur(v):
@@ -222,14 +255,16 @@ def d_filter(v):
 
 
 def open_docs():
-    return [d for d in state["docs"].values() if d["status"] == "review"]
+    return [d for d in visible_docs() if d["status"] == "review"]
 
 
 @app.context_processor
 def globals_():
     return {"brand": BRAND, "user": auth.current_user(), "live": ai.live(), "ai_label": ai.label(), "local_ai": ai.local(), "open_count": len(open_docs()),
-            "draft_count": len(outbox.drafts()) if auth.current_user() else 0,
-            "KINDS": ai.KINDS, "VAT_CODES": ai.VAT_CODES, "feat": {}}
+            "draft_count": len(outbox.drafts()) if auth.current_user() and not guest() else 0,
+            "KINDS": ai.KINDS, "VAT_CODES": ai.VAT_CODES, "feat": {}, "guest": guest(), "demo_live": ai.demo(),
+            "destination": egress.DESTINATION, "tour_contact": TOUR_CONTACT, "UBL_KINDS": UBL_KINDS,
+            "tour_on": auth.GUEST_TOUR}
 
 
 @app.errorhandler(400)
@@ -239,6 +274,9 @@ def globals_():
 def err(e):
     msgs = {400: getattr(e, "description", "Ongeldig verzoek"), 403: "Geen toegang", 404: "Niet gevonden",
             413: "Bestand te groot (max 200 MB)"}
+    custom = getattr(e, "description", None)
+    if e.code == 403 and custom and custom != getattr(type(e), "description", None):
+        msgs[403] = custom  # e.g. the guest tour's "alleen bekijken" message
     return render_template("error.html", code=e.code, message=msgs.get(e.code, "Fout")), e.code
 
 
@@ -444,7 +482,7 @@ def _process(batch):
             _set(batch, detail=f"{done[0]} van {len(specs)} documenten")
         audit(bid, doc["id"], "read", "Systeem", model=batch["mode"], route=(doc.get("trail") or {}).get("route"))
 
-    with ThreadPoolExecutor(max_workers=1 if ai.live() else 3) as pool:
+    with ThreadPoolExecutor(max_workers=1 if ai.local() or ai.hybrid() else 3) as pool:
         list(pool.map(read_one, range(len(specs))))
 
     # 5: checks
@@ -583,14 +621,15 @@ def seed():
 
 # ---------------------------------------------------------------- pages
 def kpis():
-    docs = list(state["docs"].values())
+    docs = visible_docs()
+    batches = visible_batches()
     today = date.today().isoformat()
     week = (date.today() - timedelta(days=date.today().weekday())).isoformat()
-    pages = [p for b in state["batches"].values() for p in b["pages"]]
-    b_today = [b for b in state["batches"].values() if b["created"][:10] >= week]
+    pages = [p for b in batches for p in b["pages"]]
+    b_today = [b for b in batches if b["created"][:10] >= week]
     s = settings()
     approved = [d for d in docs if d["status"] == "approved"]
-    secs = [b["seconds"] / max(1, len(b["docs"])) for b in state["batches"].values() if b.get("seconds") and b["docs"]]
+    secs = [b["seconds"] / max(1, len(b["docs"])) for b in batches if b.get("seconds") and b["docs"]]
     k = {
         "pages_week": sum(len(b["pages"]) for b in b_today),
         "pages_total": len(pages),
@@ -620,14 +659,14 @@ def dashboard():
     cl = clients()
     per_client = []
     for nr, c in cl.items():
-        ds = [d for d in state["docs"].values() if d.get("client_nr") == nr and d["status"] != "reading"]
+        ds = [d for d in visible_docs() if d.get("client_nr") == nr and d["status"] != "reading"]
         per_client.append({"client": c, "total": len(ds), "review": sum(d["status"] == "review" for d in ds),
                            "red": sum(d["status"] == "review" and d.get("light") == "red" for d in ds),
                            "asked": sum(d["status"] == "asked" for d in ds),
                            "approved": sum(d["status"] == "approved" for d in ds),
                            "delivered": sum(bool(d["exports"].get("mijnkantoor")) for d in ds)})
-    unknown = [d for d in state["docs"].values() if not d.get("client_nr") and d["status"] == "review"]
-    batches = sorted(state["batches"].values(), key=lambda b: b["created"], reverse=True)[:8]
+    unknown = [d for d in visible_docs() if not d.get("client_nr") and d["status"] == "review"]
+    batches = sorted(visible_batches(), key=lambda b: b["created"], reverse=True)[:8]
     queue = sorted(open_docs(), key=lambda d: ({"red": 0, "amber": 1, "green": 2}.get(d.get("light"), 3), d["id"]))[:8]
     hour = datetime.now().hour
     greeting = "Goedemorgen" if hour < 12 else "Goedemiddag" if hour < 18 else "Goedenavond"
@@ -667,6 +706,7 @@ def upload():
 
 def batch_view(bid):
     batch = state["batches"].get(bid) or abort(404)
+    guest_may_see(bid)
     docs = [state["docs"][d] for d in batch["docs"]]
     return batch, docs
 
@@ -766,6 +806,7 @@ def page_img(bid, n):
 @app.get("/document/<did>.pdf")
 def doc_pdf(did):
     doc = state["docs"].get(did) or abort(404)
+    guest_may_see(doc["batch"])
     f = pdf_path(doc)
     if not f.exists():
         abort(404)
@@ -788,6 +829,7 @@ def _num(v):
 @app.route("/document/<did>", methods=["GET", "POST"])
 def review(did):
     doc = state["docs"].get(did) or abort(404)
+    guest_may_see(doc["batch"])
     batch = state["batches"][doc["batch"]]
     cl = clients()
     if request.method == "POST":
@@ -912,7 +954,7 @@ def apply_form(doc, form, cl):
 
 # ---------------------------------------------------------------- delivery
 def approved_docs(pending_key=None):
-    ds = [d for d in state["docs"].values() if d["status"] == "approved"]
+    ds = [d for d in visible_docs() if d["status"] == "approved"]
     if pending_key:
         ds = [d for d in ds if not d["exports"].get(pending_key)]
     return sorted(ds, key=lambda d: d["id"])
@@ -938,8 +980,11 @@ def deliver():
     ds = approved_docs()
     return render_template("deliver.html", nav="deliver", docs=ds, clients=clients(), s=settings(),
                            integ=integrations_status(), exact_tok=exact.token(), exact_ready=exact_configured(),
-                           pending={k: len(approved_docs(k)) for k in ("mijnkantoor", "exact", "excel")},
-                           bookable=[d for d in ds if d["kind"] in ai.BOOKABLE])
+                           pending={k: len(approved_docs(k)) for k in ("mijnkantoor", "exact", "excel")}
+                           | {"ubl": len([d for d in approved_docs("ubl") if d["kind"] in UBL_KINDS])},
+                           bookable=[d for d in ds if d["kind"] in ai.BOOKABLE],
+                           sample_ubl=next((d for d in sorted(visible_docs(), key=lambda d: d["id"])
+                                            if d["kind"] in UBL_KINDS and ubl_allowed(d)), None))
 
 
 def _mark(docs, key, info):
@@ -1133,6 +1178,59 @@ def retention_trigger():
     return jsonify({"purged": purge_ready("Planner (cron)")})
 
 
+def ubl_allowed(doc):
+    """A UBL file is importable, so it is only made from fields a person approved. The one exception is the
+    fictional sample scan, which the guest tour may preview as a concept."""
+    if doc["kind"] not in UBL_KINDS or doc.get("purged") or doc["status"] == "reading":
+        return False
+    return doc["status"] == "approved" or state["batches"][doc["batch"]].get("source") == "voorbeeld"
+
+
+def ubl_for(doc, cl):
+    c = cl.get(doc.get("client_nr")) or {"name": "Onbekende klant"}
+    fields = as_check_fields(doc) | {"description": (doc["result"] or {}).get("description")}
+    filename = (doc.get("filing") or {}).get("filename") or f"{doc['id']}.pdf"
+    xml = ubl.build(fields, {"name": c["name"], "address": c.get("address") or c.get("city"), "vat": c.get("vat")},
+                    vault.read(pdf_path(doc)), filename)
+    if doc["status"] != "approved":
+        xml = xml.replace("Opgesteld uit het originele document (bijlage) en goedgekeurd door een medewerker.",
+                          "CONCEPT uit de voorbeeldscan: nog niet goedgekeurd door een medewerker. Niet importeren.")
+    return xml, filename.rsplit(".", 1)[0] + ".xml"
+
+
+@app.get("/document/<did>/ubl.xml")
+def doc_ubl(did):
+    doc = state["docs"].get(did) or abort(404)
+    guest_may_see(doc["batch"])
+    if not ubl_allowed(doc):
+        abort(400, "UBL alleen voor goedgekeurde inkoopfacturen, bonnen en creditnota's.")
+    xml, name = ubl_for(doc, clients())
+    return send_file(io.BytesIO(xml.encode("utf-8")), mimetype="application/xml", as_attachment=True, download_name=name)
+
+
+@app.post("/afhandelen/ubl")
+def deliver_ubl():
+    """UBL 2.1 (NLCIUS) per approved purchase document, PDF embedded: for SnelStart's UBL mailbox, Yuki, Twinfield
+    and other packages that import UBL. One ZIP, one folder per client."""
+    import zipfile
+    docs = [d for d in _selected("ubl") if d["kind"] in UBL_KINDS and not d.get("purged")]
+    if not docs:
+        flash("Geen goedgekeurde inkoopfacturen, bonnen of creditnota's voor UBL.", "error")
+        return redirect(url_for("deliver"))
+    cl = clients()
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        for d in docs:
+            xml, name = ubl_for(d, cl)
+            folder = secure_filename((cl.get(d.get("client_nr")) or {}).get("name", "onbekend")) or "onbekend"
+            z.writestr(f"{folder}/{name}", xml)
+    _mark(docs, "ubl", {"route": "zip"})
+    for d in docs:
+        audit(d["batch"], d["id"], "exported", who(), format="UBL")
+    return send_file(io.BytesIO(buf.getvalue()), mimetype="application/zip", as_attachment=True,
+                     download_name=f"ubl-{datetime.now():%Y%m%d-%H%M}.zip")
+
+
 @app.get("/afhandelen/register.xlsx")
 def deliver_excel():
     docs = approved_docs() if request.args.get("all") else (_selected("excel") or approved_docs())
@@ -1271,6 +1369,9 @@ def exact_disconnect():
 def messages_page():
     data = outbox.all()["messages"]
     ms = sorted(data.values(), key=lambda m: m["id"], reverse=True)
+    if guest():  # only drafts about the fictional sample scan
+        seen = {d["id"] for d in visible_docs()}
+        ms = [m for m in ms if m.get("doc") in seen]
     return render_template("messages.html", nav="messages", messages=ms, clients=clients(),
                            channels=outbox_mod.CHANNELS, confirm_read=outbox_mod.CONFIRM_READ,
                            confirm_wwft=outbox_mod.CONFIRM_WWFT, docs=state["docs"])
@@ -1375,7 +1476,8 @@ EVENT_LABEL = {"received": "Scan ontvangen", "processed": "Scan verwerkt", "fail
                "message_drafted": "Conceptbericht", "message_edited": "Bericht gewijzigd",
                "message_discarded": "Bericht verwijderd", "message_approved": "Bericht goedgekeurd",
                "message_sent": "Bericht verstuurd", "message_not_sent": "Goedgekeurd, niet verstuurd (demo)",
-               "wwft_stop_on": "Wwft-stop aan", "wwft_stop_off": "Wwft-stop uit", "whatsapp_failed": "WhatsApp-bestand mislukt"}
+               "wwft_stop_on": "Wwft-stop aan", "wwft_stop_off": "Wwft-stop uit", "whatsapp_failed": "WhatsApp-bestand mislukt",
+               "guest_tour": "Rondleiding geopend"}
 
 
 # ---------------------------------------------------------------- start

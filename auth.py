@@ -3,6 +3,13 @@
 Personal accounts (e-mail + password hash), two roles, forced password change on first login, lockout after
 repeated failures. Two-factor login (TOTP, RFC 6238: any authenticator app) is required for every account
 and cannot be switched off (REQUIRE_2FA is a constant). Stored sealed in data/users.json (see vault.py).
+
+ADMIN_TOTP_SECRET (optional, a base32 key kept in the host's secret settings) pre-enrols the first admin's
+authenticator, so a demo host that wipes its disk on every restart keeps the same 6-digit codes.
+
+Guest tour (demo instances only: DEMO_INSTANCE=1 and GUEST_TOUR=1, never with APP_ENV=production): /rondleiding
+opens a read-only session without an account. A guest can look at the fictional sample scan and nothing else:
+no uploads, no changes, no downloads that change state, no audit log, no other batches.
 """
 import base64
 import hashlib
@@ -27,6 +34,15 @@ MAX_FAILS, LOCK_SECONDS = 5, 15 * 60
 REQUIRE_2FA = True
 PENDING_SECONDS = 5 * 60
 ISSUER = os.environ.get("BRAND_NAME", "Scanstraat")
+PRODUCTION = os.environ.get("APP_ENV", "development").lower() == "production"
+GUEST_TOUR = (os.environ.get("GUEST_TOUR") == "1" and os.environ.get("DEMO_INSTANCE") == "1" and not PRODUCTION)
+GUEST = {"email": "gast@rondleiding", "name": "Gast (rondleiding)", "role": "guest"}
+GUEST_MSG = ("Dit is een rondleiding: je kunt alles bekijken, maar niets wijzigen of uploaden. "
+             "Wil je je eigen stapel zien? Neem contact op via de brief die je kreeg.")
+# What a guest may open (GET only). Everything else answers with GUEST_MSG.
+GUEST_VIEWS = {"dashboard", "batch_page", "batch_api", "page_img", "doc_pdf", "doc_ubl", "review", "deliver",
+               "messages_page", "security_page", "clients_page", "cover_sheets", "upload", "guest_tour", "logout",
+               "static", "health"}
 
 _lock = threading.Lock()
 _fails = {}  # email -> [timestamps]
@@ -71,6 +87,18 @@ def temp_password():
 # ---------------------------------------------------------------- TOTP (RFC 6238), standard library only
 def totp_secret():
     return base64.b32encode(secrets.token_bytes(20)).decode().rstrip("=")
+
+
+def clean_secret(raw):
+    """A base32 TOTP key as typed into an authenticator app (spaces and case ignored), or None if unusable."""
+    key = "".join((raw or "").split()).upper().rstrip("=")
+    if len(key) < 16:
+        return None
+    try:
+        base64.b32decode(key + "=" * (-len(key) % 8))
+    except (ValueError, base64.binascii.Error):
+        return None
+    return key
 
 
 def _hotp(secret, counter):
@@ -147,7 +175,19 @@ def init(app, users: Users, audit):
         if not os.environ.get("ADMIN_PASSWORD"):
             print(f"\n  Eerste beheerder aangemaakt: {email}  wachtwoord: {password}\n")
 
-    open_endpoints = {"login", "login_code", "setup_2fa", "static", "health", "whatsapp_webhook", "retention_trigger"}
+    # Pre-enrolled second factor for the first admin (see module docstring). Never overwrites a key a person set.
+    preset = os.environ.get("ADMIN_TOTP_SECRET")
+    if preset:
+        key, email = clean_secret(preset), os.environ.get("ADMIN_EMAIL", "admin@demo.local").strip().lower()
+        stored = users.get(email)
+        if not key:
+            print("  ADMIN_TOTP_SECRET genegeerd: geen geldige base32-sleutel van minstens 16 tekens.")
+        elif stored and not stored.get("totp_secret"):
+            users.update(email, totp_secret=key, totp_last=0, totp_since=datetime.now().isoformat(timespec="seconds"),
+                         totp_preset=True)
+
+    open_endpoints = {"login", "login_code", "setup_2fa", "static", "health", "whatsapp_webhook", "retention_trigger",
+                      "guest_tour"}
 
     @app.before_request
     def guard():
@@ -158,6 +198,13 @@ def init(app, users: Users, audit):
         if request.endpoint in open_endpoints:
             return None
         user = current_user()
+        if user and user.get("role") == "guest":
+            if not GUEST_TOUR:
+                session.clear()
+                return redirect(url_for("login"))
+            if (request.method != "GET" and request.endpoint != "logout") or request.endpoint not in GUEST_VIEWS:
+                abort(403, GUEST_MSG)
+            return None
         if not user:
             if request.path.startswith("/api/"):
                 abort(401)
@@ -185,6 +232,19 @@ def init(app, users: Users, audit):
     @app.get("/health")
     def health():
         return "ok"
+
+    @app.get("/rondleiding")
+    def guest_tour():
+        """The link and QR code in letters to prospects. Read-only, fictional sample only, no account needed."""
+        if not GUEST_TOUR:
+            flash("De rondleiding staat op dit moment uit. Neem contact op via de brief die je kreeg.", "error")
+            return redirect(url_for("login"))
+        if current_user() and current_user().get("role") != "guest":
+            return redirect(url_for("dashboard"))
+        session.clear()
+        session["user"] = dict(GUEST)
+        audit("-", "-", "guest_tour", "Gast")  # no IP or other detail about the visitor
+        return redirect(url_for("dashboard"))
 
     def pending():
         p = session.get("pending")

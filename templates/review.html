@@ -30,7 +30,7 @@
         {% elif doc.light == 'red' %}<span class="badge red">Fout gevonden</span>{% elif doc.light == 'amber' %}<span class="badge amber">Let op</span>{% else %}<span class="badge green">Klaar voor goedkeuring</span>{% endif %}
         <span class="sub">{{ doc.id }} · gelezen in {{ (doc.seconds or 0)|string|replace('.', ',') }} s{% if b.mode == 'replay' %} · replay{% endif %}</span>
       </div>
-      {% if not doc.purged %}<a class="sub" href="/document/{{ doc.id }}.pdf?download=1">Download</a>{% endif %}
+      {% if not doc.purged %}<span class="sub"><a href="/document/{{ doc.id }}.pdf?download=1">Download</a>{% if doc.kind in UBL_KINDS and (doc.status == 'approved' or b.source == 'voorbeeld') %} · <a href="/document/{{ doc.id }}/ubl.xml" title="UBL 2.1 (NLCIUS) met de pdf erin">UBL{{ ' (concept)' if doc.status != 'approved' }}</a>{% endif %}</span>{% endif %}
     </div>
     <div class="card-b stack" style="gap:20px">
 
