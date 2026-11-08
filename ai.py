@@ -33,6 +33,10 @@ if MODE not in ("local", "hybrid", "replay", "demo"):
 if MODE == "demo" and not egress.images_allowed():
     raise SystemExit("SCAN_AI=demo mag alleen op een demo-omgeving: zet DEMO_INSTANCE=1, en nooit met "
                      "APP_ENV=production. Echte klantstukken lopen via hybrid (alleen geanonimiseerde tekst).")
+if MODE == "hybrid" and os.environ.get("APP_ENV", "development").lower() == "production" and egress.PROVIDER != "bedrock":
+    # the verwerkersovereenkomst promises processing inside the EU; the Anthropic API processes in the US
+    raise SystemExit("Productie met SCAN_AI=hybrid: zet AI_PROVIDER=bedrock (Claude in Amazon Bedrock, EU-regio). "
+                     "De verwerkersovereenkomst belooft verwerking binnen de EU.")
 
 KINDS = {
     "inkoopfactuur": "Inkoopfactuur",

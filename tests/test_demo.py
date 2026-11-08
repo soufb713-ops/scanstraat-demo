@@ -156,6 +156,15 @@ def test_bedrock_only_in_an_eu_region():
     assert r.returncode != 0 and "EU-regio" in r.stderr
 
 
+def test_production_hybrid_only_through_bedrock_in_the_eu():
+    prod = dict(APP_ENV="production", HOSTING_LOCATION="fsn1", BACKUP_LOCATION="fsn1", SCAN_AI="hybrid",
+                DEMO_INSTANCE=None, GUEST_TOUR=None)
+    r = run_env(**prod, AI_PROVIDER="anthropic")
+    assert r.returncode != 0 and "AI_PROVIDER=bedrock" in r.stderr
+    r = run_env(**prod, AI_PROVIDER="bedrock", AWS_REGION="eu-west-1", AWS_BEARER_TOKEN_BEDROCK="test")
+    assert "AI_PROVIDER=bedrock" not in r.stderr
+
+
 # ---------------------------------------------------------------- guest tour
 def test_guest_sees_only_the_fictional_sample(batches):
     sample, own = batches

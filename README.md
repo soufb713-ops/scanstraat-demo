@@ -8,7 +8,7 @@ The Scanstraat scan demo (paper pile → QR cover sheets → split → read → 
 |---|---|---|---|
 | Local-first AI | Default `SCAN_AI=local`: splitting, reading and OCR run on this machine via Ollama. Nothing goes to any AI service. | `ai.py` | Yes, with a stand-in Ollama |
 | Apache 2.0 models only | Hardcoded allowlist (`qwen2.5vl:7b`, `qwen2.5:7b`) plus a check of the licence text Ollama ships with the model. `qwen2.5:3b` is blocked by name. | `models.py` | Yes |
-| Claude only with pseudonymised text | `SCAN_AI=hybrid`: text is read locally (Tesseract or the local model); IBAN, e-mail, phone, BSN and date of birth are replaced by rules, names and home addresses by the local model; then it is sent as text. Real values are put back locally. | `privacy.py`, `ai.py` | Yes (a stand-in Claude server records what arrives) |
+| Claude only with pseudonymised text | `SCAN_AI=hybrid`: text is read locally (Tesseract or the local model); IBAN, e-mail, phone, BSN and date of birth are replaced by rules, names and home addresses by the local model; then it is sent as text. Real values are put back locally. With `APP_ENV=production` only through Claude in Amazon Bedrock in an EU region (`AI_PROVIDER=bedrock`); the app refuses the US Anthropic API there. | `privacy.py`, `ai.py` | Yes (a stand-in Claude server records what arrives) |
 | Hard block: no images, BSN or special category data to the US | One exit (`egress.py`), the only file that imports the Anthropic SDK. It accepts strings only and re-checks every string; any hit blocks and is logged. Documents with health, union, religion, politics or criminal indicators never leave, not even anonymised: the local model reads them. The old "page images to Claude" mode stops the app if set. | `egress.py` | Yes |
 | No automatic outbound messages (Wwft art. 23) | "Ask the client" creates a draft only. `REQUIRES_STAFF_APPROVAL = True` is a constant. Sending needs a logged-in person and two ticked statements; a Wwft-stop per client blocks sending entirely. No scheduler or webhook can reach the transport function. | `outbox.py`, Berichten page | Yes |
 | 2FA for all firm staff | TOTP (any authenticator app), set up at first login, no way to switch it off. Password alone gives no access. A code can't be used twice; lockout after 5 failures. | `auth.py` | Yes |
@@ -38,7 +38,7 @@ bash setup.sh demo     # no AI, replays the sample scan; quickest way to see the
 
 Open http://localhost:5000, log in, scan the QR code with an authenticator app. Next time: `bash start.sh`. Docker for development: `deploy/docker-compose.dev.yml` (app + Ollama, listens on 127.0.0.1 only). Keys: `.vault-key` and `.backup-key`, mode 600. Lose the vault key and the data is gone; keep a copy apart from the backups. Windows: use WSL.
 
-Tests: `bash tests/run.sh` (35 tests). `tests/standins.py` starts a fake Ollama and a fake Anthropic server that records every request, for trying hybrid and demo mode without a GPU or key.
+Tests: `bash tests/run.sh` (36 tests). `tests/standins.py` starts a fake Ollama and a fake Anthropic server that records every request, for trying hybrid and demo mode without a GPU or key.
 
 ## Hosted demo (Render) and live reading
 
