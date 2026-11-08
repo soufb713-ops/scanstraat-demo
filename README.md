@@ -38,7 +38,7 @@ bash setup.sh demo     # no AI, replays the sample scan; quickest way to see the
 
 Open http://localhost:5000, log in, scan the QR code with an authenticator app. Next time: `bash start.sh`. Docker for development: `deploy/docker-compose.dev.yml` (app + Ollama, listens on 127.0.0.1 only). Keys: `.vault-key` and `.backup-key`, mode 600. Lose the vault key and the data is gone; keep a copy apart from the backups. Windows: use WSL.
 
-Tests: `bash tests/run.sh` (34 tests). `tests/standins.py` starts a fake Ollama and a fake Anthropic server that records every request, for trying hybrid and demo mode without a GPU or key.
+Tests: `bash tests/run.sh` (35 tests). `tests/standins.py` starts a fake Ollama and a fake Anthropic server that records every request, for trying hybrid and demo mode without a GPU or key.
 
 ## Hosted demo (Render) and live reading
 

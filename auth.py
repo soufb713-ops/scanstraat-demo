@@ -16,6 +16,7 @@ import hashlib
 import hmac
 import struct
 import os
+import re
 import secrets
 import threading
 import time
@@ -243,7 +244,11 @@ def init(app, users: Users, audit):
             return redirect(url_for("dashboard"))
         session.clear()
         session["user"] = dict(GUEST)
-        audit("-", "-", "guest_tour", "Gast")  # no IP or other detail about the visitor
+        # ?k= is the letter's code (a firm slug, not a person): shows which letter brought the visit. No IP is kept.
+        via = re.sub(r"[^a-z0-9-]", "", (request.args.get("k") or "").lower())[:60] or None
+        audit("-", "-", "guest_tour", "Gast", via=via)
+        if via:
+            print(f"Rondleiding geopend via brief: {via}", flush=True)
         return redirect(url_for("dashboard"))
 
     def pending():

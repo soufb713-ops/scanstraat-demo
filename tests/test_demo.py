@@ -172,6 +172,13 @@ def test_guest_sees_only_the_fictional_sample(batches):
         assert c.get(url).status_code == 200, url
 
 
+def test_tour_link_code_is_logged_without_visitor_details():
+    c = client()
+    assert c.get("/rondleiding?k=evertse-administraties<script>").status_code == 302
+    e = [x for x in appmod.read_audit() if x["event"] == "guest_tour"][-1]
+    assert e["details"] == {"via": "evertse-administratiesscript"} and "ip" not in e["details"]
+
+
 def test_guest_cannot_change_or_download_anything(batches):
     sample, _ = batches
     c = guest()
