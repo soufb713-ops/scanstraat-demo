@@ -71,7 +71,16 @@ def post(c, url, **data):
     return c.post(url, data={"csrf": CSRF, **data})
 
 
+_admin = {}
+
+
 def admin():
+    """The logged-in admin client, made once: a TOTP code is never accepted twice, so a second login inside the
+    same 30 seconds would be refused (as it should be)."""
+    if "c" in _admin:
+        with _admin["c"].session_transaction() as s:
+            s["csrf"] = CSRF
+        return _admin["c"]
     c = client()
     r = post(c, "/login", email="admin@demo.local", password="EenLangWachtwoord1")
     assert r.headers["Location"].endswith("/login/code")      # pre-enrolled: no QR set-up step
@@ -81,6 +90,7 @@ def admin():
     assert r.status_code == 302 and c.get("/").status_code == 200
     with c.session_transaction() as s:   # a login starts a fresh session
         s["csrf"] = CSRF
+    _admin["c"] = c
     return c
 
 
@@ -237,7 +247,29 @@ def test_ubl_only_from_approved_fields(batches):
     assert r.status_code == 200 and r.mimetype == "application/zip"
     names = zipfile.ZipFile(io.BytesIO(r.data)).namelist()
     assert len(names) == 1 and names[0].startswith("Studio_Lindewerf_B.V/") and names[0].endswith(".xml")
-    assert appmod.state["docs"][did]["exports"]["ubl"]["route"] == "zip"
+    assert {"route": "zip", "confirmed": False}.items() <= appmod.state["docs"][did]["exports"]["ubl"].items()
+
+
+def test_confirmed_ubl_import_wipes_the_original(batches):
+    _, own = batches
+    c = admin()
+    did = next(d for d in own["docs"][1:] if appmod.state["docs"][d]["kind"] in appmod.UBL_KINDS)
+    post(c, f"/document/{did}", action="approve", ack="1")
+    s = appmod.settings()
+    keep = s["retention_required"]
+    try:
+        s["retention_required"] = ["ubl"]   # a SnelStart firm: UBL is the only destination
+        appmod.SETTINGS.save(s)
+        assert c.post("/afhandelen/ubl", data={"csrf": CSRF, "ids": [did]}).status_code == 200
+        assert not appmod.state["docs"][did].get("purged")   # a download alone proves nothing
+        post(c, "/afhandelen/bevestigen", key="ubl", ids=[did])
+        doc = appmod.state["docs"][did]
+        assert doc["exports"]["ubl"]["confirmed"] is True and doc["purged"]["why"] == "doorgezet en bevestigd"
+        assert not appmod.pdf_path(doc).exists()
+    finally:
+        s = appmod.settings()
+        s["retention_required"] = keep
+        appmod.SETTINGS.save(s)
 
 
 def test_guest_may_preview_a_concept_ubl_of_the_sample(batches):

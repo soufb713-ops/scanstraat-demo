@@ -4,12 +4,13 @@
 
 {% set unconf_mk = docs|selectattr('exports.mijnkantoor')|selectattr('exports.mijnkantoor.confirmed', 'sameas', false)|list %}
 {% set unconf_ex = docs|selectattr('exports.exact')|selectattr('exports.exact.confirmed', 'sameas', false)|list %}
-{% if unconf_mk or unconf_ex %}
+{% set unconf_ubl = docs|selectattr('exports.ubl')|selectattr('exports.ubl.confirmed', 'sameas', false)|list %}
+{% if unconf_mk or unconf_ex or unconf_ubl %}
 <div class="card" style="margin-bottom:18px;border-color:#f59e0b">
   <div class="card-h"><h2>Bevestig de import</h2><span class="sub">daarna worden de originelen hier gewist</span></div>
   <div class="card-b stack">
-    <p class="sub" style="margin:0">Een ZIP of importbestand is een download: alleen jij kunt zien of de import in MijnKantoor of Exact gelukt is. Na je bevestiging wissen we het origineel, de paginabeelden en de koppeltabel van die documenten (als ook de andere verplichte bestemming klaar is).</p>
-    {% for key, list_, name in [('mijnkantoor', unconf_mk, 'MijnKantoor (ZIP)'), ('exact', unconf_ex, 'Exact (importbestand)')] %}{% if list_ %}
+    <p class="sub" style="margin:0">Een ZIP of importbestand is een download: alleen jij kunt zien of de import in MijnKantoor, Exact of je pakket (UBL) gelukt is. Na je bevestiging wissen we het origineel, de paginabeelden en de koppeltabel van die documenten (als ook de andere verplichte bestemming klaar is).</p>
+    {% for key, list_, name in [('mijnkantoor', unconf_mk, 'MijnKantoor (ZIP)'), ('exact', unconf_ex, 'Exact (importbestand)'), ('ubl', unconf_ubl, 'je pakket (UBL)')] %}{% if list_ %}
     <form method="post" action="/afhandelen/bevestigen" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       <input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="key" value="{{ key }}">
       {% for d in list_ %}<input type="hidden" name="ids" value="{{ d.id }}">{% endfor %}

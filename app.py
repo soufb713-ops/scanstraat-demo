@@ -1068,9 +1068,10 @@ def deliver_exact():
 
 @app.post("/afhandelen/bevestigen")
 def deliver_confirm():
-    """A ZIP or import file is a download: only a person can tell us the import into MijnKantoor/Exact worked."""
+    """A ZIP or import file is a download: only a person can tell us the import into MijnKantoor/Exact/the package
+    that reads UBL (SnelStart, Yuki, ...) worked."""
     key = request.form.get("key")
-    if key not in ("mijnkantoor", "exact"):
+    if key not in ("mijnkantoor", "exact", "ubl"):
         abort(400)
     ids = request.form.getlist("ids")
     done = []
@@ -1092,7 +1093,7 @@ def deliver_confirm():
 # ---------------------------------------------------------------- retention (AVG art. 5(1)(c) and (e))
 def required_destinations(doc):
     req = settings().get("retention_required") or ["mijnkantoor"]
-    return [k for k in req if k != "exact" or doc["kind"] in ai.BOOKABLE]
+    return [k for k in req if (k != "exact" or doc["kind"] in ai.BOOKABLE) and (k != "ubl" or doc["kind"] in UBL_KINDS)]
 
 
 def delivered(doc):
@@ -1224,7 +1225,7 @@ def deliver_ubl():
             xml, name = ubl_for(d, cl)
             folder = secure_filename((cl.get(d.get("client_nr")) or {}).get("name", "onbekend")) or "onbekend"
             z.writestr(f"{folder}/{name}", xml)
-    _mark(docs, "ubl", {"route": "zip"})
+    _mark(docs, "ubl", {"route": "zip", "confirmed": False})  # a download: staff confirm the import
     for d in docs:
         audit(d["batch"], d["id"], "exported", who(), format="UBL")
     return send_file(io.BytesIO(buf.getvalue()), mimetype="application/zip", as_attachment=True,
@@ -1424,7 +1425,7 @@ def security_page():
 @auth.admin_required
 def retention_settings():
     s = settings()
-    s["retention_required"] = [k for k in ("mijnkantoor", "exact") if request.form.get(k)] or ["mijnkantoor"]
+    s["retention_required"] = [k for k in ("mijnkantoor", "exact", "ubl") if request.form.get(k)] or ["mijnkantoor"]
     SETTINGS.save(s)
     audit("-", "-", "settings_changed", who(), section="bewaren", required=s["retention_required"])
     flash("Opgeslagen.")
