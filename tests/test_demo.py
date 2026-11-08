@@ -240,3 +240,17 @@ def test_ubl_credit_note_and_reverse_charge():
     root = check_ubl(xml.encode())
     assert root.tag.endswith("CreditNote") and root.find("cbc:CreditNoteTypeCode", NS).text == "381"
     assert root.find(".//cac:TaxCategory/cbc:ID", NS).text == "AE"
+
+
+# ---------------------------------------------------------------- checks
+def test_iban_differs_from_earlier_documents_of_same_supplier():
+    import checks
+    f = {"doc_type": "invoice", "supplier_name": "Belnet Mobiel B.V.", "invoice_number": "X1", "invoice_date": "2026-10-01",
+         "net_total": 40, "vat_lines": [{"rate": 21, "base": 40, "amount": 8.4}], "gross_total": 48.4,
+         "iban": "NL91ABNA0417164300"}
+    earlier = dict(f, invoice_number="X0", iban="NL02ABNA0123456789")
+    flags = [x for x in checks.run_checks(f, others=[earlier]) if x["field"] == "iban"]
+    assert len(flags) == 1 and flags[0]["level"] == "warning" and "wijkt af" in flags[0]["message"]
+    same = dict(earlier, iban="NL91 ABNA 0417 1643 00")
+    assert not [x for x in checks.run_checks(f, others=[same]) if x["field"] == "iban"]
+    assert not [x for x in checks.run_checks(f, history=[dict(earlier, supplier_name="Andere B.V.")]) if x["field"] == "iban"]

@@ -38,7 +38,7 @@ bash setup.sh demo     # no AI, replays the sample scan; quickest way to see the
 
 Open http://localhost:5000, log in, scan the QR code with an authenticator app. Next time: `bash start.sh`. Docker for development: `deploy/docker-compose.dev.yml` (app + Ollama, listens on 127.0.0.1 only). Keys: `.vault-key` and `.backup-key`, mode 600. Lose the vault key and the data is gone; keep a copy apart from the backups. Windows: use WSL.
 
-Tests: `bash tests/run.sh` (33 tests). `tests/standins.py` starts a fake Ollama and a fake Anthropic server that records every request, for trying hybrid and demo mode without a GPU or key.
+Tests: `bash tests/run.sh` (34 tests). `tests/standins.py` starts a fake Ollama and a fake Anthropic server that records every request, for trying hybrid and demo mode without a GPU or key.
 
 ## Hosted demo (Render) and live reading
 
@@ -47,6 +47,7 @@ The hosted demo (`render.yaml`) is a **demo instance**: `DEMO_INSTANCE=1`, ficti
 - **Live reading** (`SCAN_AI=demo`): page images of fictional documents, or the presenter's own papers, go to Claude through `egress.send_images`. Default provider `AI_PROVIDER=bedrock`: Claude in Amazon Bedrock in an EU region (`AWS_REGION=eu-west-1`; the app refuses a non-`eu-` region). Use a regional (in-region) endpoint, not the global one, when processing must stay in the EU. Set `AWS_BEARER_TOKEN_BEDROCK` in the Render dashboard and turn on model access for Claude in that region in the AWS console. Real client documents never use this mode: real pilots use `hybrid` (pseudonymised text only).
 - **Guest tour** (`GUEST_TOUR=1`): `/rondleiding` (the QR code in the letters) opens a read-only session without an account. Guests see only the fictional sample scan: no uploads, no changes, no audit log, nothing a staff member scanned. Optional `TOUR_CONTACT` adds a contact line for visitors.
 - **Restarts**: the free plan wipes the disk on every restart. The app replays the sample scan on each start; `ADMIN_EMAIL`, `ADMIN_PASSWORD` and `ADMIN_TOTP_SECRET` recreate the admin with the same login and the same authenticator codes. Make a key once with `python -c "import base64,os;print(base64.b32encode(os.urandom(20)).decode())"`, put it in Render, and type the same key into the authenticator app ("sleutel invoeren"). Starter instance type keeps the demo awake.
+- **IBAN match**: besides the checksum, an IBAN that differs from earlier documents of the same supplier gets a warning (the classic "our bank details changed" fraud).
 - **UBL**: Afhandelen has a UBL card: each approved purchase invoice, receipt or credit note as UBL 2.1 (NLCIUS) with the PDF embedded, for SnelStart's UBL mailbox and the UBL import of other packages. Only approved fields; the fictional sample can be previewed as a CONCEPT. Not yet run through an official validator: try one file per package first.
 - **Any messy paper, on your own laptop**: `python test_real_ingestion.py bon.jpg facturen.pdf screenshot.png` splits, reads, checks and writes UBL files for whatever you drop in, and logs a SHA-256 of every request. `--dry-run` sends nothing. Only fictional documents or your own.
 
