@@ -188,7 +188,7 @@ def init(app, users: Users, audit):
                          totp_preset=True)
 
     open_endpoints = {"login", "login_code", "setup_2fa", "static", "health", "whatsapp_webhook", "retention_trigger",
-                      "guest_tour"}
+                      "guest_tour", "public_home"}
 
     @app.before_request
     def guard():
@@ -206,6 +206,9 @@ def init(app, users: Users, audit):
             if (request.method != "GET" and request.endpoint != "logout") or request.endpoint not in GUEST_VIEWS:
                 abort(403, GUEST_MSG)
             return None
+        if not user and GUEST_TOUR and request.endpoint == "dashboard" and request.method == "GET":
+            # demo instance: a visitor from the letter's QR code sees the public homepage, not a login screen
+            return app.view_functions["public_home"]()
         if not user:
             if request.path.startswith("/api/"):
                 abort(401)
@@ -338,8 +341,9 @@ def init(app, users: Users, audit):
     def logout():
         if current_user():
             audit("-", "-", "logout", current_user()["name"])
+        was_guest = (current_user() or {}).get("role") == "guest"
         session.clear()
-        return redirect(url_for("login"))
+        return redirect(url_for("dashboard") if was_guest and GUEST_TOUR else url_for("login"))
 
     @app.route("/account/wachtwoord", methods=["GET", "POST"])
     def change_password():

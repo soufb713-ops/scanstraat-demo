@@ -35,6 +35,7 @@ import traceback
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta
 from pathlib import Path
+from urllib.parse import quote
 
 from flask import (Flask, abort, flash, has_request_context, jsonify, redirect, render_template, request,
                    send_file, session, url_for)
@@ -652,6 +653,22 @@ def kpis():
     if k["manual_minutes"]:
         k["hours_saved"] = round(k["docs_total"] * float(k["manual_minutes"]) / 60, 1)
     return k
+
+
+@app.get("/welkom")
+def public_home():
+    """Public homepage of a demo instance (GUEST_TOUR=1): where the QR code on the letters lands. No client data here."""
+    if not auth.GUEST_TOUR:
+        return redirect(url_for("login"))
+    k = re.sub(r"[^a-z0-9-]", "", (request.args.get("k") or "").lower())[:60]
+    phone_intl = re.sub(r"\D", "", os.environ.get("CONTACT_WHATSAPP", ""))
+    wa_text = quote("Hallo, ik wil graag een demo van Scanstraat inplannen.")
+    return render_template("home.html", tour_url=url_for("guest_tour", k=k) if k else url_for("guest_tour"),
+                           wa_url=f"https://wa.me/{phone_intl}?text={wa_text}" if phone_intl else "",
+                           contact_name=os.environ.get("CONTACT_NAME", ""), contact_phone=os.environ.get("CONTACT_PHONE", ""),
+                           contact_email=os.environ.get("CONTACT_EMAIL", ""), contact_place=os.environ.get("CONTACT_PLACE", ""),
+                           kvk=os.environ.get("KVK_NUMBER", ""), price_from=os.environ.get("PRICE_FROM", "295"),
+                           saving_bar=os.environ.get("SAVING_BAR", "40%"))
 
 
 @app.get("/")

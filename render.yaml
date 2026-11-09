@@ -11,7 +11,7 @@ services:
     name: scanstraat-demo
     runtime: docker
     region: frankfurt
-    plan: free
+    plan: starter               # always on: a QR scan never waits for a sleeping server
     dockerfilePath: ./deploy/Dockerfile
     dockerContext: .
     healthCheckPath: /health
@@ -38,6 +38,18 @@ services:
         sync: false
       - key: ADMIN_TOTP_SECRET
         sync: false                 # base32 key; type the same key once into the authenticator app
+      - key: CONTACT_NAME           # public homepage (/) of this demo instance
+        value: Soufyan Belhajjam
+      - key: CONTACT_PLACE
+        value: Rotterdam
+      - key: CONTACT_PHONE
+        value: 06-21363099
+      - key: CONTACT_WHATSAPP
+        value: "31621363099"
+      - key: CONTACT_EMAIL
+        value: soufyan.2belhajjam@gmail.com
+      - key: KVK_NUMBER
+        sync: false                 # shown in the footer once registered
       - key: TOUR_CONTACT
         sync: false                 # optional line for tour visitors, e.g. "Bel of app 06-..."
       - key: SECRET_KEY

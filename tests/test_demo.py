@@ -302,3 +302,17 @@ def test_iban_differs_from_earlier_documents_of_same_supplier():
     same = dict(earlier, iban="NL91 ABNA 0417 1643 00")
     assert not [x for x in checks.run_checks(f, others=[same]) if x["field"] == "iban"]
     assert not [x for x in checks.run_checks(f, history=[dict(earlier, supplier_name="Andere B.V.")]) if x["field"] == "iban"]
+
+
+def test_visitor_from_the_qr_code_sees_the_public_homepage():
+    c = client()
+    r = c.get("/?k=kantoor-x")
+    page = r.get_data(as_text=True)
+    assert r.status_code == 200 and "Bekijk de rondleiding" in page and "Inloggen" in page
+    assert "/rondleiding?k=kantoor-x" in page                      # the letter's code is passed on to the tour
+    assert "niets ingediend" in page and "geen gegevens van klanten" in page
+    assert "Studio Lindewerf" not in page                          # no dashboard data before the tour starts
+    assert c.get("/scannen").status_code == 302                    # everything else still needs a login
+    c = guest()
+    assert "Rondleiding" in c.get("/").get_data(as_text=True)
+    assert post(c, "/logout").headers["Location"].endswith("/")    # leaving the tour goes back to the homepage
