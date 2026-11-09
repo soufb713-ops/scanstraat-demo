@@ -316,3 +316,12 @@ def test_visitor_from_the_qr_code_sees_the_public_homepage():
     c = guest()
     assert "Rondleiding" in c.get("/").get_data(as_text=True)
     assert post(c, "/logout").headers["Location"].endswith("/")    # leaving the tour goes back to the homepage
+
+
+def test_canonical_host_forwards_old_qr_links(monkeypatch):
+    monkeypatch.setattr(appmod, "CANONICAL_HOST", "descanstraat.nl")
+    c = appmod.app.test_client()
+    r = c.get("/?k=kantoor-x", base_url="https://scanstraat-demo.onrender.com")
+    assert r.status_code == 302 and r.headers["Location"] == "https://descanstraat.nl/?k=kantoor-x"
+    assert c.get("/health", base_url="https://scanstraat-demo.onrender.com").status_code == 200
+    assert c.get("/?k=kantoor-x", base_url="https://descanstraat.nl").status_code == 200
