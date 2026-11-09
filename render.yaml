@@ -17,7 +17,7 @@ services:
     healthCheckPath: /health
     envVars:
       - key: SCAN_AI
-        value: demo                 # live reading of fictional documents (replay = no AI at all)
+        value: replay               # no AI, free; the public tour works fully. "demo" = live reading via Bedrock (needs AWS_BEARER_TOKEN_BEDROCK)
       - key: DEMO_INSTANCE
         value: "1"                  # page images may leave only on a demo instance, never with APP_ENV=production
       - key: GUEST_TOUR
