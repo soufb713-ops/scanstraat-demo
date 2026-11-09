@@ -14,7 +14,7 @@
       <a href="/klanten" class="{{ 'on' if nav=='clients' }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h12l4 4v12H4z"/><path d="M8 12h8M8 16h5"/></svg>Klanten &amp; bladen</a>
       <a href="/berichten" class="{{ 'on' if nav=='messages' }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16v11H8l-4 4z"/></svg>Berichten{% if draft_count %}<span class="count">{{ draft_count }}</span>{% endif %}</a>
       <a href="/beveiliging" class="{{ 'on' if nav=='security' }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Privacy &amp; beveiliging</a>
-      <a href="/auditlog" class="{{ 'on' if nav=='audit' }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5h11M9 12h11M9 19h11M4 5h.01M4 12h.01M4 19h.01"/></svg>Auditlog</a>
+      {% if not guest %}<a href="/auditlog" class="{{ 'on' if nav=='audit' }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5h11M9 12h11M9 19h11M4 5h.01M4 12h.01M4 19h.01"/></svg>Auditlog</a>{% endif %}
       {% if user and user.role == 'admin' %}
       <div class="sect">Beheer</div>
       <a href="/koppelingen" class="{{ 'on' if nav=='integrations' }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1"/></svg>Koppelingen</a>
@@ -22,14 +22,18 @@
       {% endif %}
     </nav>
     <div class="foot">
-      <div class="who">{{ user.name }}</div><div class="role">{{ user.email }}</div>
+      {% if guest %}<div class="who">Rondleiding</div><div class="role">alleen bekijken</div>
+      <div class="row"><form method="post" action="/logout"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><button>Rondleiding verlaten</button></form></div>
+      {% else %}<div class="who">{{ user.name }}</div><div class="role">{{ user.email }}</div>
       <div class="row"><a href="/account/wachtwoord">Wachtwoord</a>
-      <form method="post" action="/logout"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><button>Uitloggen</button></form></div>
+      <form method="post" action="/logout"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><button>Uitloggen</button></form></div>{% endif %}
       <div class="mode {{ 'live' if live else 'replay' }}" title="Zie Privacy &amp; beveiliging"><i></i>{{ ai_label }}</div>
     </div>
   </aside>
   <div class="main">
-    <div class="notice">Demo-omgeving met fictieve klanten. Scan geen papieren van echte klanten.</div>
+    {% if guest %}<div class="notice">Rondleiding: je kijkt mee in een demo met drie fictieve klanten. Alles is te bekijken, niets te wijzigen. Elk voorstel wacht op een medewerker: niets wordt geboekt of ingediend zonder goedkeuring.{% if tour_contact %} Vragen of je eigen stapel laten zien? {{ tour_contact }}{% endif %}</div>
+    {% elif demo_live %}<div class="notice">Demo-omgeving met fictieve klanten. Live AI staat aan: wat je scant gaat als paginabeeld naar Claude via {{ destination }}. Alleen fictieve documenten of je eigen papieren, nooit stukken van klanten.</div>
+    {% else %}<div class="notice">Demo-omgeving met fictieve klanten. Scan geen papieren van echte klanten.</div>{% endif %}
     <div class="page {% block pageclass %}{% endblock %}">
       {% with msgs = get_flashed_messages(with_categories=true) %}{% for cat, m in msgs %}<div class="flash {{ 'error' if cat=='error' }}">{{ m }}</div>{% endfor %}{% endwith %}
       {% block main %}{% endblock %}

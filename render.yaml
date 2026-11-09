@@ -1,18 +1,33 @@
-# Demo hosting on Render (Frankfurt), fictional data only, no AI (replay mode).
-# Not the production setup: production waits for the DPA, terms and BV (see README).
-# Data lives in the container and resets on every redeploy or restart. That is fine for a demo.
+# Demo hosting on Render (Frankfurt), fictional data only. Not the production setup: production waits for the
+# DPA, terms and insurance (see README) and runs on Hetzner in Germany (region.py).
+#
+# Restarts: the disk is wiped on every redeploy or restart. On each start the app replays the fictional sample
+# scan again, and ADMIN_EMAIL / ADMIN_PASSWORD / ADMIN_TOTP_SECRET recreate the admin with the same login and
+# the same authenticator codes, so a wipe costs nothing.
+# Always on: set the instance type to Starter in the Render dashboard; free instances sleep after 15 idle minutes
+# and the first visitor then waits about a minute.
 services:
   - type: web
     name: scanstraat-demo
     runtime: docker
     region: frankfurt
-    plan: free
+    plan: starter               # always on: a QR scan never waits for a sleeping server
     dockerfilePath: ./deploy/Dockerfile
     dockerContext: .
     healthCheckPath: /health
     envVars:
       - key: SCAN_AI
-        value: replay
+        value: replay               # no AI, free; the public tour works fully. "demo" = live reading via Bedrock (needs AWS_BEARER_TOKEN_BEDROCK)
+      - key: DEMO_INSTANCE
+        value: "1"                  # page images may leave only on a demo instance, never with APP_ENV=production
+      - key: GUEST_TOUR
+        value: "1"                  # /rondleiding: read-only tour of the fictional sample (QR code in the letters)
+      - key: AI_PROVIDER
+        value: bedrock              # Claude in Amazon Bedrock
+      - key: AWS_REGION
+        value: eu-west-1            # Ireland; use a regional (in-region) endpoint so processing stays in the EU
+      - key: AWS_BEARER_TOKEN_BEDROCK
+        sync: false                 # Bedrock API key, set in the dashboard
       - key: SECURE_COOKIES
         value: "1"
       - key: ADMIN_NAME
@@ -21,5 +36,21 @@ services:
         sync: false
       - key: ADMIN_PASSWORD
         sync: false
+      - key: ADMIN_TOTP_SECRET
+        sync: false                 # base32 key; type the same key once into the authenticator app
+      - key: CONTACT_NAME           # public homepage (/) of this demo instance
+        value: Soufyan Belhajjam
+      - key: CONTACT_PLACE
+        value: Rotterdam
+      - key: CONTACT_PHONE
+        value: 06-21363099
+      - key: CONTACT_WHATSAPP
+        value: "31621363099"
+      - key: CONTACT_EMAIL
+        value: soufyan.2belhajjam@gmail.com
+      - key: KVK_NUMBER
+        sync: false                 # shown in the footer once registered
+      - key: TOUR_CONTACT
+        sync: false                 # optional line for tour visitors, e.g. "Bel of app 06-..."
       - key: SECRET_KEY
         generateValue: true

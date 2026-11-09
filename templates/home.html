@@ -1,0 +1,95 @@
+{% extends "base.html" %}{% block title %}Van papierstapel naar klaargezet dossier{% endblock %}
+{% block body %}
+<style>
+.pub{background:#fff;min-height:100vh}
+.pub .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+.pub header{display:flex;align-items:center;justify-content:space-between;padding:18px 0}
+.pub .brandrow{display:flex;align-items:center;gap:10px;color:var(--brand);font-weight:700;font-size:18px}
+.pub .brandrow:hover{text-decoration:none}
+.pub header nav a{color:var(--ink2);font-weight:500;margin-left:18px;font-size:14px}
+.hero{background:linear-gradient(180deg,#0e2a47 0%,#12345a 100%);color:#fff;padding:56px 0 64px}
+.hero h1{font-size:clamp(28px,5vw,44px);line-height:1.12;letter-spacing:-.025em;font-weight:700;max-width:760px}
+.hero p.lead{font-size:clamp(16px,2.2vw,19px);color:#c9d7e6;max-width:640px;margin:18px 0 28px}
+.cta{display:flex;flex-wrap:wrap;gap:12px}
+.cta a{display:inline-flex;align-items:center;gap:8px;padding:13px 20px;border-radius:10px;font-weight:600;font-size:15px}
+.cta a:hover{text-decoration:none;filter:brightness(1.06)}
+.cta .go{background:#2dd4bf;color:#062a2a}
+.cta .alt{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.25)}
+.hero small{display:block;color:#8fa6bf;margin-top:14px;font-size:13px}
+.chain{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:34px}
+.chain span{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);padding:6px 12px;border-radius:20px;font-size:13px;color:#dbe6f2}
+.chain em{color:#2dd4bf;font-style:normal}
+.sec{padding:56px 0;border-bottom:1px solid var(--line)}
+.sec h2{font-size:clamp(21px,3vw,27px);letter-spacing:-.015em;font-weight:700;margin-bottom:8px}
+.sec .intro{color:var(--mute);max-width:640px;margin:0 0 28px;font-size:15.5px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.card2{border:1px solid var(--line);border-radius:14px;padding:22px;background:#fff}
+.card2 b.n{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;background:var(--brand-bg);color:var(--brand2);font-size:14px;margin-bottom:12px}
+.card2 h3{font-size:16px;color:var(--ink);text-transform:none;letter-spacing:-.01em;margin:0 0 6px;font-weight:650}
+.card2 p{margin:0;color:var(--ink2);font-size:14.5px}
+.offer{background:var(--accent-bg);border:1px solid #b7e4dd;border-radius:16px;padding:28px;display:grid;gap:10px}
+.offer .price{font-size:30px;font-weight:700;color:var(--brand);letter-spacing:-.02em}
+.offer ul{margin:4px 0 0;padding-left:20px;color:var(--ink2);font-size:15px}
+.safe{background:var(--bg);border-radius:16px;padding:28px}
+.safe ul{margin:0;padding-left:20px;color:var(--ink2);font-size:15px;display:grid;gap:8px}
+.pub footer{padding:32px 0 44px;color:var(--mute);font-size:13px}
+.pub footer .wrap{display:flex;flex-wrap:wrap;gap:12px 28px;justify-content:space-between}
+@media (max-width:560px){.pub header nav a.hide-s{display:none}.cta a{width:100%;justify-content:center}}
+</style>
+<div class="pub">
+  <div class="wrap"><header>
+    <a class="brandrow" href="/"><span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg></span>{{ brand }}</a>
+    <nav><a class="hide-s" href="#hoe">Hoe het werkt</a><a class="hide-s" href="#aanbod">Aanbod</a><a href="/login">Inloggen</a></nav>
+  </header></div>
+
+  <section class="hero"><div class="wrap">
+    <h1>Scan de hele stapel in één keer. De rest staat klaar om te controleren.</h1>
+    <p class="lead">Voor administratiekantoren: {{ brand }} verdeelt gescande bonnen en facturen per klant, leest ze uit en zet een boekingsvoorstel klaar voor uw eigen pakket. Uw medewerker controleert en keurt goed.</p>
+    <div class="cta">
+      <a class="go" href="{{ tour_url }}">Bekijk de rondleiding →</a>
+      {% if wa_url %}<a class="alt" href="{{ wa_url }}">Plan een demo via WhatsApp</a>{% elif contact_phone %}<a class="alt" href="tel:{{ contact_phone }}">Bel {{ contact_phone }}</a>{% endif %}
+    </div>
+    <small>De rondleiding toont een fictief kantoor met fictieve klanten. U hoeft geen account aan te maken.</small>
+    <div class="chain"><span>Scanner</span><em>→</em><span>Splitsen per klant</span><em>→</em><span>Controle</span><em>→</em><span>MijnKantoor</span><em>+</em><span>Exact / SnelStart</span><em>+</em><span>Excel</span></div>
+  </div></section>
+
+  <section class="sec" id="hoe"><div class="wrap">
+    <h2>Hoe het werkt</h2>
+    <p class="intro">Geen nieuw boekhoudpakket. {{ brand }} zit vóór uw bestaande pakket en neemt het sorteer- en overtikwerk over.</p>
+    <div class="grid3">
+      <div class="card2"><b class="n">1</b><h3>Eén scan voor de hele stapel</h3><p>Een scheidingsblad per klant. Lege achterkanten gaan eruit, pagina's worden per document samengevoegd.</p></div>
+      <div class="card2"><b class="n">2</b><h3>Voorstel per document</h3><p>Leverancier, bedragen, btw en grootboekrekening staan klaar. Afwijkingen, zoals een ander IBAN dan eerder, krijgen een rode vlag.</p></div>
+      <div class="card2"><b class="n">3</b><h3>Uw medewerker keurt goed</h3><p>Pas na goedkeuring gaat het naar MijnKantoor, Exact, SnelStart (UBL) of het Excel-register.</p></div>
+    </div>
+  </div></section>
+
+  <section class="sec" id="aanbod"><div class="wrap">
+    <h2>Q4 btw-druk garantietraject</h2>
+    <p class="intro">Probeer het eerst op uw drie lastigste dossiers.</p>
+    <div class="offer">
+      <div class="price">vanaf €{{ price_from }} <span style="font-size:16px;font-weight:500;color:var(--mute)">per maand</span></div>
+      <ul>
+        <li>14 dagen proef op drie dossiers van uw keuze</li>
+        <li>Minstens {{ saving_bar }} minder verwerkingstijd, anders betaalt u niets</li>
+        <li>Daarna maandelijks opzegbaar</li>
+      </ul>
+    </div>
+  </div></section>
+
+  <section class="sec"><div class="wrap">
+    <h2>Wat {{ brand }} wel en niet doet</h2>
+    <p class="intro">Duidelijk vooraf, zodat u weet waar u aan toe bent.</p>
+    <div class="safe"><ul>
+      <li><b>Er wordt niets ingediend of definitief geboekt.</b> {{ brand }} bereidt voor; een medewerker van uw kantoor controleert en tekent altijd zelf af.</li>
+      <li>{{ brand }} geeft geen fiscaal of juridisch advies. De verantwoordelijkheid voor de administratie blijft bij uw kantoor.</li>
+      <li>Op deze website draait alleen een demo met fictieve gegevens. Hier worden geen gegevens van klanten verwerkt.</li>
+      <li>Werken met echte klantstukken gebeurt pas na een getekende verwerkersovereenkomst, in een afgeschermde omgeving voor uw kantoor.</li>
+    </ul></div>
+  </div></section>
+
+  <footer><div class="wrap">
+    <div><b style="color:var(--ink)">{{ brand }}</b>{% if contact_name %} · {{ contact_name }}{% endif %}{% if contact_place %}, {{ contact_place }}{% endif %}{% if kvk %} · KvK {{ kvk }}{% endif %}</div>
+    <div>{% if contact_phone %}<a href="tel:{{ contact_phone }}">{{ contact_phone }}</a>{% endif %}{% if contact_email %} · <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>{% endif %} · <a href="/login">Inloggen voor kantoren</a></div>
+  </div></footer>
+</div>
+{% endblock %}

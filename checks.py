@@ -157,6 +157,16 @@ def run_checks(fields, others=(), history=(), today=None):
                                   f"Mogelijk dubbel: zelfde leverancier, datum en bedrag staat {label}."))
                 break
 
+    # IBAN against earlier documents of the same supplier: "our bank details have changed" is the classic invoice fraud
+    iban = re.sub(r"\s+", "", f.get("iban") or "").upper()
+    if sup and iban and iban_valid(iban):
+        known = {re.sub(r"\s+", "", o.get("iban") or "").upper() for o in list(others) + list(history)
+                 if norm(o.get("supplier_name")) == sup}
+        known.discard("")
+        if known and iban not in known:
+            flags.append(flag("warning", "iban", f"IBAN {iban} wijkt af van eerdere stukken van {f.get('supplier_name')} "
+                                                 f"({', '.join(sorted(known))}). Check bij de leverancier via een bekend nummer."))
+
     if doc_type in ("invoice", "receipt") and gross is not None and not lines and not foreign:
         flags.append(flag("warning", "vat_lines", "Geen btw gevonden op het document. Zonder btw op de factuur geen aftrek."))
     for i, l in enumerate(lines, 1):

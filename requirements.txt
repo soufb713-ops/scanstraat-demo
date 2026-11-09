@@ -1,6 +1,6 @@
 flask>=3.0
 gunicorn>=22
-anthropic>=1.9
+anthropic[bedrock]>=2.6
 cryptography>=42
 pillow>=10
 pypdfium2>=4

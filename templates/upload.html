@@ -47,6 +47,7 @@
         <a class="btn sm" href="/klanten">Klanten en bladen beheren</a>
       </div>
     </div>
+    {% if demo_live %}<div class="alert warning"><span class="ic">!</span><div>Live demo: wat je hier scant gaat als paginabeeld naar Claude via {{ destination }}. Gebruik fictieve documenten of je eigen papieren, nooit stukken van klanten zonder verwerkersovereenkomst.</div></div>{% endif %}
     {% if not live %}<div class="alert warning"><span class="ic">!</span><div>Replay-modus (SCAN_AI=replay): het systeem speelt alleen de voorbeeldscan af. Andere scans worden per pagina gesplitst zonder uitlezen.</div></div>{% endif %}
   </div>
 </div>

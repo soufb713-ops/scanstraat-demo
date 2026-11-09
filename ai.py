@@ -1,6 +1,6 @@
 """The AI steps: split a scanned pile into documents, then read each document.
 
-Three modes (SCAN_AI in .env):
+Four modes (SCAN_AI in .env):
   local   (default) Everything on this machine with Ollama and Apache 2.0 models (models.py). No page,
           text or value leaves the machine.
   hybrid  Page images stay local. Text is read locally (Tesseract, or the local vision model), screened for
@@ -8,7 +8,12 @@ Three modes (SCAN_AI in .env):
           through egress.py. Claude's answer gets the real values back locally. A document with special
           category data, or one the egress gate blocks, is read by the local model instead.
   replay  No AI at all: replays the hand-made answers for the sample scan (labelled "Replay-modus").
-The former "claude" mode, which sent page images to the US, no longer exists: setting it stops the app.
+  demo    Demo instance only (DEMO_INSTANCE=1, never with APP_ENV=production): page images go to Claude through
+          egress.send_images, by default Claude in Amazon Bedrock in an EU region (AI_PROVIDER=bedrock). For live
+          reading of fictional documents or the presenter's own, so a prospect can watch a messy stack being read.
+          A firm's real client documents never go through this mode; real pilots use hybrid (text only).
+The former "claude" mode, which sent page images to the US from any instance, no longer exists: setting it stops
+the app.
 """
 import base64
 import json
@@ -22,9 +27,16 @@ import privacy
 
 MODE = os.environ.get("SCAN_AI", "local").strip().lower()
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")
-if MODE not in ("local", "hybrid", "replay"):
-    raise SystemExit(f"SCAN_AI={MODE} is niet toegestaan. Kies local, hybrid of replay. "
+if MODE not in ("local", "hybrid", "replay", "demo"):
+    raise SystemExit(f"SCAN_AI={MODE} is niet toegestaan. Kies local, hybrid, replay of demo. "
                      "Paginabeelden gaan nooit naar een Amerikaanse AI-dienst.")
+if MODE == "demo" and not egress.images_allowed():
+    raise SystemExit("SCAN_AI=demo mag alleen op een demo-omgeving: zet DEMO_INSTANCE=1, en nooit met "
+                     "APP_ENV=production. Echte klantstukken lopen via hybrid (alleen geanonimiseerde tekst).")
+if MODE == "hybrid" and os.environ.get("APP_ENV", "development").lower() == "production" and egress.PROVIDER != "bedrock":
+    # the verwerkersovereenkomst promises processing inside the EU; the Anthropic API processes in the US
+    raise SystemExit("Productie met SCAN_AI=hybrid: zet AI_PROVIDER=bedrock (Claude in Amazon Bedrock, EU-regio). "
+                     "De verwerkersovereenkomst belooft verwerking binnen de EU.")
 
 KINDS = {
     "inkoopfactuur": "Inkoopfactuur",
@@ -60,8 +72,12 @@ def hybrid():
     return MODE == "hybrid"
 
 
+def demo():
+    return MODE == "demo"
+
+
 def live():
-    return MODE in ("local", "hybrid")
+    return MODE in ("local", "hybrid", "demo")
 
 
 def label():
@@ -69,6 +85,8 @@ def label():
         return f"Lokale AI ({models.VISION_MODEL}), niets naar buiten"
     if hybrid():
         return "Hybride: lokaal anonimiseren, alleen tekst naar Claude"
+    if demo():
+        return "Live demo: Claude via " + egress.DESTINATION
     return "Replay-modus (geen AI)"
 
 
@@ -237,6 +255,8 @@ def split(page_jpegs, page_texts, client_names, pseudo, ref_id=None):
     if local():
         docs, usage = _split_local(page_jpegs, client_names)
         return docs, usage, {"route": "lokaal", "model": models.VISION_MODEL}
+    if demo():
+        return _split_vision(page_jpegs, client_names, ref_id)
     special = {i + 1: privacy.special_categories(t) for i, t in enumerate(page_texts)}
     special = {k: v for k, v in special.items() if v}
     if not special:
@@ -257,6 +277,35 @@ def split(page_jpegs, page_texts, client_names, pseudo, ref_id=None):
         docs = [{"pages": [i], "kind": "overig", "client_hint": None, "reason": "Niet gesplitst: " + reason}
                 for i in range(1, len(page_jpegs) + 1)]
         return docs, {"input_tokens": 0, "output_tokens": 0}, {"route": "geen AI", "why_local": reason}
+
+
+VISION_ROUTE = "Claude, paginabeelden (demo-omgeving)"
+
+
+def _split_vision(page_jpegs, client_names, ref_id=None):
+    """Demo mode: Claude sees the page images. On any failure every page becomes its own document."""
+    try:
+        data, usage, rec = egress.send_images("split", SPLIT_SYSTEM, page_jpegs,
+                                              ["Clients of this office: " + "; ".join(client_names)],
+                                              _split_schema(), doc=ref_id)
+        docs = _repair_split(data["documents"], len(page_jpegs))
+        return docs, usage, {"route": VISION_ROUTE, "destination": egress.DESTINATION, "sha256": rec["sha256"]}
+    except (egress.EgressBlocked, egress.EgressError, KeyError, TypeError, ValueError) as e:
+        docs = [{"pages": [i], "kind": "overig", "client_hint": None, "reason": f"Niet gesplitst: {e}"}
+                for i in range(1, len(page_jpegs) + 1)]
+        return docs, {"input_tokens": 0, "output_tokens": 0}, {"route": "geen AI", "why_local": str(e)}
+
+
+def _read_vision(page_jpegs, ref, accounts, doc_id=None):
+    """Demo mode: Claude reads the page images. Raises AIError so the document gets an empty, flagged result."""
+    pages = page_jpegs[:egress.MAX_IMAGES]
+    try:
+        data, usage, rec = egress.send_images("read", READ_SYSTEM, pages, [], _read_schema(accounts), ref=ref, doc=doc_id)
+    except (egress.EgressBlocked, egress.EgressError) as e:
+        raise AIError(str(e)) from e
+    if len(page_jpegs) > len(pages):
+        data.setdefault("issues", []).append(f"Alleen de eerste {len(pages)} van {len(page_jpegs)} pagina's gelezen.")
+    return data, usage, {"route": VISION_ROUTE, "destination": egress.DESTINATION, "sha256": rec["sha256"]}
 
 
 def _repair_split(docs, n):
@@ -296,6 +345,8 @@ def read(page_jpegs, page_texts, client, chart, reference_text, pseudo, doc_id=N
     """Returns (result, usage, trail). trail says where the document was read and, for Claude, the exact text sent."""
     accounts = [a for a, _ in chart] or ["4900"]
     ref = _reference(client, chart, reference_text)
+    if demo():
+        return _read_vision(page_jpegs, ref, accounts, doc_id)
     if hybrid():
         text = "\n\n".join(f"--- Pagina {i} ---\n{t}" for i, t in enumerate(page_texts, 1))
         special = privacy.special_categories(text)
@@ -329,7 +380,7 @@ def replay_delay():
     time.sleep(random.uniform(0.6, 1.4))
 
 
-def empty_result(kind="overig", note="Replay-modus leest alleen de voorbeeldscan. Zet SCAN_AI=local of hybrid voor echte documenten."):
+def empty_result(kind="overig", note="Replay-modus leest alleen de voorbeeldscan. Zet SCAN_AI=local, hybrid of demo voor echte documenten."):
     return {"kind": kind, "client_hint": None, "counterparty": None, "reference": None, "doc_date": None,
             "due_date": None, "supplier_vat_number": None, "supplier_kvk": None, "iban": None, "net_total": None,
             "vat_lines": [], "gross_total": None, "currency": "EUR", "description": None, "lines": [],
