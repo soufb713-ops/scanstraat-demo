@@ -197,6 +197,20 @@ def first_start():
 
 first_start()
 users = auth.Users(DATA / "users.json")
+
+# Printed QR codes can't change: letters point at the Render address, and once the own domain works,
+# CANONICAL_HOST (e.g. descanstraat.nl) sends every visitor there. 302, so a domain mistake is never cached.
+CANONICAL_HOST = os.environ.get("CANONICAL_HOST", "").strip().lower()
+
+
+@app.before_request
+def to_canonical_host():
+    if CANONICAL_HOST and request.host.split(":")[0].lower() != CANONICAL_HOST and \
+            request.endpoint not in ("health", "whatsapp_webhook", "retention_trigger"):
+        return redirect(f"https://{CANONICAL_HOST}{request.full_path.rstrip('?')}", 302)
+    return None
+
+
 auth.init(app, users, audit)
 exact = Exact(DATA / "exact-token.json")
 outbox = outbox_mod.Outbox(DATA / "outbox.json", audit)

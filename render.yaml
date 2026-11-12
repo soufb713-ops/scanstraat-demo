@@ -48,6 +48,8 @@ services:
         value: "31621363099"
       - key: CONTACT_EMAIL
         value: soufyan.2belhajjam@gmail.com
+      - key: CANONICAL_HOST
+        sync: false                 # set to www.descanstraat.nl (Render sends the bare domain to www) only once https://www.descanstraat.nl works: then the Render address forwards there
       - key: KVK_NUMBER
         sync: false                 # shown in the footer once registered
       - key: TOUR_CONTACT
