@@ -80,6 +80,7 @@ BRAND = os.environ.get("BRAND_NAME", "Scanstraat")
 DEMO = os.environ.get("DEMO_INSTANCE") == "1"
 DEMO_FIRM = "Maaskade Administraties"   # the fictional firm of the sample scan and the tour
 BOOT = datetime.now()
+ASSET_V = (os.environ.get("RENDER_GIT_COMMIT") or BOOT.strftime("%m%d%H%M%S"))[:10]   # busts caches after a deploy
 ALLOWED = {".pdf", ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".heic", ".webp"}
 UBL_KINDS = {"inkoopfactuur", "kassabon", "creditnota"}  # purchase side: what a package imports as UBL
 TOUR_CONTACT = os.environ.get("TOUR_CONTACT", "").strip()
@@ -293,7 +294,7 @@ def globals_():
             "draft_count": len(outbox.drafts()) if auth.current_user() and not guest() else 0,
             "KINDS": ai.KINDS, "VAT_CODES": ai.VAT_CODES, "feat": {}, "guest": guest(), "demo_live": ai.demo(),
             "destination": egress.DESTINATION, "tour_contact": TOUR_CONTACT, "UBL_KINDS": UBL_KINDS,
-            "tour_on": auth.GUEST_TOUR}
+            "tour_on": auth.GUEST_TOUR, "demo_instance": DEMO, "tour_firm": DEMO_FIRM, "asset_v": ASSET_V}
 
 
 @app.errorhandler(400)
