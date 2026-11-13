@@ -20,6 +20,16 @@ const parseNum = t => { t = String(t || '').replace(/[€\s]/g, ''); if (!t) ret
 const MONTHS = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
 const dShort = iso => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ''); return m ? `${+m[3]} ${MONTHS[+m[2] - 1]}` : ''; };
 const dNl = iso => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ''); return m ? `${m[3]}-${m[2]}-${m[1]}` : (iso || ''); };
+// dd-mm-jjjj (also d-m-jj, with / or .) or jjjj-mm-dd to ISO; '' for an empty field, null when it is no real date.
+const dIso = s => {
+  s = String(s || '').trim(); if (!s) return '';
+  let m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(s), y, mo, d;
+  if (m) [y, mo, d] = [+m[1], +m[2], +m[3]];
+  else if ((m = /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2}|\d{4})$/.exec(s))) [d, mo, y] = [+m[1], +m[2], m[3].length === 2 ? 2000 + +m[3] : +m[3]];
+  else return null;
+  const t = new Date(Date.UTC(y, mo - 1, d));
+  return t.getUTCFullYear() === y && t.getUTCMonth() === mo - 1 && t.getUTCDate() === d ? `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}` : null;
+};
 const tShort = iso => { const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(iso || ''); return m ? `${+m[3]} ${MONTHS[+m[2] - 1]} ${m[4]}:${m[5]}` : ''; };
 const nowIso = () => { const d = new Date(), p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; };
 const TOUCH = matchMedia('(pointer:coarse)').matches;
@@ -592,7 +602,7 @@ function renderPanel() {
   const bookable = BOOKABLE.includes(d.kind), sales = d.kind === 'verkoopfactuur';
   const dis = lock ? ' disabled' : '';
   const sw = k => `<i class="sw f-${FCOL[k]}${d.boxes && d.boxes[k] ? '' : ' none'}"></i>`;
-  const fld = (k, label, cls = '', type = 'text') => `<label class="fld ${cls}" data-f="${k}">${sw(k)}<span>${label}</span><input data-k="${k}" type="${type}" value="${esc(r[k] ?? '')}"${dis} autocomplete="off" spellcheck="false"></label>`;
+  const fld = (k, label, cls = '', type = 'text') => `<label class="fld ${cls}" data-f="${k}">${sw(k)}<span>${label}</span><input data-k="${k}" type="text"${type === 'date' ? ` data-date inputmode="numeric" maxlength="10" placeholder="dd-mm-jjjj" value="${esc(dNl(r[k] ?? ''))}"` : ` value="${esc(r[k] ?? '')}"`}${dis} autocomplete="off" spellcheck="false"></label>`;
   const amt = (k, label, v) => `<label class="fld amt" data-f="${k}">${sw(k)}<span>${label}</span><input data-k="${k}" inputmode="decimal" value="${num(v)}"${dis} autocomplete="off"></label>`;
   let h = `<div class="pn-head l-${d.light}"><div class="pn-light"><span class="lamp"></span><b>${d.status === 'approved' ? 'Goedgekeurd' : d.status === 'asked' ? 'Vraag aan klant' : d.status === 'rejected' ? 'Uit de stapel' : LIGHT[d.light]}</b>
       ${d.status !== 'review' ? `<small>${esc((d.approved || d.asked || d.rejected || {}).by || '')} · ${tShort((d.approved || d.asked || d.rejected || {}).at)}</small>` : d.light === 'red' && d.handled ? '<small>vlag afgehandeld met notitie</small>' : ''}</div>
@@ -835,7 +845,14 @@ function fieldChanged(input) {
   const r = clone(d.result); let changed = null;
   if (input.dataset.k) {
     const k = input.dataset.k, isAmt = k === 'net_total' || k === 'gross_total';
-    const v = isAmt ? parseNum(input.value) : (input.value.trim() || null);
+    let v = isAmt ? parseNum(input.value) : (input.value.trim() || null);
+    if (input.dataset.date !== undefined) {
+      const iso = dIso(input.value);
+      input.classList.toggle('bad', iso === null);
+      input.title = iso === null ? 'Geen bestaande datum. Schrijf hem als dd-mm-jjjj.' : '';
+      if (iso === null) return;
+      v = iso || null; input.value = dNl(iso);
+    }
     if ((r[k] ?? null) === v) return;
     r[k] = v; changed = FLABEL[k] || k;
   } else if (input.dataset.vat !== undefined) {
@@ -896,7 +913,7 @@ root.addEventListener('change', e => {
   if (t.dataset.edit) { const d = byId(S.sel); if (!d) return; const edit = {}; edit[t.dataset.edit] = t.value || null; d[t.dataset.edit] = t.value || null; saveEdit(d.id, edit, t.dataset.edit === 'kind' ? 'soort' : 'dossier').then(() => renderAll()); return; }
   fieldChanged(t);
 });
-root.addEventListener('input', e => { if (e.target.matches('.fld input[data-k]:not([type=date]), .fld input[data-vat], .ln input')) { clearTimeout(editT); const el = e.target; editT = setTimeout(() => fieldChanged(el), 700); } });
+root.addEventListener('input', e => { if (e.target.matches('.fld input[data-k]:not([data-date]), .fld input[data-vat], .ln input')) { clearTimeout(editT); const el = e.target; editT = setTimeout(() => fieldChanged(el), 700); } });
 document.addEventListener('click', e => { const go = e.target.closest('.ck-toast [data-go]'); if (go) { e.preventDefault(); select(go.dataset.go); } });
 
 document.addEventListener('keydown', e => {

@@ -108,7 +108,9 @@ def parse_camt(data: bytes, prefix="B"):
     lines = []
     for n, entry in enumerate((e for e in root.iter() if tag(e) == "Ntry"), 1):
         amt, sign = find(entry, "Amt"), find(entry, "CdtDbtInd")
-        when = find(entry, "BookgDt", "Dt") or find(entry, "ValDt", "Dt")
+        when = find(entry, "BookgDt", "Dt")
+        if when is None:   # an Element without children is falsy, so no "or" here: that skipped every entry
+            when = find(entry, "ValDt", "Dt")
         if amt is None or sign is None or when is None or _d(amt.text) is None:
             continue
         info = [e.text.strip() for e in entry.iter() if tag(e) in ("Ustrd", "AddtlNtryInf") and (e.text or "").strip()]

@@ -1727,7 +1727,8 @@ def integrations():
     if request.method == "POST":
         section = request.form.get("section")
         if section == "general":
-            s["firm_name"] = " ".join(request.form.get("firm_name", "").split())[:60]
+            if "firm_name" in request.form:   # a form without the field must not wipe the name
+                s["firm_name"] = " ".join(request.form.get("firm_name", "").split())[:60]
             s["manual_minutes"] = _num(request.form.get("manual_minutes"))
             s["watch_inbox"] = bool(request.form.get("watch_inbox"))
         elif section == "mijnkantoor":

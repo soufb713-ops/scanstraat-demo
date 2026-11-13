@@ -176,19 +176,33 @@ def test_production_hybrid_only_through_bedrock_in_the_eu():
 
 
 # ---------------------------------------------------------------- guest tour
-def test_guest_sees_only_the_fictional_sample(batches):
+def test_guest_works_only_in_the_simulation_of_the_fictional_sample(batches):
+    """A guest never reads stored state: not the seeded sample batch and certainly not a staff member's own scan.
+    The tour pages run on the sample file in the repository; the guest's actions stay in the browser."""
     sample, own = batches
     c = guest()
-    page = c.get("/").get_data(as_text=True)
-    assert "Rondleiding" in page and "eigen-stapel.pdf" not in page
-    assert c.get(f"/scan/{sample['id']}").status_code == 200
-    assert c.get(f"/scan/{own['id']}").status_code == 404
-    assert c.get(f"/document/{own['docs'][0]}").status_code == 404
-    assert c.get(f"/document/{own['docs'][0]}.pdf").status_code == 404
-    assert c.get(f"/pagina/{own['id']}/1.jpg").status_code == 404
-    assert c.get(f"/document/{sample['docs'][0]}").status_code == 200
-    for url in ("/afhandelen", "/berichten", "/beveiliging", "/klanten", "/scannen"):
-        assert c.get(url).status_code == 200, url
+    home = c.get("/").get_data(as_text=True)
+    assert "Bekijk de rondleiding" in home and "eigen-stapel.pdf" not in home      # the homepage stays the homepage
+    for url in ("/stapel", "/werkbank", "/afhandelen", "/klanten", "/beveiliging"):
+        r = c.get(url)
+        assert r.status_code == 200, url
+        page = r.get_data(as_text=True)
+        assert "Rondleiding" in page and "eigen-stapel.pdf" not in page, url
+    for b in (sample, own):     # stored batches, also the seeded one: same answer, so nothing leaks about what exists
+        assert c.get(f"/scan/{b['id']}").status_code == 403
+        assert c.get(f"/api/scan/{b['id']}").status_code == 403
+        assert c.get(f"/document/{b['docs'][0]}").status_code == 403
+        assert c.get(f"/document/{b['docs'][0]}.pdf").status_code == 403
+        assert c.get(f"/document/{b['docs'][0]}/ubl.xml").status_code == 403
+        assert c.get(f"/pagina/{b['id']}/1.jpg").status_code == 403
+    assert c.get("/api/cockpit").status_code == 403
+    for url in ("/berichten", "/scannen", "/"):
+        assert c.get(url).status_code in (200, 403), url
+    assert c.get("/berichten").status_code == 403 and c.get("/scannen").status_code == 403
+    data = c.get("/api/voorbeeld.json").get_data(as_text=True)
+    assert "eigen-stapel.pdf" not in data and "Bakkerij Van Dijk B.V." in data
+    assert c.get("/voorbeeld/p/1.jpg").headers["Content-Type"] == "image/jpeg"
+    assert c.get("/voorbeeld/p/999.jpg").status_code == 404
 
 
 def test_tour_link_code_is_logged_without_visitor_details():
@@ -272,12 +286,54 @@ def test_confirmed_ubl_import_wipes_the_original(batches):
         appmod.SETTINGS.save(s)
 
 
-def test_guest_may_preview_a_concept_ubl_of_the_sample(batches):
-    sample, _ = batches
+def sim_post(c, url, body):
+    return c.post(url, json=body, headers={"X-CSRF": CSRF})
+
+
+def test_guest_gets_concept_exports_of_the_simulation_and_nothing_is_stored(batches):
     c = guest()
-    did = next(d for d in sample["docs"] if appmod.state["docs"][d]["kind"] in appmod.UBL_KINDS)
-    root = check_ubl(c.get(f"/document/{did}/ubl.xml").data)
+    docs, audit_before = len(appmod.state["docs"]), len(appmod.read_audit())
+    approved = [{"id": "B-MOLEN", "status": "approved"}, {"id": "B-VERKOOP", "status": "approved"},
+                {"id": "M-BGR-KB", "status": "approved"}]
+    r = sim_post(c, "/api/voorbeeld/export", {"want": "ubl", "id": "B-MOLEN", "docs": approved})
+    root = check_ubl(r.data)
     assert root.find("cbc:Note", NS).text.startswith("CONCEPT")
+    prev = sim_post(c, "/api/voorbeeld/export", {"docs": approved}).get_json()
+    assert prev["count"] == 3 and len(prev["ubl"]) == 2                       # the sales invoice is no purchase UBL
+    assert all(ch["ok"] for u in prev["ubl"] for ch in u["checks"]), prev["ubl"][0]["checks"]
+    assert prev["skipped"][0]["id"] == "B-VERKOOP" and len(prev["register"]["rows"]) == 3
+    for want, magic in (("ubl.zip", b"PK"), ("register.xlsx", b"PK"), ("mijnkantoor.zip", b"PK"), ("exact.xml", b"<?xml")):
+        r = sim_post(c, "/api/voorbeeld/export", {"want": want, "docs": approved})
+        assert r.status_code == 200 and r.data.startswith(magic), want
+    # nothing approved, an unknown document, a document the visitor did not approve: no file
+    assert sim_post(c, "/api/voorbeeld/export", {"want": "ubl.zip", "docs": [{"id": "B-MOLEN"}]}).status_code == 400
+    assert sim_post(c, "/api/voorbeeld/export", {"want": "ubl", "id": "B-ENERGIE", "docs": approved}).status_code == 404
+    assert sim_post(c, "/api/voorbeeld/export", {"want": "ubl", "id": "X", "docs": [{"id": "X", "status": "approved"}]}).status_code == 400
+    assert len(appmod.state["docs"]) == docs and len(appmod.read_audit()) == audit_before
+
+
+def test_sample_check_runs_the_real_checks_on_the_visitors_copy():
+    c = guest()
+    audit_before = len(appmod.read_audit())
+    d = sim_post(c, "/api/voorbeeld/check", {"id": "M-BGR-IBAN"}).get_json()
+    red = [f for f in d["flags"] if f["field"] == "iban"]
+    assert d["light"] == "red" and red and red[0]["level"] == "error" and "terugbelcontrole" in red[0]["message"]
+    # the visitor's note is attached to that flag, a note on an unknown flag is dropped
+    d = sim_post(c, "/api/voorbeeld/check", {"id": "M-BGR-IBAN", "notes": {red[0]["id"]: "Teruggebeld", "zz": "x"}}).get_json()
+    noted = [f for f in d["flags"] if f.get("note")]
+    assert len(noted) == 1 and noted[0]["id"] == red[0]["id"] and noted[0]["note"]["note"] == "Teruggebeld"
+    # a broken sum is found by the same rules as for a real document
+    d = sim_post(c, "/api/voorbeeld/check", {"id": "B-MOLEN", "result": {"gross_total": 1.0}}).get_json()
+    assert d["light"] == "red" and any(f["field"] in ("gross_total", "totals", "vat_lines") for f in d["flags"] if f["level"] == "error")
+    # only known documents, only known clients and kinds, only pages of that document
+    assert sim_post(c, "/api/voorbeeld/check", {"id": "../../etc"}).status_code == 404
+    d = sim_post(c, "/api/voorbeeld/check", {"id": "B-MOLEN", "client_nr": "9999", "kind": "virus", "pages": [1, 2, 3, 40]}).get_json()
+    assert d["client_nr"] == "1042" and d["kind"] == "inkoopfactuur" and d["pages"] == [2]
+    assert c.post("/api/voorbeeld/check", data="nope", headers={"X-CSRF": CSRF, "Content-Type": "application/json"}).status_code == 400
+    assert c.post("/api/voorbeeld/check", json={"id": "B-MOLEN"}).status_code == 400            # no CSRF token
+    big = {"id": "B-MOLEN", "pad": "x" * (appmod.SIM_MAX + 10)}
+    assert sim_post(c, "/api/voorbeeld/check", big).status_code == 413
+    assert len(appmod.read_audit()) == audit_before
 
 
 def test_ubl_credit_note_and_reverse_charge():
@@ -298,20 +354,23 @@ def test_iban_differs_from_earlier_documents_of_same_supplier():
          "iban": "NL91ABNA0417164300"}
     earlier = dict(f, invoice_number="X0", iban="NL02ABNA0123456789")
     flags = [x for x in checks.run_checks(f, others=[earlier]) if x["field"] == "iban"]
-    assert len(flags) == 1 and flags[0]["level"] == "warning" and "wijkt af" in flags[0]["message"]
+    # an error, not a warning: paying to a changed account number is the one mistake that cannot be undone
+    assert len(flags) == 1 and flags[0]["level"] == "error" and "wijkt af" in flags[0]["message"]
+    assert "terugbelcontrole" in flags[0]["message"] and checks.status_of(flags) == "red"
     same = dict(earlier, iban="NL91 ABNA 0417 1643 00")
     assert not [x for x in checks.run_checks(f, others=[same]) if x["field"] == "iban"]
     assert not [x for x in checks.run_checks(f, history=[dict(earlier, supplier_name="Andere B.V.")]) if x["field"] == "iban"]
 
 
-def test_visitor_from_the_qr_code_sees_the_public_homepage():
+def test_visitor_from_the_qr_code_sees_the_public_homepage(batches):
     c = client()
     r = c.get("/?k=kantoor-x")
     page = r.get_data(as_text=True)
     assert r.status_code == 200 and "Bekijk de rondleiding" in page and "Inloggen" in page
     assert "/rondleiding?k=kantoor-x" in page                      # the letter's code is passed on to the tour
     assert "niets ingediend" in page and "geen gegevens van klanten" in page
-    assert "Studio Lindewerf" not in page                          # no dashboard data before the tour starts
+    assert "eigen-stapel.pdf" not in page and "admin@demo.local" not in page   # no stored data, only the sample
+    assert "SCHEIDINGSBLAD" in page and "Bakkerij Van Dijk" in page             # the hero plays the fictional sample
     assert c.get("/scannen").status_code == 302                    # everything else still needs a login
     c = guest()
     assert "Rondleiding" in c.get("/").get_data(as_text=True)
@@ -325,3 +384,95 @@ def test_canonical_host_forwards_old_qr_links(monkeypatch):
     assert r.status_code == 302 and r.headers["Location"] == "https://descanstraat.nl/?k=kantoor-x"
     assert c.get("/health", base_url="https://scanstraat-demo.onrender.com").status_code == 200
     assert c.get("/?k=kantoor-x", base_url="https://descanstraat.nl").status_code == 200
+
+
+# ---------------------------------------------------------------- sign-in page, status, error pages
+def test_status_badge_reports_only_what_the_app_can_check():
+    r = client().get("/status.json")
+    s = r.get_json()
+    assert r.status_code == 200 and r.headers["Cache-Control"] == "no-store"
+    assert s["ok"] and s["text"] == "Alle systemen operationeel" and len(s["checks"]) == 4
+    assert s["eu"] is False and s["location"] == ""       # no HOSTING_LABEL here: never a guessed location
+    assert "admin" not in r.get_data(as_text=True) and "key" not in json.dumps(s).lower().replace('"key": ', "")
+    page = client().get("/login").get_data(as_text=True)
+    assert 'data-src="/status.json"' in page and "Alle EU-verwerkingsnodes operationeel" in page   # only shown when s.ok && s.eu
+    assert "Start direct de interactieve" in page and 'href="/rondleiding"' in page and "SSO" not in page
+
+
+def test_error_pages_for_visitor_guest_and_staff():
+    page = client().get("/bestaat-niet").get_data(as_text=True)
+    assert "Fout 404" in page and "Naar de website" in page and "Bekijk de rondleiding" in page
+    r = guest().get("/auditlog")
+    page = r.get_data(as_text=True)
+    assert r.status_code == 403 and "Niet beschikbaar in de rondleiding" in page and "Terug naar de rondleiding" in page
+    page = admin().get("/bestaat-niet").get_data(as_text=True)
+    assert "Niet gevonden" in page and "Naar het overzicht" in page
+
+
+# ---------------------------------------------------------------- the client's upload link
+def test_client_upload_link_is_signed_and_stores_nothing_on_a_demo():
+    batches = len(appmod.state["batches"])
+    with appmod.app.test_request_context():
+        url = appmod.upload_url("1042")
+    c = client()
+    r = c.get(url)
+    page = r.get_data(as_text=True)
+    assert r.status_code == 200 and "Bakkerij Van Dijk B.V." in page and "Maaskade Administraties" in page
+    assert "Demonstratie met een fictieve klant" in page
+    assert c.get(url[:-1] + ("0" if url[-1] != "0" else "1")).status_code == 404      # a changed signature
+    assert c.get("/aanleveren/1042-" + "0" * 20).status_code == 404
+    assert c.get("/aanleveren/9999-" + url.rsplit("-", 1)[1]).status_code == 404         # another client's number
+    with c.session_transaction() as s:
+        s["csrf"] = CSRF
+    r = c.post(url, data={"csrf": CSRF, "files": (io.BytesIO(b"%PDF-1.4 x"), "bon.pdf")}, content_type="multipart/form-data")
+    assert r.status_code == 403 and len(appmod.state["batches"]) == batches
+
+
+# ---------------------------------------------------------------- dossiers page, firm name, bank import
+CAMT = b"""<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.02"><BkToCstmrStmt><Stmt>
+<Ntry><Amt Ccy="EUR">12.50</Amt><CdtDbtInd>DBIT</CdtDbtInd><BookgDt><Dt>2026-11-02</Dt></BookgDt>
+ <NtryDtls><TxDtls><RltdPties><Cdtr><Nm>Bakkerij Testmans</Nm></Cdtr></RltdPties><RmtInf><Ustrd>Betaalautomaat 09:12 pasnr. 001</Ustrd></RmtInf></TxDtls></NtryDtls></Ntry>
+<Ntry><Amt Ccy="EUR">250.00</Amt><CdtDbtInd>CRDT</CdtDbtInd><BookgDt><Dt>2026-11-03</Dt></BookgDt><AddtlNtryInf>Factuur 2026-17</AddtlNtryInf></Ntry>
+</Stmt></BkToCstmrStmt></Document>"""
+
+
+def test_dossiers_page_shows_sheet_upload_link_and_imports_camt():
+    c = admin()
+    page = c.get("/klanten").get_data(as_text=True)
+    assert "Dossiers en scheidingsbladen" in page and "/klanten/scheidingsblad.jpg?nr=1042" in page
+    with appmod.app.test_request_context():
+        assert appmod.upload_url("1042") in page
+    assert 'action="/klanten/bank"' in page and 'name="camt"' in page
+    r = c.post("/klanten/bank", data={"csrf": CSRF, "nr": "1042", "camt": (io.BytesIO(CAMT), "nov.xml")},
+               content_type="multipart/form-data")
+    assert r.status_code == 302
+    lines = appmod.BANK.load()["1042"]
+    assert [(l["amount"], l["type"], l["date"]) for l in lines] == [(-12.5, "pin", "2026-11-02"), (250.0, "bij", "2026-11-03")]
+    assert any(e["event"] == "bank_imported" for e in appmod.read_audit())
+    r = c.post("/klanten/bank", data={"csrf": CSRF, "nr": "1042", "camt": (io.BytesIO(b"<x/>"), "leeg.xml")},
+               content_type="multipart/form-data")
+    assert r.status_code == 302 and len(appmod.BANK.load()["1042"]) == 2               # a file without entries changes nothing
+    assert guest().post("/klanten/bank", data={"csrf": CSRF, "nr": "1042"}).status_code == 403
+
+
+def test_firm_name_is_set_once_and_kept_by_other_forms():
+    c = admin()
+    assert post(c, "/koppelingen", section="general", firm_name="  Kantoor   De Test ", manual_minutes="3").status_code == 302
+    assert appmod.firm_name() == "Kantoor De Test"
+    assert post(c, "/koppelingen", section="general", manual_minutes="4").status_code == 302      # no name field
+    assert appmod.firm_name() == "Kantoor De Test" and appmod.settings()["manual_minutes"] == 4
+    assert "Kantoor De Test" in c.get("/klanten").get_data(as_text=True)
+    sheet = c.get("/klanten/scheidingsblad.jpg?nr=1042")
+    assert sheet.status_code == 200 and sheet.data[:2] == b"\xff\xd8"
+    post(c, "/koppelingen", section="general", firm_name="", manual_minutes="")
+    assert appmod.firm_name() == appmod.DEMO_FIRM
+
+
+def test_guest_cover_sheet_with_own_firm_name_only_for_sample_dossiers():
+    c = guest()
+    r = c.get("/klanten/scheidingsblad.jpg?nr=1042&kantoor=Mijn <b>Kantoor</b>")
+    assert r.status_code == 200 and r.data[:2] == b"\xff\xd8"
+    assert c.get("/klanten/scheidingsblad.jpg?nr=1002").status_code == 404       # a stored dossier outside the sample
+    pdf = c.get("/klanten/scheidingsbladen.pdf?kantoor=Mijn Kantoor")
+    assert pdf.status_code == 200 and pdf.data.startswith(b"%PDF")

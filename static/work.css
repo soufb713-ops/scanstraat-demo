@@ -185,6 +185,8 @@ ul.plain li::before{content:"";position:absolute;left:1px;top:6px;width:9px;heig
 .fld.wide{grid-column:1/-1}
 .fld>span{font-size:11px;font-weight:600;color:var(--s600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fld input{grid-column:1/-1;min-height:30px!important;padding:4px 8px!important;font-size:13px;border-radius:4px!important}
+.fld input.bad{border-color:var(--rd)!important;background:var(--rd-bg)!important}
+.fld input[data-date]{font-variant-numeric:tabular-nums}
 .fld.mono input,.fld.amt input{font-family:var(--mono);font-size:12.5px;letter-spacing:-.01em}
 .fld.amt input{text-align:right}
 .fld.on input{border-color:var(--c,var(--bl));box-shadow:0 0 0 2px color-mix(in srgb,var(--c,var(--bl)) 22%,transparent)}

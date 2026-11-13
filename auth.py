@@ -202,8 +202,8 @@ def init(app, users: Users, audit):
             sent = request.form.get("csrf") or request.headers.get("X-CSRF", "")
             if not session.get("csrf") or not hmac.compare_digest(sent, session["csrf"]):
                 abort(400, "Formulier verlopen. Ververs de pagina en probeer opnieuw.")
-        if request.endpoint in open_endpoints:
-            return None
+        if request.endpoint in open_endpoints or request.endpoint is None:
+            return None     # None: no such page, so the 404 page answers (not a login screen)
         user = current_user()
         if user and user.get("role") == "guest":
             if not GUEST_TOUR:
