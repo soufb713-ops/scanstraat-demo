@@ -32,6 +32,8 @@ const FIELDS = [ // key, label, css colour variable
 const FLABEL = Object.fromEntries(FIELDS.map(f => [f[0], f[1]]));
 const FCOL = Object.fromEntries(FIELDS.map(f => [f[0], f[2]]));
 const BOOKABLE = ['inkoopfactuur', 'kassabon', 'creditnota', 'verkoopfactuur'];
+const BADGE_FIELDS = {iban: ['iban'], btw: ['vat_21', 'vat_9', 'vat_0'], dubbel: ['reference'], ids: ['supplier_kvk', 'supplier_vat_number']};
+const badFields = d => new Set((d.badges || []).filter(b => b.ok === false).flatMap(b => BADGE_FIELDS[b.key] || []));
 const LIGHT = {green: 'In orde', amber: 'Let op', red: 'Rode vlag'};
 
 let D = null;            // payload from the server
@@ -458,17 +460,17 @@ function renderCanvas() {
   if (!d && !l) { el.innerHTML = emptyCanvas(); return; }
   const c = client((d || l).client_nr) || {};
   const tabs = `<div class="cv-tabs"><button class="${S.view === 'doc' ? 'on' : ''}" data-view="doc">${d ? 'Document' : 'Bankregel'}</button><button class="${S.view === 'client' ? 'on' : ''}" data-view="client">Klant-ervaring <small>MKB / ZZP zicht</small></button></div>`;
-  if (S.view === 'client') { el.innerHTML = `<div class="cv-bar">${tabs}</div>` + clientView(d, l, c); return; }
+  if (S.view === 'client') { el.innerHTML = `<div class="cv-bar">${tabs}</div>` + clientView(d, l, c); const ch = $('.ph-chat', el); if (ch) ch.scrollTop = ch.scrollHeight; return; }
   if (l) { el.innerHTML = `<div class="cv-bar">${tabs}</div>` + bankCanvas(l, c); return; }
   if (d.purged) { el.innerHTML = `<div class="cv-bar">${tabs}</div><div class="cv-empty"><h2>Origineel gewist</h2><p>Na de bevestigde export zijn het document, de paginabeelden en de koppeltabel verwijderd. De gecontroleerde velden en het controlespoor blijven bewaard.</p></div>`; return; }
   const pi = d.pages.indexOf(S.page) < 0 ? 0 : d.pages.indexOf(S.page);
   S.page = d.pages[pi];
-  const boxes = Object.entries(d.boxes || {}).filter(([, b]) => b.page === S.page || d.image);
+  const boxes = Object.entries(d.boxes || {}).filter(([, b]) => b.page === S.page || d.image), bad = badFields(d);
   const pages = d.pages.length > 1 ? `<div class="cv-pages">${d.pages.map((p, i) => `<button class="${p === S.page ? 'on' : ''}" data-page="${p}">${i + 1}</button>${i < d.pages.length - 1 && d.status === 'review' ? `<button class="cut" data-split="${p}" title="Splits na deze pagina (S)">✂</button>` : ''}`).join('')}<span class="sub">pagina ${pi + 1} van ${d.pages.length} · scanpagina ${S.page}</span></div>` : `<span class="cv-one sub">${d.image ? 'foto via WhatsApp' : 'scanpagina ' + S.page}</span>`;
   el.innerHTML = `<div class="cv-bar">${tabs}${pages}<span class="cv-zoom"><button data-zoom="out" title="Uitzoomen">−</button><button data-zoom="fit" title="Passend (Z)">${Math.round(S.zoom * 100)}%</button><button data-zoom="in" title="Inzoomen">+</button>${!SIM && !d.image ? `<a class="btn sm ghost" href="/document/${esc(d.id)}.pdf" target="_blank" rel="noopener">PDF</a>` : ''}</span></div>
     <div class="cv-stage" tabindex="-1"><div class="cv-sheet${d.image ? ' photo' : ''}">
       <img src="${esc(imgUrl(d, S.page))}" alt="Pagina ${S.page} van ${esc(d.result.counterparty || 'document')}" draggable="false">
-      ${boxes.map(([k, b]) => `<button class="box f-${FCOL[k] || 'party'}${k === S.field ? ' on' : ''}" data-box="${k}" style="left:${b.box[0] * 100}%;top:${b.box[1] * 100}%;width:${(b.box[2] - b.box[0]) * 100}%;height:${(b.box[3] - b.box[1]) * 100}%"><span>${esc(k === 'counterparty' && d.kind === 'verkoopfactuur' ? 'Afnemer' : FLABEL[k] || k)}</span></button>`).join('')}
+      ${boxes.map(([k, b]) => `<button class="box f-${FCOL[k] || 'party'}${k === S.field ? ' on' : ''}${bad.has(k) ? ' bad' : ''}" data-box="${k}" style="left:${b.box[0] * 100}%;top:${b.box[1] * 100}%;width:${(b.box[2] - b.box[0]) * 100}%;height:${(b.box[3] - b.box[1]) * 100}%"><span>${esc(k === 'counterparty' && d.kind === 'verkoopfactuur' ? 'Afnemer' : FLABEL[k] || k)}</span></button>`).join('')}
     </div></div>`;
   const img = $('.cv-sheet img', el);
   if (img && !img.complete) img.addEventListener('load', () => { fit(); if (S.field) focusBox(S.field, true); }, {once: true});
@@ -486,9 +488,27 @@ function fit() { // 100% shows the whole page when that stays readable, else the
   const narrow = matchMedia('(max-width:860px)').matches;
   const base = narrow ? w : Math.max(Math.min(w, 560 * Math.max(ar / 0.7071, 0.6)), Math.min(w, h * ar));
   sheet.style.width = Math.round(Math.max(200, base) * S.zoom) + 'px';
+  placeLabels();
+}
+function placeLabels() { // a label goes where it covers no other field: above, right, left or below; else it only shows on hover
+  const sheet = $('.cv-sheet');
+  if (!sheet) return;
+  const boxes = $$('.box', sheet), taken = boxes.map(b => b.getBoundingClientRect()), edge = sheet.getBoundingClientRect();
+  const hit = (a, b) => a.left < b.right - 1 && a.right > b.left + 1 && a.top < b.bottom - 1 && a.bottom > b.top + 1;
+  boxes.forEach((b, i) => {
+    for (const pos of ['t', 'r', 'l', 'b', 'n']) {
+      b.dataset.pos = pos;
+      if (pos === 'n') break;
+      const r = b.firstElementChild.getBoundingClientRect();
+      if (r.left < edge.left || r.right > edge.right || r.top < edge.top || r.bottom > edge.bottom) continue;
+      if (taken.some((t, j) => j !== i && hit(r, t))) continue;
+      taken.push(r); break;
+    }
+  });
 }
 function emptyCanvas() {
   const left = todo().length;
+  if (!docs.length) return `<div class="cv-empty"><h2>${D.reading ? 'De scan wordt gelezen' : 'Er ligt niets op de stapel'}</h2><p>${D.reading ? 'De documenten verschijnen hier zodra de controles klaar zijn.' : 'Scan een stapel of zet een PDF in de scanmap: de documenten komen hier te staan.'}</p>${D.reading || SIM ? '' : '<a class="btn primary" href="/scannen">Naar scannen</a>'}</div>`;
   return `<div class="cv-empty"><h2>${left ? 'Kies een document' : 'De stapel is leeg'}</h2><p>${left ? 'Gebruik <kbd>J</kbd> en <kbd>K</kbd> om door de stapel te lopen.' : 'Alles is beoordeeld. Bekijk wat klaar staat voor uw pakket.'}</p>${left ? '' : '<a class="btn primary" href="/afhandelen">Naar exporteren</a>'}</div>`;
 }
 function focusBox(key, instant) {
@@ -499,7 +519,7 @@ function focusBox(key, instant) {
   if (!b) { toastOnce('nobox', 'Voor dit veld is geen positie op het document bekend.'); return; }
   if (b.page !== S.page && !d.image) { S.page = b.page; S.field = key; return renderCanvas(); }
   const bw = b.box[2] - b.box[0];
-  const want = Math.max(1.6, Math.min(3, 0.34 / Math.max(bw, 0.04)));
+  const want = Math.max(1.5, Math.min(2.4, 0.3 / Math.max(bw, 0.04)));
   if (S.zoom < want) { S.zoom = want; fit(); const z = $('[data-zoom=fit]'); if (z) z.textContent = Math.round(S.zoom * 100) + '%'; }
   const el = $(`.box[data-box="${key}"]`, sheet);
   if (el) { el.classList.add('on'); el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse'); }
@@ -580,6 +600,7 @@ function renderPanel() {
     <div class="pn-row2"><label><span>Soort</span><select data-edit="kind"${dis}>${Object.entries(D.kinds).map(([k, v]) => `<option value="${k}"${k === d.kind ? ' selected' : ''}>${esc(v)}</option>`).join('')}</select></label>
       <label><span>Dossier</span><select data-edit="client_nr"${dis}><option value="">Kies het dossier</option>${Object.values(D.clients).map(x => `<option value="${esc(x.nr)}"${x.nr === d.client_nr ? ' selected' : ''}>${esc(x.nr)} · ${esc(x.name)}</option>`).join('')}</select></label></div>
     <p class="pn-via">${d.client_via ? 'Dossier via ' + esc(d.client_via) : 'Dossier nog niet bekend'}${d.pages.length > 1 ? ` · ${d.pages.length} pagina's bij elkaar: ${esc(d.split_reason || '')}` : ''}</p>`;
+  h += `<section id="pn-flags"${d.flags.some(f => f.level !== 'info') ? '' : ' class="hide"'}>${flagsHtml(d)}</section>`;
   h += `<section><h3>Gelezen velden <small>klik een veld: het document zoomt mee</small></h3><div class="flds">
       ${fld('counterparty', sales ? 'Afnemer' : bookable ? 'Leverancier' : 'Afzender', 'wide')}
       ${fld('reference', bookable ? 'Factuurnummer' : 'Kenmerk')}${fld('doc_date', bookable ? 'Factuurdatum' : 'Datum', '', 'date')}
@@ -612,7 +633,13 @@ function renderPanel() {
   h += '<div class="pn-actions"></div>';
   el.innerHTML = h;
   el.scrollTop = 0;
+  markBad(d);
   renderPanelActions();
+}
+function markBad(d) {
+  const bad = badFields(d);
+  $$('.ck-panel .fld').forEach(f => f.classList.toggle('bad', bad.has(f.dataset.f)));
+  $$('.cv-sheet .box').forEach(b => b.classList.toggle('bad', bad.has(b.dataset.box)));
 }
 function evidence(d) {
   const e = d.evidence;
@@ -620,11 +647,15 @@ function evidence(d) {
   const cls = {match: 'ok', partial: 'warn', differs: 'warn', new: 'new'}[e.status];
   return `<div class="evi ${cls}">${e.total ? `<span class="bar"><i style="width:${e.share}%"></i></span><b>${e.same}/${e.total}</b>` : '<b>nieuw</b>'}<span>${esc(e.text)}</span></div>`;
 }
-function checksHtml(d) {
-  const flags = d.flags.filter(f => f.level !== 'info'), info = d.flags.filter(f => f.level === 'info');
-  let h = '';
-  if (flags.length) h += `<h3>${flags.some(f => f.level === 'error') ? 'Vlaggen' : 'Aandachtspunten'}</h3>` + flags.map(f => `<div class="flag ${f.level}${f.note ? ' noted' : ''}" data-flag="${esc(f.id)}"><p>${esc(f.message)}</p>
+function flagsHtml(d) {
+  const flags = d.flags.filter(f => f.level !== 'info');
+  if (!flags.length) return '';
+  return `<h3>${flags.some(f => f.level === 'error') ? 'Rode vlag' : 'Aandachtspunt'}${flags.length > 1 ? ' <small>' + flags.length + ' punten</small>' : ''}</h3>` + flags.map(f => `<div class="flag ${f.level}${f.note ? ' noted' : ''}" data-flag="${esc(f.id)}"><p>${esc(f.message)}</p>
       ${f.note ? `<div class="note"><b>✓ ${esc(f.note.by)} · ${tShort(f.note.at)}</b> ${esc(f.note.note)}${d.status === 'review' ? ` <button data-unnote="${esc(f.id)}">verwijder</button>` : ''}</div>` : d.status === 'review' ? `<button class="btn sm" data-note="${esc(f.id)}">Notitie vastleggen <kbd>R</kbd></button>` : ''}</div>`).join('');
+}
+function checksHtml(d) {
+  const info = d.flags.filter(f => f.level === 'info');
+  let h = '';
   if ((d.badges || []).length) h += '<h3>Controles <small>vaste regels, geen AI</small></h3><ul class="badges">' + d.badges.map(b => `<li class="${b.ok === true ? 'ok' : b.ok === false ? 'bad' : 'na'}"><i>${b.ok === true ? '✓' : b.ok === false ? '✕' : '○'}</i><span><b>${esc(b.label)}</b><small>${esc(b.detail || '')}</small></span></li>`).join('') + '</ul>';
   if (info.length) h += info.map(f => `<p class="info">${esc(f.message)}</p>`).join('');
   return h;
@@ -663,6 +694,8 @@ function renderAfterEdit(id) {
   if (!d || !head || !cks) return renderPanel();
   head.className = 'pn-head l-' + d.light; $('.pn-light b', head).textContent = LIGHT[d.light];
   cks.innerHTML = checksHtml(d);
+  const fl0 = $('#pn-flags'); if (fl0) { fl0.innerHTML = flagsHtml(d); fl0.classList.toggle('hide', !d.flags.some(f => f.level !== 'info')); }
+  markBad(d);
   const ev = $('.evi'); if (ev) ev.outerHTML = evidence(d) || '<span class="evi hide"></span>';
   const fl = $('.filing'); if (fl && d.filing) fl.innerHTML = esc(d.filing.folder) + '/<br>' + esc(d.filing.filename);
   const via = $('.pn-via'); if (via) via.textContent = d.client_via ? 'Dossier via ' + d.client_via : 'Dossier nog niet bekend';
@@ -700,6 +733,8 @@ function modal(html, cls) {
   const m = document.createElement('div'); m.className = 'ck-modal ' + (cls || '');
   m.innerHTML = `<div class="md-box" role="dialog" aria-modal="true">${html}</div>`;
   m.addEventListener('mousedown', e => { if (e.target === m) closeModal(); });
+  m.addEventListener('keydown', e => { if (e.key !== 'Escape') e.stopPropagation(); });
+  if (toastEl) toastEl.classList.remove('show');
   document.body.appendChild(m); S.modal = m;
   const f = $('[autofocus]', m) || $('textarea,input,button', m); if (f) f.focus();
   return m;
@@ -855,6 +890,7 @@ root.addEventListener('focusin', e => {
 });
 root.addEventListener('change', e => {
   const t = e.target;
+  if (t.tagName === 'SELECT') t.blur(); // the shortcuts work again right after a choice
   if (t.id === 'q-order') { S.order = t.value; return renderQueue(); }
   if (t.id === 'tp-client') { S.client = t.value; const l = todo(); if (l.length && !l.some(d => d.id === S.sel)) select(l[0].id); else renderAll(); return; }
   if (t.dataset.edit) { const d = byId(S.sel); if (!d) return; const edit = {}; edit[t.dataset.edit] = t.value || null; d[t.dataset.edit] = t.value || null; saveEdit(d.id, edit, t.dataset.edit === 'kind' ? 'soort' : 'dossier').then(() => renderAll()); return; }
@@ -892,6 +928,7 @@ async function start() {
     else { const q = new URLSearchParams(); if (root.dataset.scan) q.set('scan', root.dataset.scan); if (root.dataset.focus) q.set('doc', root.dataset.focus); const r = await fetch('/api/cockpit?' + q, {credentials: 'same-origin'}); D = await r.json(); if (D.manual_minutes) O.manual = D.manual_minutes; }
   } catch (e) { $('.ck-canvas').innerHTML = '<div class="cv-empty"><h2>De werkbank kon niet laden</h2><p>Ververs de pagina. Blijft dit zo, dan is de verbinding weg.</p></div>'; return; }
   build();
+  if (!SIM && D.reading && !docs.length) { renderAll(); await reload(true); }   // a scan is still being read: wait for it
   for (const [line, b] of Object.entries(O.bank)) if (b.sent && !b.reply && !b.closed && D.replies[line]) playReply(line); // a reload in the middle of a reply
   const h = decodeURIComponent(location.hash.slice(1));
   const want = root.dataset.focus || (h.startsWith('doc=') ? h.slice(4) : h.startsWith('bon=') ? h.slice(4) : '');

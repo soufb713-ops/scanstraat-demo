@@ -1187,9 +1187,9 @@ def client_public(c):
 
 def cockpit_payload(focus=None, scan_id=None):
     cl, ch = clients(), charts()
-    docs = [d for d in visible_docs() if d.get("result")]
-    reading = sum(1 for d in visible_docs() if d["status"] == "reading")
-    docs = [d for d in docs if d["status"] != "reading"]
+    busy = {b["id"] for b in visible_batches() if b["status"] == "processing"}   # a scan shows up when its checks are done
+    reading = len(busy) + sum(1 for d in visible_docs() if d["status"] == "reading" and d["batch"] not in busy)
+    docs = [d for d in visible_docs() if d.get("result") and d["status"] != "reading" and d["batch"] not in busy]
     if scan_id:
         docs = [d for d in docs if d["batch"] == scan_id]
     else:
