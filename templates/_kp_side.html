@@ -1,0 +1,42 @@
+{# The left half of the Kantoorportaal sign-in screens: brand, what this is, and the live status from /status.json. #}
+<aside class="kp-side">
+  {{ ui.logo('/', 'Kantoorportaal') }}
+  <div class="kp-mid">
+    <h2>Het portaal van uw kantoor</h2>
+    <p>Hier scant, controleert en exporteert uw team. Alles staat versleuteld opgeslagen en elke handeling komt met naam en tijd in het controlespoor.</p>
+    <div class="kp-status" id="kp-status" data-src="{{ url_for('status_json') }}" aria-live="polite">
+      <div class="kp-status-h"><i class="led"></i><span id="kp-status-t">Status wordt gecontroleerd</span><time id="kp-status-at"></time></div>
+      <ul id="kp-status-l"></ul>
+      <div class="kp-status-f" id="kp-status-f" hidden></div>
+    </div>
+  </div>
+  <div class="kp-foot"><span>{{ 'Demo-omgeving met fictieve klanten' if demo_instance else 'Alleen voor medewerkers van het kantoor' }}</span><a href="/">Naar de website</a></div>
+</aside>
+<script>
+(() => {
+  const box = document.getElementById('kp-status'), t = document.getElementById('kp-status-t'), at = document.getElementById('kp-status-at');
+  const list = document.getElementById('kp-status-l'), foot = document.getElementById('kp-status-f');
+  async function check() {
+    try {
+      const r = await fetch(box.dataset.src, {cache: 'no-store'});
+      if (!r.ok) throw new Error(r.status);
+      const s = await r.json();
+      box.className = 'kp-status ' + (s.ok ? 'ok' : 'bad');
+      // "EU" only when the instance knows where it runs and that place is in the EU
+      t.textContent = s.ok && s.eu ? 'Alle EU-verwerkingsnodes operationeel' : s.text;
+      at.textContent = new Date().toLocaleTimeString('nl-NL', {hour: '2-digit', minute: '2-digit', second: '2-digit'});
+      list.replaceChildren(...s.checks.map(c => {
+        const li = document.createElement('li'); li.className = c.ok ? 'ok' : 'bad';
+        const dot = document.createElement('i'), state = document.createElement('span');
+        state.textContent = c.ok ? 'in orde' : 'storing';
+        li.append(dot, c.label, state); return li;
+      }));
+      foot.hidden = !s.location;
+      foot.textContent = s.location ? 'Locatie: ' + s.location : '';
+    } catch (e) {
+      box.className = 'kp-status bad'; t.textContent = 'Status niet bereikbaar'; at.textContent = ''; list.replaceChildren(); foot.hidden = true;
+    }
+  }
+  check(); setInterval(check, 60000);
+})();
+</script>

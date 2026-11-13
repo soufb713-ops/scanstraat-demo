@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Stapel splitsen{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='work.css') }}?v={{ asset_v }}">{% endblock %}
+{% block main %}
+<div id="studio">
+  <div class="head">
+    <div><div class="crumbs">Rondleiding · stap 1 van 4</div>
+      <h1>42 pagina's, één keer door de scanner</h1>
+      <p>De schoenendozen van vier klanten gingen als één stapel door de documentinvoer. Scheidingsbladen met een QR-code verdelen de scan per dossier, lege achterkanten vallen weg en pagina's van dezelfde factuur blijven bij elkaar. Dat is vaste code, geen AI: de dossierkeuze is nooit een gok.</p></div>
+    <div class="actions"><button class="btn" id="sp-play" type="button">Speel de splitsing af</button><button class="btn ghost" id="sp-skip" type="button">Toon het resultaat</button></div>
+  </div>
+
+  <div class="sp-stats">
+    <div><b id="st-pages">42</b><span>pagina's gescand</span></div>
+    <div><b id="st-blank">0</b><span>lege achterkanten overgeslagen</span></div>
+    <div><b id="st-cover">0</b><span>scheidingsbladen gelezen</span></div>
+    <div class="live"><b id="st-docs">0</b><span>documenten herkend</span></div>
+    <div><b>0</b><span>pagina's met de hand gesorteerd</span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><div><h2>Ruwe scan</h2><span class="sub" id="sp-file">Voorbeeldstapel</span></div>
+      <div class="sp-phases" id="sp-phases" aria-label="Stappen">
+        <button type="button" data-p="1"><i>1</i>Lege pagina's</button><button type="button" data-p="2"><i>2</i>Scheidingsbladen</button>
+        <button type="button" data-p="3"><i>3</i>Documenten</button><button type="button" data-p="4"><i>4</i>Controles</button></div></div>
+    <div class="card-b"><div class="sp-strip" id="sp-strip"><p class="sub">De voorbeeldstapel wordt geladen.</p></div>
+      <p class="sp-tip" id="sp-tip">Wijs een pagina aan om te zien bij welk document ze hoort. Klik om het document te openen.</p></div>
+  </div>
+
+  <div class="sp-lanes" id="sp-lanes"></div>
+
+  <div class="sp-sum" id="sp-sum"><p></p><a class="btn go lg" href="/werkbank">Naar de werkbank: stap 2</a></div>
+
+  <div class="card" id="bladen">
+    <div class="card-h"><div><h2>Scheidingsbladen voor uw kantoor</h2><span class="sub">Eén blad per dossier. Eén keer printen, daarna steeds opnieuw gebruiken.</span></div></div>
+    <div class="card-b sheet-studio">
+      <div>
+        <div class="f"><label for="sh-firm">Naam van uw kantoor</label>
+          <input id="sh-firm" maxlength="48" placeholder="Bijvoorbeeld Administratiekantoor De Vries" autocomplete="organization">
+          <div class="hint">Staat op elk blad, zodat klanten en collega's zien van wie het is. Laat leeg voor {{ tour_firm }}.</div></div>
+        <div class="f"><label>Dossiers</label><div class="chips" id="sh-clients"></div></div>
+        <a class="btn primary lg" id="sh-go" href="/klanten/scheidingsbladen.pdf" target="_blank" rel="noopener">Genereer kantoor-scheidingsbladen (PDF) <span aria-hidden="true">↓</span></a>
+        <p class="sub hide" id="sh-none">Kies minstens één dossier.</p>
+        <ol class="steps" style="margin-top:20px">
+          <li><b>Print de bladen</b><span class="sub">Gewoon papier, zwart-wit is genoeg. De zwarte rand maakt het blad terug te vinden in een stapel.</span></li>
+          <li><b>Leg op elke klantstapel het juiste blad</b><span class="sub">Bonnetjes, facturen en brieven mogen door elkaar. Nietjes eruit, dubbelzijdig scannen aan.</span></li>
+          <li><b>Scan alles in één keer</b><span class="sub">Naar de scanmap, per e-mail of als upload. De verdeling per dossier ziet u hierboven.</span></li>
+        </ol>
+        <div class="honest" style="margin-top:16px">In de rondleiding maakt u bladen voor de vier fictieve dossiers. Voor uw eigen klantenlijst maakt Scanstraat de bladen zodra de verwerkersovereenkomst is getekend.</div>
+      </div>
+      <div><div class="sheet-prev" id="sh-prev"></div><p class="sub" style="margin-top:8px">Voorbeeld, gemaakt met dezelfde code als de PDF.</p></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/stack.js') }}?v={{ asset_v }}" defer></script>{% endblock %}

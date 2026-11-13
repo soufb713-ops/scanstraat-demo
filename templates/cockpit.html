@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Werkbank{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='work.css') }}?v={{ asset_v }}">{% endblock %}
+{% block bodyclass %}ck{% endblock %}
+{% block pageclass %}flush{% endblock %}
+{% block main %}
+<div id="cockpit" data-sim="{{ '1' if sim else '0' }}" data-focus="{{ focus or '' }}" data-scan="{{ scan or '' }}">
+  <div class="ck-top"><div class="tp-title"><b>Werkbank</b><span>{{ tour_firm if sim else '' }}</span></div></div>
+  <div class="ck-body">
+    <aside class="ck-queue" aria-label="Stapel"></aside>
+    <section class="ck-canvas" aria-label="Document">
+      {% if doc and doc.purged %}
+      <div class="cv-empty"><h2>Origineel gewist</h2><p>Na de bevestigde export zijn het document, de paginabeelden en de koppeltabel verwijderd. De gecontroleerde velden en het controlespoor blijven bewaard.</p></div>
+      {% else %}
+      <div class="cv-empty"><h2>De werkbank wordt geladen</h2><p>Een ogenblik.</p>
+        <noscript><p>De werkbank heeft JavaScript nodig. Zet JavaScript aan in uw browser en ververs de pagina.</p></noscript></div>
+      {% endif %}
+    </section>
+    <aside class="ck-panel" aria-label="Boekingsvoorstel en controles"></aside>
+  </div>
+  <div class="ck-keys" aria-label="Sneltoetsen"></div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/cockpit.js') }}?v={{ asset_v }}" defer></script>{% endblock %}

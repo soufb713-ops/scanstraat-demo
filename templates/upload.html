@@ -15,7 +15,7 @@
       </label>
       <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
         <button class="btn primary" id="go" disabled>Verwerken</button>
-        {% if sample %}<button class="btn" name="sample" value="1" formnovalidate>Voorbeeldscan laden (16 pagina's, 2 klanten)</button>{% endif %}
+        {% if sample %}<button class="btn" name="sample" value="1" formnovalidate>Voorbeeldstapel laden (42 pagina's, 4 dossiers)</button>{% endif %}
       </div>
     </form>
     <div class="card">
@@ -44,7 +44,7 @@
       <div class="card-h"><h2>Scheidingsbladen</h2></div>
       <div class="card-b">
         <p style="margin-top:0">Print per klant één blad en leg het bij de scanner. Het blad wordt niet opgeslagen en is steeds opnieuw te gebruiken.</p>
-        <a class="btn sm" href="/klanten">Klanten en bladen beheren</a>
+        <a class="btn sm" href="/klanten">Dossiers en bladen beheren</a>
       </div>
     </div>
     {% if demo_live %}<div class="alert warning"><span class="ic">!</span><div>Live demo: wat je hier scant gaat als paginabeeld naar Claude via {{ destination }}. Gebruik fictieve documenten of je eigen papieren, nooit stukken van klanten zonder verwerkersovereenkomst.</div></div>{% endif %}

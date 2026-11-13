@@ -4,8 +4,10 @@
 <div class="stack">
 
 <form class="card" method="post" id="general"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="section" value="general">
-  <div class="card-h"><h2>Scanner en AI</h2><span class="badge {{ 'green' if live_key else 'amber' }}">{{ ai_label }}</span></div>
+  <div class="card-h"><h2>Kantoor, scanner en AI</h2><span class="badge {{ 'green' if live_key else 'amber' }}">{{ ai_label }}</span></div>
   <div class="card-b grid2">
+    <div style="grid-column:1/-1;max-width:460px"><label for="firm_name">Naam van het kantoor</label><input id="firm_name" name="firm_name" value="{{ s.firm_name or '' }}" placeholder="{{ firm }}" maxlength="60">
+      <div class="hint">Staat op de scheidingsbladen, op de aanleverpagina voor klanten en onder berichten. Leeg: {{ firm }}.</div></div>
     <div><label>Scanmap (Scannen naar map)</label><code style="display:block;padding:8px 10px">{{ inbox }}</code>
       <label style="display:flex;gap:8px;margin-top:10px;font-weight:500"><input type="checkbox" name="watch_inbox" value="1" {{ 'checked' if s.watch_inbox }}> Deze map bewaken en nieuwe scans vanzelf verwerken</label>
       <div class="hint">Nieuwe bestanden worden na verwerking verplaatst naar de submap <code>verwerkt</code>.</div></div>

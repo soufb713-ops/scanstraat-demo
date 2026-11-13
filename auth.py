@@ -8,8 +8,10 @@ ADMIN_TOTP_SECRET (optional, a base32 key kept in the host's secret settings) pr
 authenticator, so a demo host that wipes its disk on every restart keeps the same 6-digit codes.
 
 Guest tour (demo instances only: DEMO_INSTANCE=1 and GUEST_TOUR=1, never with APP_ENV=production): /rondleiding
-opens a read-only session without an account. A guest can look at the fictional sample scan and nothing else:
-no uploads, no changes, no downloads that change state, no audit log, no other batches.
+opens a session without an account. A guest works in a simulation of the fictional sample scan: the pages come
+from the sample file in the repository, what the guest does is kept in the guest's own browser, and the few
+requests a guest may post (GUEST_POSTS) are stateless: they compute an answer and store nothing. A guest never
+reads or changes stored state: no uploads, no batches, no audit log, no accounts.
 """
 import base64
 import hashlib
@@ -38,12 +40,16 @@ ISSUER = os.environ.get("BRAND_NAME", "Scanstraat")
 PRODUCTION = os.environ.get("APP_ENV", "development").lower() == "production"
 GUEST_TOUR = (os.environ.get("GUEST_TOUR") == "1" and os.environ.get("DEMO_INSTANCE") == "1" and not PRODUCTION)
 GUEST = {"email": "gast@rondleiding", "name": "Gast (rondleiding)", "role": "guest"}
-GUEST_MSG = ("Dit is een rondleiding: je kunt alles bekijken, maar niets wijzigen of uploaden. "
-             "Wil je je eigen stapel zien? Neem contact op via de brief die je kreeg.")
-# What a guest may open (GET only). Everything else answers with GUEST_MSG.
-GUEST_VIEWS = {"dashboard", "batch_page", "batch_api", "page_img", "doc_pdf", "doc_ubl", "review", "deliver",
-               "messages_page", "security_page", "clients_page", "cover_sheets", "upload", "guest_tour", "logout",
+GUEST_MSG = ("Dit hoort niet bij de rondleiding: u werkt hier met een fictieve voorbeeldstapel en er wordt niets "
+             "opgeslagen of geüpload. Uw eigen stapel zien? Plan een demo via de contactgegevens op de website.")
+# What a guest may open (GET). Everything else answers with GUEST_MSG.
+GUEST_VIEWS = {"cockpit", "stack", "deliver", "security_page", "clients_page", "cover_sheets", "cover_sheet_preview", "guest_tour", "logout",
                "static", "health"}
+# The stateless requests a guest may post: the real checks and exports on the visitor's simulation. Nothing is stored.
+GUEST_POSTS = {"sample_check", "sample_export", "logout"}
+# Tour pages: a visitor without a session who opens one of these starts the tour first.
+TOUR_PAGES = {"cockpit": "/werkbank", "stack": "/stapel", "deliver": "/afhandelen", "clients_page": "/klanten",
+              "security_page": "/beveiliging"}
 
 _lock = threading.Lock()
 _fails = {}  # email -> [timestamps]
@@ -188,7 +194,7 @@ def init(app, users: Users, audit):
                          totp_preset=True)
 
     open_endpoints = {"login", "login_code", "setup_2fa", "static", "health", "whatsapp_webhook", "retention_trigger",
-                      "guest_tour", "public_home"}
+                      "guest_tour", "public_home", "showroom_json", "showroom_page", "status_json", "client_upload"}
 
     @app.before_request
     def guard():
@@ -196,19 +202,25 @@ def init(app, users: Users, audit):
             sent = request.form.get("csrf") or request.headers.get("X-CSRF", "")
             if not session.get("csrf") or not hmac.compare_digest(sent, session["csrf"]):
                 abort(400, "Formulier verlopen. Ververs de pagina en probeer opnieuw.")
-        if request.endpoint in open_endpoints:
-            return None
+        if request.endpoint in open_endpoints or request.endpoint is None:
+            return None     # None: no such page, so the 404 page answers (not a login screen)
         user = current_user()
         if user and user.get("role") == "guest":
             if not GUEST_TOUR:
                 session.clear()
                 return redirect(url_for("login"))
-            if (request.method != "GET" and request.endpoint != "logout") or request.endpoint not in GUEST_VIEWS:
+            if request.endpoint == "dashboard" and request.method == "GET":
+                return app.view_functions["public_home"]()   # the site's homepage stays the homepage during a tour
+            if request.method != "GET" and request.endpoint not in GUEST_POSTS:
+                abort(403, GUEST_MSG)
+            if request.endpoint not in GUEST_VIEWS | GUEST_POSTS:
                 abort(403, GUEST_MSG)
             return None
         if not user and GUEST_TOUR and request.endpoint == "dashboard" and request.method == "GET":
             # demo instance: a visitor from the letter's QR code sees the public homepage, not a login screen
             return app.view_functions["public_home"]()
+        if not user and GUEST_TOUR and request.endpoint in TOUR_PAGES and request.method == "GET":
+            return redirect(url_for("guest_tour", next=TOUR_PAGES[request.endpoint]))   # a shared link starts the tour
         if not user:
             if request.path.startswith("/api/"):
                 abort(401)
@@ -245,6 +257,10 @@ def init(app, users: Users, audit):
             return redirect(url_for("login"))
         if current_user() and current_user().get("role") != "guest":
             return redirect(url_for("dashboard"))
+        nxt = request.args.get("next", "")
+        target = nxt if nxt in TOUR_PAGES.values() else TOUR_PAGES["stack"]
+        if current_user():      # already touring: no second audit line, straight on
+            return redirect(target)
         session.clear()
         session["user"] = dict(GUEST)
         # ?k= is the letter's code (a firm slug, not a person): shows which letter brought the visit. No IP is kept.
@@ -252,7 +268,7 @@ def init(app, users: Users, audit):
         audit("-", "-", "guest_tour", "Gast", via=via)
         if via:
             print(f"Rondleiding geopend via brief: {via}", flush=True)
-        return redirect(url_for("dashboard"))
+        return redirect(target)
 
     def pending():
         p = session.get("pending")

@@ -118,3 +118,81 @@ def build(fields: dict, customer: dict, pdf_bytes: bytes, filename: str) -> str:
   </cac:LegalMonetaryTotal>{''.join(invoice_lines)}
 </{root}>
 """
+
+
+# ---------------------------------------------------------------- what we check ourselves on every file
+NS = {"cbc": "urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2",
+      "cac": "urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"}
+
+
+def _nl(x):
+    return f"{x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def verify(xml: str):
+    """The arithmetic rules of EN 16931 and the mandatory core fields, checked on the file itself. This is our own
+    check on every export, not the official validator: a first import per bookkeeping package is still tested by hand.
+    Returns a list of {"rule", "text", "ok", "detail"}."""
+    from xml.etree import ElementTree as ET
+    root = ET.fromstring(xml.encode("utf-8"))
+    credit = root.tag.endswith("CreditNote")
+
+    def num(path, node=root):
+        el = node.find(path, NS)
+        try:
+            return Decimal(el.text) if el is not None and el.text else None
+        except Exception:  # noqa: BLE001 - an unreadable amount is a failed rule below
+            return None
+
+    def text(path):
+        el = root.find(path, NS)
+        return (el.text or "").strip() if el is not None else ""
+
+    line_tag = "cac:CreditNoteLine" if credit else "cac:InvoiceLine"
+    lines = [num("cbc:LineExtensionAmount", ln) for ln in root.findall(line_tag, NS)]
+    subs = [(num("cbc:TaxableAmount", s), num("cbc:TaxAmount", s), num("cac:TaxCategory/cbc:Percent", s))
+            for s in root.findall("cac:TaxTotal/cac:TaxSubtotal", NS)]
+    line_sum = num("cac:LegalMonetaryTotal/cbc:LineExtensionAmount")
+    excl = num("cac:LegalMonetaryTotal/cbc:TaxExclusiveAmount")
+    incl = num("cac:LegalMonetaryTotal/cbc:TaxInclusiveAmount")
+    due = num("cac:LegalMonetaryTotal/cbc:PayableAmount")
+    tax = num("cac:TaxTotal/cbc:TaxAmount")
+    out = []
+
+    def rule(code, label, ok, detail):
+        out.append({"rule": code, "text": label, "ok": bool(ok), "detail": detail})
+
+    core = {"factuurnummer (BT-1)": text("cbc:ID"), "factuurdatum (BT-2)": text("cbc:IssueDate"),
+            "valuta (BT-5)": text("cbc:DocumentCurrencyCode"),
+            "leverancier (BT-27)": text("cac:AccountingSupplierParty/cac:Party/cac:PartyLegalEntity/cbc:RegistrationName"),
+            "afnemer (BT-44)": text("cac:AccountingCustomerParty/cac:Party/cac:PartyLegalEntity/cbc:RegistrationName")}
+    missing = [k for k, v in core.items() if not v]
+    rule("Kernvelden", "Factuurnummer, datum, valuta, leverancier en afnemer zijn gevuld", not missing,
+         "Alle vijf aanwezig." if not missing else "Ontbreekt: " + ", ".join(missing))
+    rule("Profiel", "CustomizationID is NLCIUS (de Nederlandse invulling van EN 16931, in UBL: SI-UBL 2.0)",
+         text("cbc:CustomizationID").endswith("nlcius:v1.0"), text("cbc:CustomizationID") or "ontbreekt")
+    if None in lines or line_sum is None or excl is None or incl is None or tax is None or due is None or not lines:
+        rule("Bedragen", "Alle totalen zijn leesbaar", False, "Een van de totaalbedragen ontbreekt.")
+        return out
+    rule("BR-CO-10", "Som van de regels = totaal van de regels", sum(lines) == line_sum,
+         f"{' + '.join(_nl(x) for x in lines)} = {_nl(sum(lines))}; in het bestand {_nl(line_sum)}")
+    rule("BR-CO-13", "Totaal excl. btw = som van de regels (geen kortingen of toeslagen)", excl == line_sum,
+         f"{_nl(excl)} tegenover {_nl(line_sum)}")
+    rule("BR-CO-14", "Totaal btw = som van de btw per tarief", sum(s[1] for s in subs) == tax,
+         f"{' + '.join(_nl(s[1]) for s in subs) or '0,00'} = {_nl(sum(s[1] for s in subs))}; in het bestand {_nl(tax)}")
+    rule("BR-CO-15", "Totaal incl. btw = totaal excl. btw + btw", excl + tax == incl,
+         f"{_nl(excl)} + {_nl(tax)} = {_nl(excl + tax)}; in het bestand {_nl(incl)}")
+    rule("BR-CO-16", "Te betalen = totaal incl. btw (niets vooruitbetaald)", due == incl, f"{_nl(due)} tegenover {_nl(incl)}")
+    bad = [s for s in subs if None in s or abs((s[0] * s[2] / 100).quantize(Decimal("0.01")) - s[1]) > Decimal("0.01")]
+    rule("BR-CO-17", "Btw per tarief = grondslag x tarief, afgerond op de cent", not bad,
+         "; ".join(f"{s[2].normalize():f}% van {_nl(s[0])} = {_nl((s[0] * s[2] / 100).quantize(Decimal('0.01')))}"
+                   + ("" if s not in bad else f", in het bestand {_nl(s[1])}") for s in subs if None not in s))
+    return out
+
+
+def shorten(xml: str):
+    """The file for reading on screen: the embedded PDF (thousands of base64 lines) replaced by one line."""
+    import re
+    def cut(m):
+        return f"{m.group(1)}[pdf-bijlage, {len(m.group(2)) * 3 // 4 // 1024} kB als base64: volledig in de download]{m.group(3)}"
+    return re.sub(r"(<cbc:EmbeddedDocumentBinaryObject[^>]*>)([^<]{200,})(</cbc:EmbeddedDocumentBinaryObject>)", cut, xml)

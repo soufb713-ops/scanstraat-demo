@@ -1,0 +1,3600 @@
+{
+ "file": "schoenendoos_2026-11-12.pdf",
+ "sha256": "4d4fc540ebd21ac3eb0b0d787a40a5fbb4eb35d8e2e6f1d046f18eb3f48a241c",
+ "as_of": "2026-11-13",
+ "firm": "Maaskade Administraties",
+ "title": "De schoenendoos: 42 pagina's, 4 dossiers",
+ "pages": [
+  {
+   "n": 1,
+   "kind": "cover",
+   "ref": "1042"
+  },
+  {
+   "n": 2,
+   "kind": "page",
+   "ref": "B-MOLEN"
+  },
+  {
+   "n": 3,
+   "kind": "blank",
+   "ref": null
+  },
+  {
+   "n": 4,
+   "kind": "page",
+   "ref": "B-ENERGIE"
+  },
+  {
+   "n": 5,
+   "kind": "page",
+   "ref": "B-ENERGIE"
+  },
+  {
+   "n": 6,
+   "kind": "page",
+   "ref": "B-PAKHUIS"
+  },
+  {
+   "n": 7,
+   "kind": "blank",
+   "ref": null
+  },
+  {
+   "n": 8,
+   "kind": "page",
+   "ref": "B-KNEDER"
+  },
+  {
+   "n": 9,
+   "kind": "page",
+   "ref": "B-SUPERVERS"
+  },
+  {
+   "n": 10,
+   "kind": "page",
+   "ref": "B-BELNET"
+  },
+  {
+   "n": 11,
+   "kind": "blank",
+   "ref": null
+  },
+  {
+   "n": 12,
+   "kind": "page",
+   "ref": "B-VERKOOP"
+  },
+  {
+   "n": 13,
+   "kind": "page",
+   "ref": "B-RENOVA"
+  },
+  {
+   "n": 14,
+   "kind": "cover",
+   "ref": "1057"
+  },
+  {
+   "n": 15,
+   "kind": "page",
+   "ref": "M-BGR-KB"
+  },
+  {
+   "n": 16,
+   "kind": "blank",
+   "ref": null
+  },
+  {
+   "n": 17,
+   "kind": "page",
+   "ref": "M-BGR-IBAN"
+  },
+  {
+   "n": 18,
+   "kind": "page",
+   "ref": "M-WIT"
+  },
+  {
+   "n": 19,
+   "kind": "page",
+   "ref": "M-TANK"
+  },
+  {
+   "n": 20,
+   "kind": "page",
+   "ref": "M-BOUWMARKT"
+  },
+  {
+   "n": 21,
+   "kind": "blank",
+   "ref": null
+  },
+  {
+   "n": 22,
+   "kind": "page",
+   "ref": "M-POLIS"
+  },
+  {
+   "n": 23,
+   "kind": "page",
+   "ref": "M-POLIS"
+  },
+  {
+   "n": 24,
+   "kind": "page",
+   "ref": "M-PAKBON"
+  },
+  {
+   "n": 25,
+   "kind": "page",
+   "ref": "M-VERKOOP"
+  },
+  {
+   "n": 26,
+   "kind": "cover",
+   "ref": "1063"
+  },
+  {
+   "n": 27,
+   "kind": "page",
+   "ref": "K-MAASHAL"
+  },
+  {
+   "n": 28,
+   "kind": "page",
+   "ref": "K-MAASHAL"
+  },
+  {
+   "n": 29,
+   "kind": "page",
+   "ref": "K-MAASHAL"
+  },
+  {
+   "n": 30,
+   "kind": "blank",
+   "ref": null
+  },
+  {
+   "n": 31,
+   "kind": "page",
+   "ref": "K-KUIP"
+  },
+  {
+   "n": 32,
+   "kind": "page",
+   "ref": "K-BLINKEND"
+  },
+  {
+   "n": 33,
+   "kind": "blank",
+   "ref": null
+  },
+  {
+   "n": 34,
+   "kind": "page",
+   "ref": "K-PINPUNT"
+  },
+  {
+   "n": 35,
+   "kind": "page",
+   "ref": "K-KUIP-2"
+  },
+  {
+   "n": 36,
+   "kind": "page",
+   "ref": "K-BELASTING"
+  },
+  {
+   "n": 37,
+   "kind": "cover",
+   "ref": "1001"
+  },
+  {
+   "n": 38,
+   "kind": "page",
+   "ref": "L-VEKTOR"
+  },
+  {
+   "n": 39,
+   "kind": "page",
+   "ref": "L-BRASSERIE"
+  },
+  {
+   "n": 40,
+   "kind": "blank",
+   "ref": null
+  },
+  {
+   "n": 41,
+   "kind": "page",
+   "ref": "L-DRUKKERIJ"
+  },
+  {
+   "n": 42,
+   "kind": "page",
+   "ref": "L-SPEELGOED"
+  }
+ ],
+ "documents": [
+  {
+   "key": "B-MOLEN",
+   "client": "1042",
+   "pages": [
+    2
+   ],
+   "answer": {
+    "kind": "inkoopfactuur",
+    "client_hint": "Bakkerij Van Dijk B.V.",
+    "counterparty": "Molen De Vier Winden B.V.",
+    "reference": "2026-4471",
+    "doc_date": "2026-11-03",
+    "net_total": 612.4,
+    "vat_lines": [
+     {
+      "rate": 9,
+      "base": 612.4,
+      "amount": 55.12
+     }
+    ],
+    "gross_total": 667.52,
+    "lines": [
+     {
+      "account": "7000",
+      "vat_code": "V9",
+      "amount_excl": 612.4,
+      "vat_amount": 55.12,
+      "description": "Meel en grondstoffen"
+     }
+    ],
+    "description": "Meel en bakkerijgrondstoffen",
+    "currency": "EUR",
+    "due_date": "2026-11-17",
+    "supplier_vat_number": "NL804417290B01",
+    "supplier_kvk": "23087714",
+    "iban": "NL06TEST0230877140",
+    "booking_reason": "Vaste leverancier van grondstoffen: zelfde rekening en btw-code als de eerdere facturen.",
+    "uncertain_fields": [],
+    "issues": []
+   },
+   "boxes": {
+    "counterparty": {
+     "page": 2,
+     "box": [
+      0.2945,
+      0.051,
+      0.7131,
+      0.0838
+     ]
+    },
+    "supplier_kvk": {
+     "page": 2,
+     "box": [
+      0.2991,
+      0.1078,
+      0.3729,
+      0.1239
+     ]
+    },
+    "supplier_vat_number": {
+     "page": 2,
+     "box": [
+      0.3999,
+      0.1082,
+      0.5267,
+      0.1245
+     ]
+    },
+    "iban": {
+     "page": 2,
+     "box": [
+      0.5654,
+      0.1089,
+      0.7409,
+      0.1255
+     ]
+    },
+    "reference": {
+     "page": 2,
+     "box": [
+      0.7332,
+      0.2999,
+      0.812,
+      0.316
+     ]
+    },
+    "doc_date": {
+     "page": 2,
+     "box": [
+      0.733,
+      0.3167,
+      0.8169,
+      0.3329
+     ]
+    },
+    "due_date": {
+     "page": 2,
+     "box": [
+      0.7329,
+      0.3335,
+      0.8168,
+      0.3497
+     ]
+    },
+    "net_total": {
+     "page": 2,
+     "box": [
+      0.8514,
+      0.5653,
+      0.9109,
+      0.5828
+     ]
+    },
+    "vat_9": {
+     "page": 2,
+     "box": [
+      0.8596,
+      0.5856,
+      0.9107,
+      0.603
+     ]
+    },
+    "gross_total": {
+     "page": 2,
+     "box": [
+      0.8487,
+      0.6052,
+      0.9106,
+      0.6234
+     ]
+    }
+   }
+  },
+  {
+   "key": "B-ENERGIE",
+   "client": "1042",
+   "pages": [
+    4,
+    5
+   ],
+   "answer": {
+    "kind": "inkoopfactuur",
+    "client_hint": "Bakkerij Van Dijk B.V.",
+    "counterparty": "Stroomlijn Energie B.V.",
+    "reference": "88120334-1026",
+    "doc_date": "2026-11-01",
+    "net_total": 723.08,
+    "vat_lines": [
+     {
+      "rate": 21,
+      "base": 723.08,
+      "amount": 151.85
+     }
+    ],
+    "gross_total": 874.93,
+    "lines": [
+     {
+      "account": "4200",
+      "vat_code": "V21",
+      "amount_excl": 723.08,
+      "vat_amount": 151.85,
+      "description": "Gas en elektra oktober"
+     }
+    ],
+    "description": "Gas en elektra oktober 2026",
+    "currency": "EUR",
+    "due_date": "2026-11-15",
+    "supplier_vat_number": "NL812204551B01",
+    "supplier_kvk": "30241175",
+    "iban": "NL48TEST0302411750",
+    "booking_reason": "Maandelijkse energienota: 4200, voorbelasting 21%.",
+    "uncertain_fields": [],
+    "issues": [],
+    "split_reason": "Pagina 2 is de verbruiksspecificatie bij dezelfde factuur (zelfde afzender en factuurnummer)."
+   },
+   "boxes": {
+    "counterparty": {
+     "page": 4,
+     "box": [
+      0.186,
+      0.063,
+      0.4794,
+      0.0878
+     ]
+    },
+    "supplier_kvk": {
+     "page": 4,
+     "box": [
+      0.6948,
+      0.0731,
+      0.7679,
+      0.0877
+     ]
+    },
+    "supplier_vat_number": {
+     "page": 4,
+     "box": [
+      0.792,
+      0.0733,
+      0.9136,
+      0.0881
+     ]
+    },
+    "iban": {
+     "page": 4,
+     "box": [
+      0.7441,
+      0.0884,
+      0.9135,
+      0.1032
+     ]
+    },
+    "reference": {
+     "page": 4,
+     "box": [
+      0.7325,
+      0.2994,
+      0.8517,
+      0.3155
+     ]
+    },
+    "doc_date": {
+     "page": 4,
+     "box": [
+      0.7324,
+      0.3163,
+      0.823,
+      0.3323
+     ]
+    },
+    "due_date": {
+     "page": 4,
+     "box": [
+      0.7323,
+      0.3331,
+      0.823,
+      0.3491
+     ]
+    },
+    "net_total": {
+     "page": 4,
+     "box": [
+      0.8467,
+      0.5243,
+      0.9114,
+      0.5416
+     ]
+    },
+    "vat_21": {
+     "page": 4,
+     "box": [
+      0.8466,
+      0.5445,
+      0.9113,
+      0.5618
+     ]
+    },
+    "gross_total": {
+     "page": 4,
+     "box": [
+      0.8439,
+      0.5642,
+      0.9112,
+      0.5822
+     ]
+    }
+   }
+  },
+  {
+   "key": "B-PAKHUIS",
+   "client": "1042",
+   "pages": [
+    6
+   ],
+   "answer": {
+    "kind": "inkoopfactuur",
+    "client_hint": "Bakkerij Van Dijk B.V.",
+    "counterparty": "Pakhuis Verpakkingen B.V.",
+    "reference": "F-26-10988",
+    "doc_date": "2026-10-28",
+    "net_total": 186.0,
+    "vat_lines": [
+     {
+      "rate": 21,
+      "base": 186.0,
+      "amount": 39.06
+     }
+    ],
+    "gross_total": 225.06,
+    "lines": [
+     {
+      "account": "7100",
+      "vat_code": "V21",
+      "amount_excl": 186.0,
+      "vat_amount": 39.06,
+      "description": "Broodzakken en taartdozen"
+     }
+    ],
+    "description": "Verpakkingsmateriaal",
+    "currency": "EUR",
+    "due_date": "2026-11-27",
+    "supplier_vat_number": "NL818830127B01",
+    "supplier_kvk": "24415520",
+    "iban": "NL21TEST0244155200",
+    "booking_reason": "Verpakkingen voor de winkel: 7100.",
+    "uncertain_fields": [],
+    "issues": []
+   },
+   "boxes": {
+    "counterparty": {
+     "page": 6,
+     "box": [
+      0.0829,
+      0.0653,
+      0.4647,
+      0.0947
+     ]
+    },
+    "supplier_kvk": {
+     "page": 6,
+     "box": [
+      0.6743,
+      0.0738,
+      0.7512,
+      0.0894
+     ]
+    },
+    "supplier_vat_number": {
+     "page": 6,
+     "box": [
+      0.7775,
+      0.0728,
+      0.906,
+      0.0887
+     ]
+    },
+    "iban": {
+     "page": 6,
+     "box": [
+      0.7269,
+      0.0879,
+      0.9062,
+      0.1042
+     ]
+    },
+    "reference": {
+     "page": 6,
+     "box": [
+      0.7289,
+      0.2967,
+      0.8205,
+      0.3131
+     ]
+    },
+    "doc_date": {
+     "page": 6,
+     "box": [
+      0.7291,
+      0.3136,
+      0.8199,
+      0.33
+     ]
+    },
+    "due_date": {
+     "page": 6,
+     "box": [
+      0.7294,
+      0.3304,
+      0.8201,
+      0.3468
+     ]
+    },
+    "net_total": {
+     "page": 6,
+     "box": [
+      0.8475,
+      0.5409,
+      0.9123,
+      0.5585
+     ]
+    },
+    "vat_21": {
+     "page": 6,
+     "box": [
+      0.8571,
+      0.5611,
+      0.9125,
+      0.5786
+     ]
+    },
+    "gross_total": {
+     "page": 6,
+     "box": [
+      0.8454,
+      0.5808,
+      0.9128,
+      0.5991
+     ]
+    }
+   }
+  },
+  {
+   "key": "B-KNEDER",
+   "client": "1042",
+   "pages": [
+    8
+   ],
+   "answer": {
+    "kind": "inkoopfactuur",
+    "client_hint": "Bakkerij Van Dijk B.V.",
+    "counterparty": "Bakkerijtechniek Zuid B.V.",
+    "reference": "BTZ-2611-0098",
+    "doc_date": "2026-11-05",
+    "net_total": 2450.0,
+    "vat_lines": [
+     {
+      "rate": 21,
+      "base": 2450.0,
+      "amount": 514.5
+     }
+    ],
+    "gross_total": 2964.5,
+    "lines": [
+     {
+      "account": "0220",
+      "vat_code": "V21",
+      "amount_excl": 2450.0,
+      "vat_amount": 514.5,
+      "description": "Spiraalkneder SK-60"
+     }
+    ],
+    "description": "Spiraalkneder SK-60 met plaatsing",
+    "currency": "EUR",
+    "due_date": "2026-12-05",
+    "supplier_vat_number": "NL807766112B01",
+    "supplier_kvk": "20119883",
+    "iban": "NL92TEST0201198830",
+    "booking_reason": "Nieuwe machine boven de activeringsgrens: voorstel 0220 Machines en installaties, niet de onderhoudsrekening.",
+    "uncertain_fields": [],
+    "issues": [
+     {
+      "level": "warning",
+      "message": "Aanschaf van € 2.450 excl. btw: activeren als bedrijfsmiddel (0220)? De twee eerdere facturen van deze leverancier waren onderhoud (4300). Denk aan de KIA."
+     }
+    ]
+   },
+   "boxes": {
+    "counterparty": {
+     "page": 8,
+     "box": [
+      0.0983,
+      0.0606,
+      0.4914,
+      0.0889
+     ]
+    },
+    "supplier_kvk": {
+     "page": 8,
+     "box": [
+      0.1285,
+      0.1259,
+      0.2052,
+      0.141
+     ]
+    },
+    "supplier_vat_number": {
+     "page": 8,
+     "box": [
+      0.2317,
+      0.1259,
+      0.36,
+      0.1411
+     ]
+    },
+    "iban": {
+     "page": 8,
+     "box": [
+      0.3975,
+      0.1259,
+      0.5767,
+      0.1411
+     ]
+    },
+    "reference": {
+     "page": 8,
+     "box": [
+      0.7316,
+      0.2989,
+      0.8508,
+      0.3147
+     ]
+    },
+    "doc_date": {
+     "page": 8,
+     "box": [
+      0.7316,
+      0.3157,
+      0.8222,
+      0.3316
+     ]
+    },
+    "due_date": {
+     "page": 8,
+     "box": [
+      0.7316,
+      0.3326,
+      0.8222,
+      0.3484
+     ]
+    },
+    "net_total": {
+     "page": 8,
+     "box": [
+      0.8329,
+      0.5033,
+      0.9115,
+      0.5205
+     ]
+    },
+    "vat_21": {
+     "page": 8,
+     "box": [
+      0.8469,
+      0.5235,
+      0.9115,
+      0.5407
+     ]
+    },
+    "gross_total": {
+     "page": 8,
+     "box": [
+      0.8296,
+      0.5432,
+      0.9115,
+      0.5611
+     ]
+    }
+   }
+  },
+  {
+   "key": "B-SUPERVERS",
+   "client": "1042",
+   "pages": [
+    9
+   ],
+   "answer": {
+    "kind": "kassabon",
+    "client_hint": "Bakkerij Van Dijk B.V.",
+    "counterparty": "SuperVers Schiedam",
+    "reference": "0047-2231",
+    "doc_date": "2026-11-06",
+    "net_total": 29.73,
+    "vat_lines": [
+     {
+      "rate": 9,
+      "base": 21.33,
+      "amount": 1.92
+     },
+     {
+      "rate": 21,
+      "base": 8.4,
+      "amount": 1.76
+     }
+    ],
+    "gross_total": 33.41,
+    "lines": [
+     {
+      "account": "4530",
+      "vat_code": "V9",
+      "amount_excl": 21.33,
+      "vat_amount": 1.92,
+      "description": "Koffie, melk, fruit"
+     },
+     {
+      "account": "4530",
+      "vat_code": "V21",
+      "amount_excl": 8.4,
+      "vat_amount": 1.76,
+      "description": "Schoonmaakmiddelen"
+     }
+    ],
+    "description": "Boodschappen kantine",
+    "currency": "EUR",
+    "due_date": null,
+    "supplier_vat_number": null,
+    "supplier_kvk": null,
+    "iban": null,
+    "booking_reason": "Kantinekosten, één regel per btw-tarief.",
+    "uncertain_fields": [],
+    "issues": []
+   },
+   "boxes": {
+    "counterparty": {
+     "page": 9,
+     "box": [
+      0.2508,
+      0.0838,
+      0.4097,
+      0.1152
+     ]
+    },
+    "doc_date": {
+     "page": 9,
+     "box": [
+      0.2129,
+      0.1533,
+      0.3306,
+      0.1754
+     ]
+    },
+    "reference": {
+     "page": 9,
+     "box": [
+      0.2135,
+      0.169,
+      0.32,
+      0.1911
+     ]
+    },
+    "gross_total": {
+     "page": 9,
+     "box": [
+      0.4594,
+      0.328,
+      0.5257,
+      0.3489
+     ]
+    },
+    "vat_9": {
+     "page": 9,
+     "box": [
+      0.3351,
+      0.3873,
+      0.4017,
+      0.4088
+     ]
+    },
+    "vat_21": {
+     "page": 9,
+     "box": [
+      0.336,
+      0.4042,
+      0.403,
+      0.4257
+     ]
+    }
+   }
+  },
+  {
+   "key": "B-BELNET",
+   "client": "1042",
+   "pages": [
+    10
+   ],
+   "answer": {
+    "kind": "inkoopfactuur",
+    "client_hint": "Bakkerij Van Dijk B.V.",
+    "counterparty": "Belnet Mobiel B.V.",
+    "reference": "BM26-1107733",
+    "doc_date": "2026-11-01",
+    "net_total": 55.0,
+    "vat_lines": [
+     {
+      "rate": 21,
+      "base": 55.0,
+      "amount": 11.55
+     }
+    ],
+    "gross_total": 66.55,
+    "lines": [
+     {
+      "account": "4310",
+      "vat_code": "V21",
+      "amount_excl": 55.0,
+      "vat_amount": 11.55,
+      "description": "Telefoon en internet november"
+     }
+    ],
+    "description": "Telefoon en internet november",
+    "currency": "EUR",
+    "due_date": "2026-11-15",
+    "supplier_vat_number": "NL858104221B01",
+    "supplier_kvk": "71829304",
+    "iban": "NL70TEST4410020011",
+    "booking_reason": "Vaste leverancier: zelfde rekening en btw-code als de eerdere maanden.",
+    "uncertain_fields": [],
+    "issues": []
+   },
+   "boxes": {
+    "counterparty": {
+     "page": 10,
+     "box": [
+      0.0848,
+      0.0658,
+      0.3474,
+      0.0938
+     ]
+    },
+    "supplier_kvk": {
+     "page": 10,
+     "box": [
+      0.6761,
+      0.0743,
+      0.753,
+      0.0898
+     ]
+    },
+    "supplier_vat_number": {
+     "page": 10,
+     "box": [
+      0.7793,
+      0.0736,
+      0.9078,
+      0.0893
+     ]
+    },
+    "iban": {
+     "page": 10,
+     "box": [
+      0.7287,
+      0.0888,
+      0.9079,
+      0.1047
+     ]
+    },
+    "reference": {
+     "page": 10,
+     "box": [
+      0.7298,
+      0.2973,
+      0.8465,
+      0.3136
+     ]
+    },
+    "doc_date": {
+     "page": 10,
+     "box": [
+      0.7299,
+      0.3143,
+      0.8206,
+      0.3305
+     ]
+    },
+    "due_date": {
+     "page": 10,
+     "box": [
+      0.7301,
+      0.3311,
+      0.8208,
+      0.3473
+     ]
+    },
+    "net_total": {
+     "page": 10,
+     "box": [
+      0.8563,
+      0.5014,
+      0.9117,
+      0.5188
+     ]
+    },
+    "vat_21": {
+     "page": 10,
+     "box": [
+      0.8564,
+      0.5216,
+      0.9118,
+      0.539
+     ]
+    },
+    "gross_total": {
+     "page": 10,
+     "box": [
+      0.8545,
+      0.5413,
+      0.912,
+      0.5594
+     ]
+    }
+   }
+  },
+  {
+   "key": "B-VERKOOP",
+   "client": "1042",
+   "pages": [
+    12
+   ],
+   "answer": {
+    "kind": "verkoopfactuur",
+    "client_hint": "Bakkerij Van Dijk B.V.",
+    "counterparty": "Lunchroom Het Plein V.O.F.",
+    "reference": "2026-0412",
+    "doc_date": "2026-10-31",
+    "net_total": 486.0,
+    "vat_lines": [
+     {
+      "rate": 9,
+      "base": 486.0,
+      "amount": 43.74
+     }
+    ],
+    "gross_total": 529.74,
+    "lines": [
+     {
+      "account": "8100",
+      "vat_code": "O9",
+      "amount_excl": 486.0,
+      "vat_amount": 43.74,
+      "description": "Brood en gebak week 44"
+     }
+    ],
+    "description": "Brood en gebak week 44",
+    "currency": "EUR",
+    "due_date": null,
+    "supplier_vat_number": null,
+    "supplier_kvk": null,
+    "iban": null,
+    "booking_reason": "Eigen verkoopfactuur van de klant: omzet laag tarief.",
+    "uncertain_fields": [],
+    "issues": []
+   },
+   "boxes": {
+    "counterparty": {
+     "page": 12,
+     "box": [
+      0.0888,
+      0.1832,
+      0.2981,
+      0.2005
+     ]
+    },
+    "reference": {
+     "page": 12,
+     "box": [
+      0.7317,
+      0.2989,
+      0.8105,
+      0.3148
+     ]
+    },
+    "doc_date": {
+     "page": 12,
+     "box": [
+      0.7317,
+      0.3158,
+      0.8155,
+      0.3316
+     ]
+    },
+    "net_total": {
+     "page": 12,
+     "box": [
+      0.852,
+      0.5033,
+      0.9115,
+      0.5205
+     ]
+    },
+    "vat_9": {
+     "page": 12,
+     "box": [
+      0.8604,
+      0.5235,
+      0.9115,
+      0.5407
+     ]
+    },
+    "gross_total": {
+     "page": 12,
+     "box": [
+      0.8497,
+      0.5432,
+      0.9115,
+      0.5611
+     ]
+    }
+   }
+  },
+  {
+   "key": "B-RENOVA",
+   "client": "1042",
+   "pages": [
+    13
+   ],
+   "answer": {
+    "kind": "inkoopfactuur",
+    "client_hint": "Bakkerij Van Dijk B.V.",
+    "counterparty": "Renova Bedrijfsafval B.V.",
+    "reference": "RB-2610-55120",
+    "doc_date": "2026-10-31",
+    "net_total": 86.0,
+    "vat_lines": [
+     {
+      "rate": 21,
+      "base": 86.0,
+      "amount": 18.06
+     }
+    ],
+    "gross_total": 104.06,
+    "lines": [
+     {
+      "account": "4250",
+      "vat_code": "V21",
+      "amount_excl": 86.0,
+      "vat_amount": 18.06,
+      "description": "Bedrijfsafval oktober"
+     }
+    ],
+    "description": "Bedrijfsafval oktober",
+    "currency": "EUR",
+    "due_date": "2026-11-14",
+    "supplier_vat_number": "NL815590338B01",
+    "supplier_kvk": "24330918",
+    "iban": "NL31TEST0243309180",
+    "booking_reason": "Vaste leverancier: afvalverwerking op 4250.",
+    "uncertain_fields": [],
+    "issues": []
+   },
+   "boxes": {
+    "counterparty": {
+     "page": 13,
+     "box": [
+      0.1886,
+      0.062,
+      0.5074,
+      0.0879
+     ]
+    },
+    "supplier_kvk": {
+     "page": 13,
+     "box": [
+      0.6975,
+      0.0737,
+      0.7706,
+      0.0886
+     ]
+    },
+    "supplier_vat_number": {
+     "page": 13,
+     "box": [
+      0.7946,
+      0.0743,
+      0.9163,
+      0.0894
+     ]
+    },
+    "iban": {
+     "page": 13,
+     "box": [
+      0.7466,
+      0.0892,
+      0.9161,
+      0.1045
+     ]
+    },
+    "reference": {
+     "page": 13,
+     "box": [
+      0.7337,
+      0.3002,
+      0.8538,
+      0.3167
+     ]
+    },
+    "doc_date": {
+     "page": 13,
+     "box": [
+      0.7335,
+      0.317,
+      0.8242,
+      0.3333
+     ]
+    },
+    "due_date": {
+     "page": 13,
+     "box": [
+      0.7333,
+      0.3339,
+      0.824,
+      0.3502
+     ]
+    },
+    "net_total": {
+     "page": 13,
+     "box": [
+      0.856,
+      0.5052,
+      0.9114,
+      0.5227
+     ]
+    },
+    "vat_21": {
+     "page": 13,
+     "box": [
+      0.8558,
+      0.5254,
+      0.9112,
+      0.5429
+     ]
+    },
+    "gross_total": {
+     "page": 13,
+     "box": [
+      0.8436,
+      0.5451,
+      0.911,
+      0.5633
+     ]
+    }
+   }
+  },
+  {
+   "key": "M-BGR-KB",
+   "client": "1057",
+   "pages": [
+    15
+   ],
+   "answer": {
+    "kind": "inkoopfactuur",
+    "client_hint": "Marco Bouw & Onderhoud",
+    "counterparty": "Bouwgroothandel Rijnmond B.V.",
+    "reference": "26-118204",
+    "doc_date": "2026-11-04",
+    "net_total": 1264.8,
+    "vat_lines": [
+     {
+      "rate": 21,
+      "base": 1264.8,
+      "amount": 265.61
+     }
+    ],
+    "gross_total": 1530.41,
+    "lines": [
+     {
+      "account": "7000",
+      "vat_code": "V21",
+      "amount_excl": 1240.0,
+      "vat_amount": 260.4,
+      "description": "Gipsplaat, profielen, isolatie"
+     },
+     {
+      "account": "4960",
+      "vat_code": "V21",
+      "amount_excl": 24.8,
+      "vat_amount": 5.21,
+      "description": "Kredietbeperking 2%"
+     }
+    ],
+    "description": "Bouwmaterialen project Mathenesserlaan",
+    "currency": "EUR",
+    "due_date": "2026-12-04",
+    "supplier_vat_number": "NL856355118B01",
+    "supplier_kvk": "66011820",
+    "iban": "NL62TEST0660118204",
+    "booking_reason": "Vaste leverancier: materialen op 7000. Kredietbeperking apart op 4960, zodat de korting bij tijdig betalen zichtbaar blijft.",
+    "uncertain_fields": [],
+    "issues": [
+     {
+      "level": "info",
+      "message": "Kredietbeperking € 24,80 apart geboekt (4960). Vervalt bij betaling binnen 8 dagen: uiterlijk 12-11-2026, dan € 30,01 minder betalen."
+     }
+    ]
+   },
+   "boxes": {
+    "counterparty": {
+     "page": 15,
+     "box": [
+      0.0867,
+      0.065,
+      0.546,
+      0.0928
+     ]
+    },
+    "supplier_kvk": {
+     "page": 15,
+     "box": [
+      0.6781,
+      0.0749,
+      0.7549,
+      0.0902
+     ]
+    },
+    "supplier_vat_number": {
+     "page": 15,
+     "box": [
+      0.7813,
+      0.0746,
+      0.9097,
+      0.09
+     ]
+    },
+    "iban": {
+     "page": 15,
+     "box": [
+      0.7306,
+      0.0897,
+      0.9098,
+      0.1052
+     ]
+    },
+    "reference": {
+     "page": 15,
+     "box": [
+      0.7307,
+      0.2982,
+      0.8163,
+      0.3142
+     ]
+    },
+    "doc_date": {
+     "page": 15,
+     "box": [
+      0.7308,
+      0.315,
+      0.8214,
+      0.331
+     ]
+    },
+    "due_date": {
+     "page": 15,
+     "box": [
+      0.7308,
+      0.3318,
+      0.8215,
+      0.3478
+     ]
+    },
+    "net_total": {
+     "page": 15,
+     "box": [
+      0.8332,
+      0.5831,
+      0.9119,
+      0.6005
+     ]
+    },
+    "vat_21": {
+     "page": 15,
+     "box": [
+      0.8473,
+      0.6033,
+      0.912,
+      0.6207
+     ]
+    },
+    "gross_total": {
+     "page": 15,
+     "box": [
+      0.8301,
+      0.623,
+      0.9121,
+      0.6411
+     ]
+    }
+   }
+  },
+  {
+   "key": "M-BGR-IBAN",
+   "client": "1057",
+   "pages": [
+    17
+   ],
+   "answer": {
+    "kind": "inkoopfactuur",
+    "client_hint": "Marco Bouw & Onderhoud",
+    "counterparty": "Bouwgroothandel Rijnmond B.V.",
+    "reference": "26-118977",
+    "doc_date": "2026-11-07",
+    "net_total": 2180.0,
+    "vat_lines": [
+     {
+      "rate": 21,
+      "base": 2180.0,
+      "amount": 457.8
+     }
+    ],
+    "gross_total": 2637.8,
+    "lines": [
+     {
+      "account": "7000",
+      "vat_code": "V21",
+      "amount_excl": 2180.0,
+      "vat_amount": 457.8,
+      "description": "Multiplex, balken, tegellijm"
+     }
+    ],
+    "description": "Bouwmaterialen",
+    "currency": "EUR",
+    "due_date": "2026-11-21",
+    "supplier_vat_number": "NL856355118B01",
+    "supplier_kvk": "66011820",
+    "iban": "NL74TEST0990447123",
+    "booking_reason": "Vaste leverancier: materialen op 7000.",
+    "uncertain_fields": [],
+    "issues": []
+   },
+   "boxes": {
+    "counterparty": {
+     "page": 17,
+     "box": [
+      0.0851,
+      0.0649,
+      0.5444,
+      0.0936
+     ]
+    },
+    "supplier_kvk": {
+     "page": 17,
+     "box": [
+      0.6765,
+      0.0744,
+      0.7533,
+      0.0899
+     ]
+    },
+    "supplier_vat_number": {
+     "page": 17,
+     "box": [
+      0.7797,
+      0.0738,
+      0.9081,
+      0.0894
+     ]
+    },
+    "reference": {
+     "page": 17,
+     "box": [
+      0.7299,
+      0.2976,
+      0.8156,
+      0.3137
+     ]
+    },
+    "doc_date": {
+     "page": 17,
+     "box": [
+      0.7301,
+      0.3144,
+      0.8207,
+      0.3305
+     ]
+    },
+    "due_date": {
+     "page": 17,
+     "box": [
+      0.7302,
+      0.3312,
+      0.8209,
+      0.3474
+     ]
+    },
+    "net_total": {
+     "page": 17,
+     "box": [
+      0.8331,
+      0.5217,
+      0.9118,
+      0.5392
+     ]
+    },
+    "vat_21": {
+     "page": 17,
+     "box": [
+      0.8472,
+      0.5419,
+      0.912,
+      0.5594
+     ]
+    },
+    "gross_total": {
+     "page": 17,
+     "box": [
+      0.8301,
+      0.5616,
+      0.9121,
+      0.5798
+     ]
+    },
+    "iban": {
+     "page": 17,
+     "box": [
+      0.4696,
+      0.6329,
+      0.6586,
+      0.6495
+     ]
+    }
+   }
+  },
+  {
+   "key": "M-WIT",
+   "client": "1057",
+   "pages": [
+    18
+   ],
+   "answer": {
+    "kind": "inkoopfactuur",
+    "client_hint": "Marco Bouw & Onderhoud",
+    "counterparty": "Stukadoorsbedrijf Wit",
+    "reference": "2026-087",
+    "doc_date": "2026-10-30",
+    "net_total": 1850.0,
+    "vat_lines": [],
+    "gross_total": 1850.0,
+    "lines": [
+     {
+      "account": "7200",
+      "vat_code": "NL_VERL",
+      "amount_excl": 1850.0,
+      "vat_amount": 0.0,
+      "description": "Stucwerk in onderaanneming"
+     }
+    ],
+    "description": "Stucwerk Mathenesserlaan 214",
+    "currency": "EUR",
+    "due_date": "2026-11-29",
+    "supplier_vat_number": "NL002219874B35",
+    "supplier_kvk": "62204817",
+    "iban": "NL22TEST0622048170",
+    "booking_reason": "Onderaannemer in de bouw: btw verlegd. Geen voorbelasting op de factuur; aangeven in rubriek 2a en aftrekken in 5b.",
+    "uncertain_fields": [],
+    "issues": [
+     {
+      "level": "info",
+      "message": "Btw verlegd (bouw): de afnemer geeft de btw zelf aan in rubriek 2a. Het btw-id van de klant staat op de factuur."
+     }
+    ]
+   },
+   "boxes": {
+    "counterparty": {
+     "page": 18,
+     "box": [
+      0.3247,
+      0.0509,
+      0.6641,
+      0.084
+     ]
+    },
+    "supplier_kvk": {
+     "page": 18,
+     "box": [
+      0.2907,
+      0.1095,
+      0.3646,
+      0.1258
+     ]
+    },
+    "supplier_vat_number": {
+     "page": 18,
+     "box": [
+      0.3915,
+      0.1085,
+      0.5183,
+      0.1251
+     ]
+    },
+    "iban": {
+     "page": 18,
+     "box": [
+      0.557,
+      0.1071,
+      0.7325,
+      0.124
+     ]
+    },
+    "reference": {
+     "page": 18,
+     "box": [
+      0.7289,
+      0.2969,
+      0.8003,
+      0.3131
+     ]
+    },
+    "doc_date": {
+     "page": 18,
+     "box": [
+      0.7292,
+      0.3136,
+      0.8131,
+      0.33
+     ]
+    },
+    "due_date": {
+     "page": 18,
+     "box": [
+      0.7294,
+      0.3305,
+      0.8133,
+      0.3468
+     ]
+    },
+    "net_total": {
+     "page": 18,
+     "box": [
+      0.8392,
+      0.4803,
+      0.9115,
+      0.498
+     ]
+    },
+    "vat_0": {
+     "page": 18,
+     "box": [
+      0.8689,
+      0.5005,
+      0.9117,
+      0.518
+     ]
+    },
+    "gross_total": {
+     "page": 18,
+     "box": [
+      0.8368,
+      0.5202,
+      0.912,
+      0.5386
+     ]
+    }
+   }
+  },
+  {
+   "key": "M-TANK",
+   "client": "1057",
+   "pages": [
+    19
+   ],
+   "answer": {
+    "kind": "kassabon",
+    "client_hint": "Marco Bouw & Onderhoud",
+    "counterparty": "TankPunt A20",
+    "reference": "3391-0218",
+    "doc_date": "2026-11-02",
+    "net_total": 58.84,
+    "vat_lines": [
+     {
+      "rate": 21,
+      "base": 58.84,
+      "amount": 12.36
+     }
+    ],
+    "gross_total": 71.2,
+    "lines": [
+     {
+      "account": "4410",
+      "vat_code": "V21",
+      "amount_excl": 58.84,
+      "vat_amount": 12.36,
+      "description": "Diesel bestelbus"
+     }
+    ],
+    "description": "Diesel 38,93 liter",
+    "currency": "EUR",
+    "due_date": null,
+    "supplier_vat_number": null,
+    "supplier_kvk": null,
+    "iban": null,
+    "booking_reason": "Tankbon op de zakelijke pas: brandstof 4410.",
+    "uncertain_fields": [],
+    "issues": []
+   },
+   "boxes": {
+    "counterparty": {
+     "page": 19,
+     "box": [
+      0.2453,
+      0.0642,
+      0.4498,
+      0.0917
+     ]
+    },
+    "doc_date": {
+     "page": 19,
+     "box": [
+      0.1676,
+      0.1298,
+      0.2834,
+      0.1507
+     ]
+    },
+    "reference": {
+     "page": 19,
+     "box": [
+      0.2283,
+      0.1459,
+      0.3352,
+      0.1668
+     ]
+    },
+    "gross_total": {
+     "page": 19,
+     "box": [
+      0.4635,
+      0.225,
+      0.5278,
+      0.2461
+     ]
+    },
+    "net_total": {
+     "page": 19,
+     "box": [
+      0.4636,
+      0.2498,
+      0.5284,
+      0.2717
+     ]
+    },
+    "vat_21": {
+     "page": 19,
+     "box": [
+      0.4637,
+      0.2666,
+      0.5284,
+      0.2878
+     ]
+    }
+   }
+  },
+  {
+   "key": "M-BOUWMARKT",
+   "client": "1057",
+   "pages": [
+    20
+   ],
+   "answer": {
+    "kind": "kassabon",
+    "client_hint": "Marco Bouw & Onderhoud",
+    "counterparty": "Bouwmarkt De Schie",
+    "reference": "118-44720",
+    "doc_date": "2026-11-05",
+    "net_total": 40.0,
+    "vat_lines": [
+     {
+      "rate": 21,
+      "base": 40.0,
+      "amount": 8.4
+     }
+    ],
+    "gross_total": 48.4,
+    "lines": [
+     {
+      "account": "7000",
+      "vat_code": "V21",
+      "amount_excl": 40.0,
+      "vat_amount": 8.4,
+      "description": "Klein materiaal"
+     }
+    ],
+    "description": "Kit, schuurpapier, afdekfolie, kwasten",
+    "currency": "EUR",
+    "due_date": null,
+    "supplier_vat_number": null,
+    "supplier_kvk": null,
+    "iban": null,
+    "booking_reason": "Klein materiaal voor projecten: 7000, zoals de eerdere bonnen van deze bouwmarkt.",
+    "uncertain_fields": [],
+    "issues": []
+   },
+   "boxes": {
+    "counterparty": {
+     "page": 20,
+     "box": [
+      0.195,
+      0.0595,
+      0.4953,
+      0.0933
+     ]
+    },
+    "doc_date": {
+     "page": 20,
+     "box": [
+      0.2378,
+      0.1102,
+      0.3563,
+      0.1354
+     ]
+    },
+    "reference": {
+     "page": 20,
+     "box": [
+      0.2386,
+      0.1268,
+      0.3456,
+      0.1521
+     ]
+    },
+    "gross_total": {
+     "page": 20,
+     "box": [
+      0.4702,
+      0.2376,
+      0.5392,
+      0.2593
+     ]
+    },
+    "net_total": {
+     "page": 20,
+     "box": [
+      0.4725,
+      0.2775,
+      0.5389,
+      0.3006
+     ]
+    },
+    "vat_21": {
+     "page": 20,
+     "box": [
+      0.484,
+      0.2944,
+      0.5376,
+      0.3172
+     ]
+    }
+   }
+  },
+  {
+   "key": "M-POLIS",
+   "client": "1057",
+   "pages": [
+    22,
+    23
+   ],
+   "answer": {
+    "kind": "inkoopfactuur",
+    "client_hint": "Marco Bouw & Onderhoud",
+    "counterparty": "Polderland Verzekeringen N.V.",
+    "reference": "2026-771204",
+    "doc_date": "2026-11-01",
+    "net_total": 774.4,
+    "vat_lines": [],
+    "gross_total": 774.4,
+    "lines": [
+     {
+      "account": "4700",
+      "vat_code": "GEEN",
+      "amount_excl": 774.4,
+      "vat_amount": 0.0,
+      "description": "Premie AVB 2026-2027"
+     }
+    ],
+    "description": "Premie aansprakelijkheidsverzekering (AVB)",
+    "currency": "EUR",
+    "due_date": "2026-11-15",
+    "supplier_vat_number": null,
+    "supplier_kvk": "24099107",
+    "iban": "NL42TEST0240991070",
+    "booking_reason": "Verzekeringspremie: geen btw, volledig op 4700.",
+    "uncertain_fields": [],
+    "issues": [
+     {
+      "level": "info",
+      "message": "Assurantiebelasting (€ 134,40) is geen omzetbelasting: niet aftrekbaar, het hele bedrag gaat op kosten."
+     }
+    ],
+    "split_reason": "Pagina 2 is het polisblad bij dezelfde premienota (zelfde afzender en polisnummer)."
+   },
+   "boxes": {
+    "counterparty": {
+     "page": 22,
+     "box": [
+      0.1859,
+      0.063,
+      0.5648,
+      0.088
+     ]
+    },
+    "supplier_kvk": {
+     "page": 22,
+     "box": [
+      0.8293,
+      0.0734,
+      0.9024,
+      0.088
+     ]
+    },
+    "iban": {
+     "page": 22,
+     "box": [
+      0.7441,
+      0.0884,
+      0.9135,
+      0.1032
+     ]
+    },
+    "reference": {
+     "page": 22,
+     "box": [
+      0.7325,
+      0.2994,
+      0.8349,
+      0.3155
+     ]
+    },
+    "doc_date": {
+     "page": 22,
+     "box": [
+      0.7324,
+      0.3163,
+      0.823,
+      0.3323
+     ]
+    },
+    "due_date": {
+     "page": 22,
+     "box": [
+      0.7323,
+      0.3331,
+      0.823,
+      0.3491
+     ]
+    },
+    "gross_total": {
+     "page": 22,
+     "box": [
+      0.844,
+      0.544,
+      0.9113,
+      0.562
+     ]
+    }
+   }
+  },
+  {
+   "key": "M-PAKBON",
+   "client": "1057",
+   "pages": [
+    24
+   ],
+   "answer": {
+    "kind": "overig",
+    "client_hint": "Marco Bouw & Onderhoud",
+    "counterparty": "Bouwgroothandel Rijnmond B.V.",
+    "reference": "8811-204",
+    "doc_date": "2026-11-04",
+    "due_date": null,
+    "description": "Pakbon bij factuur 26-118204, geen bedragen",
+    "gross_total": null,
+    "net_total": null,
+    "vat_lines": [],
+    "lines": [],
+    "currency": "EUR",
+    "supplier_vat_number": null,
+    "supplier_kvk": null,
+    "iban": null,
+    "booking_reason": "Geen boeking: een pakbon is geen factuur.",
+    "uncertain_fields": [],
+    "issues": [
+     {
+      "level": "warning",
+      "message": "Pakbon, geen factuur: niet boeken. Bewaren bij factuur 26-118204 of uit de stapel halen."
+     }
+    ]
+   },
+   "boxes": {
+    "counterparty": {
+     "page": 24,
+     "box": [
+      0.0834,
+      0.0648,
+      0.5428,
+      0.0944
+     ]
+    },
+    "supplier_kvk": {
+     "page": 24,
+     "box": [
+      0.6748,
+      0.0739,
+      0.7517,
+      0.0895
+     ]
+    },
+    "supplier_vat_number": {
+     "page": 24,
+     "box": [
+      0.778,
+      0.073,
+      0.9065,
+      0.0889
+     ]
+    },
+    "reference": {
+     "page": 24,
+     "box": [
+      0.7292,
+      0.297,
+      0.8064,
+      0.3133
+     ]
+    },
+    "doc_date": {
+     "page": 24,
+     "box": [
+      0.7294,
+      0.3138,
+      0.8201,
+      0.3301
+     ]
+    }
+   }
+  },
+  {
+   "key": "M-VERKOOP",
+   "client": "1057",
+   "pages": [
+    25
+   ],
+   "answer": {
+    "kind": "verkoopfactuur",
+    "client_hint": "Marco Bouw & Onderhoud",
+    "counterparty": "Familie De Graaf",
+    "reference": "2026-031",
+    "doc_date": "2026-11-06",
+    "net_total": 2020.0,
+    "vat_lines": [
+     {
+      "rate": 9,
+      "base": 1400.0,
+      "amount": 126.0
+     },
+     {
+      "rate": 21,
+      "base": 620.0,
+      "amount": 130.2
+     }
+    ],
+    "gross_total": 2276.2,
+    "lines": [
+     {
+      "account": "8010",
+      "vat_code": "O9",
+      "amount_excl": 1400.0,
+      "vat_amount": 126.0,
+      "description": "Arbeid isolatie"
+     },
+     {
+      "account": "8000",
+      "vat_code": "O21",
+      "amount_excl": 620.0,
+      "vat_amount": 130.2,
+      "description": "Isolatiemateriaal"
+     }
+    ],
+    "description": "Spouwmuurisolatie woning",
+    "currency": "EUR",
+    "due_date": null,
+    "supplier_vat_number": null,
+    "supplier_kvk": null,
+    "iban": null,
+    "booking_reason": "Eigen verkoopfactuur: arbeid laag tarief, materiaal hoog tarief, één regel per tarief.",
+    "uncertain_fields": [],
+    "issues": [
+     {
+      "level": "info",
+      "message": "Verlaagd tarief op arbeid kan alleen bij een woning ouder dan twee jaar. Het bouwjaar (1968) staat op de factuur."
+     }
+    ]
+   },
+   "boxes": {
+    "counterparty": {
+     "page": 25,
+     "box": [
+      0.0863,
+      0.1844,
+      0.2266,
+      0.2021
+     ]
+    },
+    "reference": {
+     "page": 25,
+     "box": [
+      0.7301,
+      0.2977,
+      0.8073,
+      0.3138
+     ]
+    },
+    "doc_date": {
+     "page": 25,
+     "box": [
+      0.7302,
+      0.3145,
+      0.8209,
+      0.3306
+     ]
+    },
+    "net_total": {
+     "page": 25,
+     "box": [
+      0.8329,
+      0.5017,
+      0.9116,
+      0.5192
+     ]
+    },
+    "vat_9": {
+     "page": 25,
+     "box": [
+      0.8471,
+      0.5219,
+      0.9118,
+      0.5393
+     ]
+    },
+    "vat_21": {
+     "page": 25,
+     "box": [
+      0.8472,
+      0.5421,
+      0.9119,
+      0.5595
+     ]
+    },
+    "gross_total": {
+     "page": 25,
+     "box": [
+      0.8301,
+      0.5618,
+      0.9121,
+      0.58
+     ]
+    }
+   }
+  },
+  {
+   "key": "K-MAASHAL",
+   "client": "1063",
+   "pages": [
+    27,
+    28,
+    29
+   ],
+   "answer": {
+    "kind": "inkoopfactuur",
+    "client_hint": "Eetcafé De Kade V.O.F.",
+    "counterparty": "Horecagroothandel Maashal B.V.",
+    "reference": "MH-26-448120",
+    "doc_date": "2026-11-02",
+    "net_total": 2498.6,
+    "vat_lines": [
+     {
+      "rate": 9,
+      "base": 1846.2,
+      "amount": 166.16
+     },
+     {
+      "rate": 21,
+      "base": 652.4,
+      "amount": 137.0
+     }
+    ],
+    "gross_total": 2801.76,
+    "lines": [
+     {
+      "account": "7000",
+      "vat_code": "V9",
+      "amount_excl": 1846.2,
+      "vat_amount": 166.16,
+      "description": "Inkoop keuken (laag tarief)"
+     },
+     {
+      "account": "7010",
+      "vat_code": "V21",
+      "amount_excl": 652.4,
+      "vat_amount": 137.0,
+      "description": "Dranken en non-food (hoog tarief)"
+     }
+    ],
+    "description": "Weekinkoop groothandel",
+    "currency": "EUR",
+    "due_date": "2026-11-16",
+    "supplier_vat_number": "NL809912446B01",
+    "supplier_kvk": "24288530",
+    "iban": "NL52TEST0242885300",
+    "booking_reason": "Vaste groothandel: laag tarief op 7000, hoog tarief op 7010, één regel per btw-tarief.",
+    "uncertain_fields": [],
+    "issues": [],
+    "split_reason": "Drie pagina's met hetzelfde factuurnummer en doorlopende paginanummering."
+   },
+   "boxes": {
+    "counterparty": {
+     "page": 27,
+     "box": [
+      0.1011,
+      0.0632,
+      0.5682,
+      0.0909
+     ]
+    },
+    "supplier_kvk": {
+     "page": 27,
+     "box": [
+      0.1361,
+      0.118,
+      0.2181,
+      0.1337
+     ]
+    },
+    "supplier_vat_number": {
+     "page": 27,
+     "box": [
+      0.2646,
+      0.1166,
+      0.398,
+      0.1328
+     ]
+    },
+    "iban": {
+     "page": 27,
+     "box": [
+      0.4442,
+      0.1147,
+      0.6462,
+      0.1314
+     ]
+    },
+    "reference": {
+     "page": 27,
+     "box": [
+      0.7285,
+      0.2962,
+      0.8508,
+      0.3129
+     ]
+    },
+    "doc_date": {
+     "page": 27,
+     "box": [
+      0.7288,
+      0.3131,
+      0.8329,
+      0.3297
+     ]
+    },
+    "due_date": {
+     "page": 27,
+     "box": [
+      0.729,
+      0.33,
+      0.8332,
+      0.3466
+     ]
+    },
+    "vat_9": {
+     "page": 29,
+     "box": [
+      0.8349,
+      0.1815,
+      0.9088,
+      0.199
+     ]
+    },
+    "vat_21": {
+     "page": 29,
+     "box": [
+      0.8353,
+      0.2219,
+      0.9091,
+      0.2394
+     ]
+    },
+    "net_total": {
+     "page": 29,
+     "box": [
+      0.8153,
+      0.2421,
+      0.9093,
+      0.2597
+     ]
+    },
+    "gross_total": {
+     "page": 29,
+     "box": [
+      0.8114,
+      0.2618,
+      0.9095,
+      0.2801
+     ]
+    }
+   }
+  },
+  {
+   "key": "K-KUIP",
+   "client": "1063",
+   "pages": [
+    31
+   ],
+   "answer": {
+    "kind": "inkoopfactuur",
+    "client_hint": "Eetcafé De Kade V.O.F.",
+    "counterparty": "Slijterij-groothandel De Kuip B.V.",
+    "reference": "K-2611-0193",
+    "doc_date": "2026-11-03",
+    "net_total": 734.0,
+    "vat_lines": [
+     {
+      "rate": 21,
+      "base": 734.0,
+      "amount": 154.14
+     }
+    ],
+    "gross_total": 888.14,
+    "lines": [
+     {
+      "account": "7010",
+      "vat_code": "V21",
+      "amount_excl": 734.0,
+      "vat_amount": 154.14,
+      "description": "Wijn, bier en gedistilleerd"
+     }
+    ],
+    "description": "Dranken",
+    "currency": "EUR",
+    "due_date": "2026-11-17",
+    "supplier_vat_number": "NL803318804B01",
+    "supplier_kvk": "24177265",
+    "iban": "NL23TEST0241772650",
+    "booking_reason": "Vaste leverancier: dranken op 7010.",
+    "uncertain_fields": [],
+    "issues": []
+   },
+   "boxes": {
+    "counterparty": {
+     "page": 31,
+     "box": [
+      0.2499,
+      0.0507,
+      0.7591,
+      0.0842
+     ]
+    },
+    "supplier_kvk": {
+     "page": 31,
+     "box": [
+      0.2997,
+      0.1076,
+      0.3735,
+      0.1238
+     ]
+    },
+    "supplier_vat_number": {
+     "page": 31,
+     "box": [
+      0.4005,
+      0.1081,
+      0.5273,
+      0.1246
+     ]
+    },
+    "iban": {
+     "page": 31,
+     "box": [
+      0.566,
+      0.109,
+      0.7415,
+      0.1257
+     ]
+    },
+    "reference": {
+     "page": 31,
+     "box": [
+      0.7335,
+      0.3001,
+      0.8283,
+      0.3163
+     ]
+    },
+    "doc_date": {
+     "page": 31,
+     "box": [
+      0.7333,
+      0.3169,
+      0.8172,
+      0.3331
+     ]
+    },
+    "due_date": {
+     "page": 31,
+     "box": [
+      0.7331,
+      0.3337,
+      0.8171,
+      0.3499
+     ]
+    },
+    "net_total": {
+     "page": 31,
+     "box": [
+      0.8514,
+      0.5454,
+      0.911,
+      0.5629
+     ]
+    },
+    "vat_21": {
+     "page": 31,
+     "box": [
+      0.8512,
+      0.5656,
+      0.9108,
+      0.5831
+     ]
+    },
+    "gross_total": {
+     "page": 31,
+     "box": [
+      0.8487,
+      0.5853,
+      0.9106,
+      0.6035
+     ]
+    }
+   }
+  },
+  {
+   "key": "K-BLINKEND",
+   "client": "1063",
+   "pages": [
+    32
+   ],
+   "answer": {
+    "kind": "inkoopfactuur",
+    "client_hint": "Eetcafé De Kade V.O.F.",
+    "counterparty": "Schoonmaakbedrijf Blinkend",
+    "reference": "2026-1104",
+    "doc_date": "2026-11-04",
+    "net_total": 180.0,
+    "vat_lines": [
+     {
+      "rate": 21,
+      "base": 180.0,
+      "amount": 38.8
+     }
+    ],
+    "gross_total": 218.8,
+    "lines": [
+     {
+      "account": "4210",
+      "vat_code": "V21",
+      "amount_excl": 180.0,
+      "vat_amount": 37.8,
+      "description": "Schoonmaak oktober"
+     }
+    ],
+    "description": "Schoonmaak oktober",
+    "currency": "EUR",
+    "due_date": "2026-11-18",
+    "supplier_vat_number": "NL860998121B01",
+    "supplier_kvk": "77120445",
+    "iban": "NL13TEST7712044500",
+    "booking_reason": "Vaste leverancier. De btw op de factuur is fout; het boekvoorstel gebruikt de juiste 37,80.",
+    "uncertain_fields": [],
+    "issues": []
+   },
+   "boxes": {
+    "counterparty": {
+     "page": 32,
+     "box": [
+      0.1896,
+      0.0617,
+      0.5504,
+      0.0882
+     ]
+    },
+    "supplier_kvk": {
+     "page": 32,
+     "box": [
+      0.6984,
+      0.074,
+      0.7716,
+      0.0889
+     ]
+    },
+    "supplier_vat_number": {
+     "page": 32,
+     "box": [
+      0.7956,
+      0.0746,
+      0.9173,
+      0.0899
+     ]
+    },
+    "iban": {
+     "page": 32,
+     "box": [
+      0.7476,
+      0.0894,
+      0.9171,
+      0.105
+     ]
+    },
+    "reference": {
+     "page": 32,
+     "box": [
+      0.7341,
+      0.3005,
+      0.8198,
+      0.3168
+     ]
+    },
+    "doc_date": {
+     "page": 32,
+     "box": [
+      0.7339,
+      0.3173,
+      0.8246,
+      0.3337
+     ]
+    },
+    "due_date": {
+     "page": 32,
+     "box": [
+      0.7337,
+      0.3341,
+      0.8244,
+      0.3505
+     ]
+    },
+    "net_total": {
+     "page": 32,
+     "box": [
+      0.8469,
+      0.4854,
+      0.9117,
+      0.503
+     ]
+    },
+    "vat_21": {
+     "page": 32,
+     "box": [
+      0.8559,
+      0.5057,
+      0.9114,
+      0.5232
+     ]
+    },
+    "gross_total": {
+     "page": 32,
+     "box": [
+      0.8438,
+      0.5253,
+      0.9111,
+      0.5436
+     ]
+    }
+   }
+  },
+  {
+   "key": "K-PINPUNT",
+   "client": "1063",
+   "pages": [
+    34
+   ],
+   "answer": {
+    "kind": "inkoopfactuur",
+    "client_hint": "Eetcafé De Kade V.O.F.",
+    "counterparty": "PinPunt Betaaldiensten B.V.",
+    "reference": "PP-1026-771",
+    "doc_date": "2026-11-01",
+    "net_total": 29.95,
+    "vat_lines": [
+     {
+      "rate": 21,
+      "base": 29.95,
+      "amount": 6.29
+     }
+    ],
+    "gross_total": 36.24,
+    "lines": [
+     {
+      "account": "4800",
+      "vat_code": "V21",
+      "amount_excl": 29.95,
+      "vat_amount": 6.29,
+      "description": "Pinautomaat oktober"
+     }
+    ],
+    "description": "Huur en abonnement pinautomaat",
+    "currency": "EUR",
+    "due_date": "2026-11-10",
+    "supplier_vat_number": "NL821145903B01",
+    "supplier_kvk": "34280116",
+    "iban": "NL39TEST0342801160",
+    "booking_reason": "Vaste leverancier: pinkosten op 4800.",
+    "uncertain_fields": [],
+    "issues": []
+   },
+   "boxes": {
+    "counterparty": {
+     "page": 34,
+     "box": [
+      0.0954,
+      0.0618,
+      0.4915,
+      0.0918
+     ]
+    },
+    "supplier_kvk": {
+     "page": 34,
+     "box": [
+      0.6867,
+      0.077,
+      0.7636,
+      0.0927
+     ]
+    },
+    "supplier_vat_number": {
+     "page": 34,
+     "box": [
+      0.7899,
+      0.0778,
+      0.9184,
+      0.094
+     ]
+    },
+    "iban": {
+     "page": 34,
+     "box": [
+      0.7388,
+      0.0926,
+      0.9181,
+      0.1091
+     ]
+    },
+    "reference": {
+     "page": 34,
+     "box": [
+      0.7346,
+      0.3008,
+      0.8371,
+      0.3174
+     ]
+    },
+    "doc_date": {
+     "page": 34,
+     "box": [
+      0.7343,
+      0.3176,
+      0.8251,
+      0.3341
+     ]
+    },
+    "due_date": {
+     "page": 34,
+     "box": [
+      0.7341,
+      0.3344,
+      0.8248,
+      0.351
+     ]
+    },
+    "net_total": {
+     "page": 34,
+     "box": [
+      0.8559,
+      0.5061,
+      0.9114,
+      0.5238
+     ]
+    },
+    "vat_21": {
+     "page": 34,
+     "box": [
+      0.8649,
+      0.5264,
+      0.9111,
+      0.544
+     ]
+    },
+    "gross_total": {
+     "page": 34,
+     "box": [
+      0.8531,
+      0.546,
+      0.9107,
+      0.5643
+     ]
+    }
+   }
+  },
+  {
+   "key": "K-KUIP-2",
+   "client": "1063",
+   "pages": [
+    35
+   ],
+   "answer": {
+    "kind": "inkoopfactuur",
+    "client_hint": "Eetcafé De Kade V.O.F.",
+    "counterparty": "Slijterij-groothandel De Kuip B.V.",
+    "reference": "K-2611-0193",
+    "doc_date": "2026-11-03",
+    "net_total": 734.0,
+    "vat_lines": [
+     {
+      "rate": 21,
+      "base": 734.0,
+      "amount": 154.14
+     }
+    ],
+    "gross_total": 888.14,
+    "lines": [
+     {
+      "account": "7010",
+      "vat_code": "V21",
+      "amount_excl": 734.0,
+      "vat_amount": 154.14,
+      "description": "Wijn, bier en gedistilleerd"
+     }
+    ],
+    "description": "Dranken",
+    "currency": "EUR",
+    "due_date": "2026-11-17",
+    "supplier_vat_number": "NL803318804B01",
+    "supplier_kvk": "24177265",
+    "iban": "NL23TEST0241772650",
+    "booking_reason": "Vaste leverancier: dranken op 7010.",
+    "uncertain_fields": [],
+    "issues": []
+   },
+   "boxes": {
+    "counterparty": {
+     "page": 35,
+     "box": [
+      0.2383,
+      0.0499,
+      0.7476,
+      0.085
+     ]
+    },
+    "supplier_kvk": {
+     "page": 35,
+     "box": [
+      0.2894,
+      0.1097,
+      0.3634,
+      0.1261
+     ]
+    },
+    "supplier_vat_number": {
+     "page": 35,
+     "box": [
+      0.3902,
+      0.1085,
+      0.5171,
+      0.1253
+     ]
+    },
+    "iban": {
+     "page": 35,
+     "box": [
+      0.5557,
+      0.1067,
+      0.7313,
+      0.1239
+     ]
+    },
+    "reference": {
+     "page": 35,
+     "box": [
+      0.7283,
+      0.2962,
+      0.8232,
+      0.3128
+     ]
+    },
+    "doc_date": {
+     "page": 35,
+     "box": [
+      0.7286,
+      0.3131,
+      0.8126,
+      0.3296
+     ]
+    },
+    "due_date": {
+     "page": 35,
+     "box": [
+      0.7288,
+      0.33,
+      0.8128,
+      0.3464
+     ]
+    },
+    "net_total": {
+     "page": 35,
+     "box": [
+      0.8528,
+      0.5403,
+      0.9124,
+      0.5579
+     ]
+    },
+    "vat_21": {
+     "page": 35,
+     "box": [
+      0.8531,
+      0.5605,
+      0.9128,
+      0.5781
+     ]
+    },
+    "gross_total": {
+     "page": 35,
+     "box": [
+      0.8511,
+      0.5801,
+      0.9131,
+      0.5985
+     ]
+    }
+   }
+  },
+  {
+   "key": "K-BELASTING",
+   "client": "1063",
+   "pages": [
+    36
+   ],
+   "answer": {
+    "kind": "belastingdienst",
+    "client_hint": "Eetcafé De Kade V.O.F.",
+    "counterparty": "Belastingdienst",
+    "reference": "8588.77.120.F.01.6090",
+    "doc_date": "2026-11-03",
+    "due_date": "2026-12-15",
+    "description": "Naheffingsaanslag omzetbelasting 3e kwartaal 2026: verzuimboete € 68",
+    "gross_total": 68.0,
+    "net_total": null,
+    "vat_lines": [],
+    "lines": [],
+    "currency": "EUR",
+    "supplier_vat_number": null,
+    "supplier_kvk": null,
+    "iban": null,
+    "booking_reason": "Geen inkoopboeking: de boete is niet aftrekbaar. Naar het dossier en de betaaldatum naar de agenda.",
+    "uncertain_fields": [],
+    "issues": [
+     {
+      "level": "warning",
+      "message": "Verzuimboete € 68: betalen uiterlijk 15-12-2026. Bezwaartermijn zes weken na 03-11-2026."
+     }
+    ]
+   },
+   "boxes": {
+    "counterparty": {
+     "page": 36,
+     "box": [
+      0.088,
+      0.0683,
+      0.2764,
+      0.0912
+     ]
+    },
+    "doc_date": {
+     "page": 36,
+     "box": [
+      0.7168,
+      0.174,
+      0.8477,
+      0.1899
+     ]
+    },
+    "reference": {
+     "page": 36,
+     "box": [
+      0.7169,
+      0.2077,
+      0.8865,
+      0.2236
+     ]
+    },
+    "gross_total": {
+     "page": 36,
+     "box": [
+      0.7888,
+      0.4649,
+      0.8924,
+      0.4835
+     ]
+    },
+    "due_date": {
+     "page": 36,
+     "box": [
+      0.72,
+      0.4952,
+      0.8925,
+      0.5139
+     ]
+    }
+   }
+  },
+  {
+   "key": "L-VEKTOR",
+   "client": "1001",
+   "pages": [
+    38
+   ],
+   "answer": {
+    "kind": "inkoopfactuur",
+    "client_hint": "Studio Lindewerf B.V.",
+    "counterparty": "Vektorhub Ltd",
+    "reference": "INV-2026-1104",
+    "doc_date": "2026-11-04",
+    "net_total": 54.0,
+    "vat_lines": [],
+    "gross_total": 54.0,
+    "lines": [
+     {
+      "account": "4330",
+      "vat_code": "EU_DIENST_VERL",
+      "amount_excl": 54.0,
+      "vat_amount": 0.0,
+      "description": "Ontwerpsoftware november"
+     }
+    ],
+    "description": "Abonnement ontwerpsoftware november",
+    "currency": "EUR",
+    "due_date": null,
+    "supplier_vat_number": "IE3668997OH",
+    "supplier_kvk": null,
+    "iban": "IE16TEST93115212345678",
+    "booking_reason": "Dienst uit Ierland, btw verlegd: zelfde rekening en btw-code als de eerdere maanden. Aangeven in rubriek 4b, aftrekken in 5b.",
+    "uncertain_fields": [],
+    "issues": []
+   },
+   "boxes": {
+    "counterparty": {
+     "page": 38,
+     "box": [
+      0.1834,
+      0.0638,
+      0.3675,
+      0.088
+     ]
+    },
+    "supplier_vat_number": {
+     "page": 38,
+     "box": [
+      0.8126,
+      0.0724,
+      0.911,
+      0.0869
+     ]
+    },
+    "reference": {
+     "page": 38,
+     "box": [
+      0.7314,
+      0.2987,
+      0.8471,
+      0.3145
+     ]
+    },
+    "doc_date": {
+     "page": 38,
+     "box": [
+      0.7314,
+      0.3155,
+      0.8304,
+      0.3314
+     ]
+    },
+    "net_total": {
+     "page": 38,
+     "box": [
+      0.8161,
+      0.4895,
+      0.9115,
+      0.5068
+     ]
+    },
+    "vat_0": {
+     "page": 38,
+     "box": [
+      0.8254,
+      0.5097,
+      0.9115,
+      0.527
+     ]
+    },
+    "gross_total": {
+     "page": 38,
+     "box": [
+      0.812,
+      0.5294,
+      0.9115,
+      0.5474
+     ]
+    },
+    "iban": {
+     "page": 38,
+     "box": [
+      0.4543,
+      0.6018,
+      0.676,
+      0.6177
+     ]
+    }
+   }
+  },
+  {
+   "key": "L-BRASSERIE",
+   "client": "1001",
+   "pages": [
+    39
+   ],
+   "answer": {
+    "kind": "kassabon",
+    "client_hint": "Studio Lindewerf B.V.",
+    "counterparty": "Brasserie Maaszicht",
+    "reference": "0281",
+    "doc_date": "2026-11-05",
+    "net_total": 79.27,
+    "vat_lines": [
+     {
+      "rate": 9,
+      "base": 79.27,
+      "amount": 7.13
+     }
+    ],
+    "gross_total": 86.4,
+    "lines": [
+     {
+      "account": "4520",
+      "vat_code": "GEEN_AFTREK",
+      "amount_excl": 86.4,
+      "vat_amount": 0.0,
+      "description": "Zakelijk diner, 2 personen"
+     }
+    ],
+    "description": "Diner 2 personen",
+    "currency": "EUR",
+    "due_date": null,
+    "supplier_vat_number": null,
+    "supplier_kvk": null,
+    "iban": null,
+    "booking_reason": "Horeca: btw is niet aftrekbaar, het hele bedrag op representatie.",
+    "uncertain_fields": [],
+    "issues": [
+     {
+      "level": "warning",
+      "message": "Horecabon: btw niet aftrekbaar. Zakelijk doel en naam van de gast ontbreken: navragen bij de klant."
+     }
+    ]
+   },
+   "boxes": {
+    "counterparty": {
+     "page": 39,
+     "box": [
+      0.1935,
+      0.0536,
+      0.5204,
+      0.0878
+     ]
+    },
+    "doc_date": {
+     "page": 39,
+     "box": [
+      0.1712,
+      0.1263,
+      0.2932,
+      0.1544
+     ]
+    },
+    "gross_total": {
+     "page": 39,
+     "box": [
+      0.4836,
+      0.2402,
+      0.5554,
+      0.2627
+     ]
+    },
+    "net_total": {
+     "page": 39,
+     "box": [
+      0.314,
+      0.269,
+      0.3839,
+      0.2913
+     ]
+    },
+    "vat_9": {
+     "page": 39,
+     "box": [
+      0.4976,
+      0.2823,
+      0.5548,
+      0.304
+     ]
+    }
+   }
+  },
+  {
+   "key": "L-DRUKKERIJ",
+   "client": "1001",
+   "pages": [
+    41
+   ],
+   "answer": {
+    "kind": "inkoopfactuur",
+    "client_hint": "Studio Lindewerf B.V.",
+    "counterparty": "Drukkerij Van Wijk B.V.",
+    "reference": "F26-1342",
+    "doc_date": "2026-10-30",
+    "net_total": 310.0,
+    "vat_lines": [
+     {
+      "rate": 21,
+      "base": 310.0,
+      "amount": 65.1
+     }
+    ],
+    "gross_total": 375.1,
+    "lines": [
+     {
+      "account": "4600",
+      "vat_code": "V21",
+      "amount_excl": 310.0,
+      "vat_amount": 65.1,
+      "description": "Flyers wintercampagne"
+     }
+    ],
+    "description": "Flyers wintercampagne",
+    "currency": "EUR",
+    "due_date": "2026-11-13",
+    "supplier_vat_number": "NL801992311B01",
+    "supplier_kvk": "24101199",
+    "iban": "NL48TEST2410119900",
+    "booking_reason": "Drukwerk voor reclame: 4600, zoals de eerdere factuur van deze drukkerij.",
+    "uncertain_fields": [],
+    "issues": []
+   },
+   "boxes": {
+    "counterparty": {
+     "page": 41,
+     "box": [
+      0.0911,
+      0.0612,
+      0.4375,
+      0.0922
+     ]
+    },
+    "supplier_kvk": {
+     "page": 41,
+     "box": [
+      0.1223,
+      0.1284,
+      0.1992,
+      0.1441
+     ]
+    },
+    "supplier_vat_number": {
+     "page": 41,
+     "box": [
+      0.2255,
+      0.1271,
+      0.354,
+      0.1433
+     ]
+    },
+    "iban": {
+     "page": 41,
+     "box": [
+      0.3913,
+      0.1254,
+      0.5707,
+      0.1419
+     ]
+    },
+    "reference": {
+     "page": 41,
+     "box": [
+      0.7283,
+      0.2964,
+      0.8065,
+      0.3128
+     ]
+    },
+    "doc_date": {
+     "page": 41,
+     "box": [
+      0.7286,
+      0.3131,
+      0.8193,
+      0.3296
+     ]
+    },
+    "due_date": {
+     "page": 41,
+     "box": [
+      0.7289,
+      0.3299,
+      0.8196,
+      0.3464
+     ]
+    },
+    "net_total": {
+     "page": 41,
+     "box": [
+      0.8469,
+      0.4999,
+      0.9118,
+      0.5176
+     ]
+    },
+    "vat_21": {
+     "page": 41,
+     "box": [
+      0.8566,
+      0.5201,
+      0.9121,
+      0.5377
+     ]
+    },
+    "gross_total": {
+     "page": 41,
+     "box": [
+      0.845,
+      0.5398,
+      0.9124,
+      0.5582
+     ]
+    }
+   }
+  },
+  {
+   "key": "L-SPEELGOED",
+   "client": "1001",
+   "pages": [
+    42
+   ],
+   "answer": {
+    "kind": "kassabon",
+    "client_hint": "Studio Lindewerf B.V.",
+    "counterparty": "Speelgoedplein",
+    "reference": "7781-0932",
+    "doc_date": "2026-11-01",
+    "net_total": 49.57,
+    "vat_lines": [
+     {
+      "rate": 21,
+      "base": 49.57,
+      "amount": 10.41
+     }
+    ],
+    "gross_total": 59.98,
+    "lines": [
+     {
+      "account": "1800",
+      "vat_code": "PRIVE",
+      "amount_excl": 59.98,
+      "vat_amount": 0.0,
+      "description": "Privé-aankoop via de zaak"
+     }
+    ],
+    "description": "Speelgoed",
+    "currency": "EUR",
+    "due_date": null,
+    "supplier_vat_number": null,
+    "supplier_kvk": null,
+    "iban": null,
+    "booking_reason": "Lijkt een privé-aankoop: voorstel rekening-courant, geen btw-aftrek.",
+    "uncertain_fields": [],
+    "issues": [
+     {
+      "level": "warning",
+      "message": "Lijkt privé (speelgoed): voorstel rekening-courant DGA zonder btw-aftrek. Bevestigen of navragen bij de klant."
+     }
+    ]
+   },
+   "boxes": {
+    "counterparty": {
+     "page": 42,
+     "box": [
+      0.2199,
+      0.0612,
+      0.4574,
+      0.0886
+     ]
+    },
+    "reference": {
+     "page": 42,
+     "box": [
+      0.2492,
+      0.1122,
+      0.3557,
+      0.1323
+     ]
+    },
+    "doc_date": {
+     "page": 42,
+     "box": [
+      0.1554,
+      0.1268,
+      0.2735,
+      0.1492
+     ]
+    },
+    "gross_total": {
+     "page": 42,
+     "box": [
+      0.4557,
+      0.2245,
+      0.5214,
+      0.2447
+     ]
+    },
+    "vat_21": {
+     "page": 42,
+     "box": [
+      0.4558,
+      0.2404,
+      0.5213,
+      0.261
+     ]
+    },
+    "net_total": {
+     "page": 42,
+     "box": [
+      0.4561,
+      0.2563,
+      0.5211,
+      0.2777
+     ]
+    }
+   }
+  }
+ ],
+ "replies": {
+  "tankpunt": {
+   "image": "demo/wa-bon-tankpunt.jpg",
+   "sha256": "39ca3f9606780ee4bdf81d4f38f885bc3f1476a1cea71d2dbdeaf08cfc062467",
+   "client": "1057",
+   "bank": "B1057-05",
+   "size": [
+    1200,
+    1600
+   ],
+   "answer": {
+    "kind": "kassabon",
+    "client_hint": null,
+    "counterparty": "TankPunt A20",
+    "reference": "3391-0977",
+    "doc_date": "2026-11-12",
+    "net_total": 69.83,
+    "vat_lines": [
+     {
+      "rate": 21,
+      "base": 69.83,
+      "amount": 14.67
+     }
+    ],
+    "gross_total": 84.5,
+    "lines": [
+     {
+      "account": "4410",
+      "vat_code": "V21",
+      "amount_excl": 69.83,
+      "vat_amount": 14.67,
+      "description": "Diesel bestelbus"
+     }
+    ],
+    "description": "Diesel 46,20 liter",
+    "currency": "EUR",
+    "due_date": null,
+    "supplier_vat_number": null,
+    "supplier_kvk": null,
+    "iban": null,
+    "booking_reason": "Tankbon op de zakelijke pas: brandstof 4410, zoals de eerdere bonnen.",
+    "uncertain_fields": [],
+    "issues": []
+   },
+   "boxes": {
+    "counterparty": {
+     "page": 1,
+     "box": [
+      0.379,
+      0.2516,
+      0.6864,
+      0.3027
+     ]
+    },
+    "doc_date": {
+     "page": 1,
+     "box": [
+      0.2652,
+      0.372,
+      0.4331,
+      0.4106
+     ]
+    },
+    "reference": {
+     "page": 1,
+     "box": [
+      0.3469,
+      0.3986,
+      0.5136,
+      0.4379
+     ]
+    },
+    "gross_total": {
+     "page": 1,
+     "box": [
+      0.7131,
+      0.5327,
+      0.8044,
+      0.569
+     ]
+    },
+    "net_total": {
+     "page": 1,
+     "box": [
+      0.7121,
+      0.5747,
+      0.8049,
+      0.608
+     ]
+    },
+    "vat_21": {
+     "page": 1,
+     "box": [
+      0.7117,
+      0.6019,
+      0.8049,
+      0.6353
+     ]
+    }
+   }
+  },
+  "deschie": {
+   "image": "demo/wa-bon-deschie.jpg",
+   "sha256": "465c6d415267fdf8f64e279f4e116bf325e49ba9837649e882f52428c5c21c68",
+   "client": "1057",
+   "bank": "B1057-04",
+   "size": [
+    1200,
+    1600
+   ],
+   "answer": {
+    "kind": "kassabon",
+    "client_hint": null,
+    "counterparty": "Bouwmarkt De Schie",
+    "reference": "118-45102",
+    "doc_date": "2026-11-08",
+    "net_total": 117.77,
+    "vat_lines": [
+     {
+      "rate": 21,
+      "base": 117.77,
+      "amount": 24.73
+     }
+    ],
+    "gross_total": 142.5,
+    "lines": [
+     {
+      "account": "7000",
+      "vat_code": "V21",
+      "amount_excl": 117.77,
+      "vat_amount": 24.73,
+      "description": "Mortel, pvc, schroeven, purschuim"
+     }
+    ],
+    "description": "Bouwmaterialen klein",
+    "currency": "EUR",
+    "due_date": null,
+    "supplier_vat_number": null,
+    "supplier_kvk": null,
+    "iban": null,
+    "booking_reason": "Klein materiaal voor projecten: 7000, zoals de eerdere bonnen van deze bouwmarkt.",
+    "uncertain_fields": [],
+    "issues": []
+   },
+   "boxes": {
+    "counterparty": {
+     "page": 1,
+     "box": [
+      0.2818,
+      0.2156,
+      0.7124,
+      0.2641
+     ]
+    },
+    "doc_date": {
+     "page": 1,
+     "box": [
+      0.3374,
+      0.2966,
+      0.4993,
+      0.3327
+     ]
+    },
+    "reference": {
+     "page": 1,
+     "box": [
+      0.3363,
+      0.3186,
+      0.4857,
+      0.3596
+     ]
+    },
+    "gross_total": {
+     "page": 1,
+     "box": [
+      0.649,
+      0.5003,
+      0.7713,
+      0.5381
+     ]
+    },
+    "net_total": {
+     "page": 1,
+     "box": [
+      0.6523,
+      0.5642,
+      0.7672,
+      0.6023
+     ]
+    },
+    "vat_21": {
+     "page": 1,
+     "box": [
+      0.6677,
+      0.5925,
+      0.7665,
+      0.6297
+     ]
+    }
+   }
+  }
+ },
+ "staged": [
+  {
+   "keys": [
+    "M-TANK",
+    "M-BOUWMARKT"
+   ],
+   "answer": {
+    "kind": "kassabon",
+    "client_hint": "Marco Bouw & Onderhoud",
+    "counterparty": "TankPunt A20",
+    "reference": "3391-0218",
+    "doc_date": "2026-11-02",
+    "net_total": 58.84,
+    "vat_lines": [
+     {
+      "rate": 21,
+      "base": 58.84,
+      "amount": 12.36
+     }
+    ],
+    "gross_total": 71.2,
+    "lines": [
+     {
+      "account": "4410",
+      "vat_code": "V21",
+      "amount_excl": 58.84,
+      "vat_amount": 12.36,
+      "description": "Diesel bestelbus"
+     }
+    ],
+    "description": "Diesel 38,93 liter",
+    "currency": "EUR",
+    "due_date": null,
+    "supplier_vat_number": null,
+    "supplier_kvk": null,
+    "iban": null,
+    "booking_reason": "Alleen de eerste bon is gelezen. Na het splitsen krijgt elke bon een eigen voorstel.",
+    "uncertain_fields": [],
+    "issues": [
+     {
+      "level": "warning",
+      "message": "Twee kassabonnen op één document: pagina 1 is van TankPunt A20, pagina 2 van Bouwmarkt De Schie. Splits het document (toets S), dan krijgt elke bon een eigen voorstel."
+     }
+    ],
+    "split_reason": "twee bonnen direct na elkaar gescand, zonder leeg vel ertussen"
+   }
+  }
+ ]
+}

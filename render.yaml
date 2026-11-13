@@ -21,7 +21,7 @@ services:
       - key: DEMO_INSTANCE
         value: "1"                  # page images may leave only on a demo instance, never with APP_ENV=production
       - key: GUEST_TOUR
-        value: "1"                  # /rondleiding: read-only tour of the fictional sample (QR code in the letters)
+        value: "1"                  # /rondleiding: simulation of the fictional sample, kept in the visitor's browser (QR code in the letters)
       - key: AI_PROVIDER
         value: bedrock              # Claude in Amazon Bedrock
       - key: AWS_REGION
@@ -54,5 +54,7 @@ services:
         sync: false                 # shown in the footer once registered
       - key: TOUR_CONTACT
         sync: false                 # optional line for tour visitors, e.g. "Bel of app 06-..."
+      - key: HOSTING_LABEL
+        sync: false                 # optional; leave empty: on Render the sign-in badge reads the region above (Frankfurt, EU)
       - key: SECRET_KEY
         generateValue: true

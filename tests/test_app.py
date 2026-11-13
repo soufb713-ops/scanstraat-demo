@@ -233,8 +233,14 @@ def test_retention_endpoint_is_local_and_token_only():
 # ---------------------------------------------------------------- pages render
 def test_pages_render():
     c = logged_in()
-    for url in ("/", "/berichten", "/beveiliging", "/afhandelen", "/klanten", "/auditlog", "/gebruikers", "/scannen"):
+    for url in ("/", "/berichten", "/beveiliging", "/afhandelen", "/klanten", "/auditlog", "/gebruikers", "/scannen",
+                "/werkbank", "/koppelingen", "/account/wachtwoord", "/api/cockpit", "/api/export/preview", "/status.json"):
         assert c.get(url).status_code == 200, url
+    for bid in list(appmod.state["batches"])[:1]:
+        assert c.get(f"/scan/{bid}").status_code == 200
+    assert c.get("/stapel").status_code == 302                 # staff see their own scans, not the tour sample
+    r = c.get("/bestaat-niet")
+    assert r.status_code == 404 and "Naar het overzicht" in r.get_data(as_text=True)
 
 
 # ---------------------------------------------------------------- region and modes

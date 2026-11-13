@@ -4,7 +4,9 @@ Each check returns flags of the form
     {"level": "error"|"warning"|"info", "field": str|None, "message": str}
 Messages are in Dutch because the reviewer is.
 """
+import hashlib
 import re
+from collections import Counter
 from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 
@@ -57,6 +59,17 @@ def nl(x):
 
 def flag(level, field, message):
     return {"level": level, "field": field, "message": message}
+
+
+def flag_id(f):
+    """Stable id of a flag: the same finding on the same document keeps its id, so a reviewer's note stays attached."""
+    return hashlib.sha1(f"{f.get('level')}|{f.get('field')}|{f.get('message')}".encode()).hexdigest()[:10]
+
+
+# Booking codes that say "no deductible VAT on purpose": then a document without VAT lines is not a warning.
+NO_VAT_CODES = {"NL_VERL": "binnenlands verlegd", "EU_DIENST_VERL": "dienst uit de EU, verlegd", "EU_GOED_VERL": "goederen uit de EU",
+                "GEEN": "geen btw (bank, verzekering)", "V0": "geen btw op de factuur", "PRIVE": "privé, buiten de btw",
+                "GEEN_AFTREK": "btw niet aftrekbaar"}
 
 
 def run_checks(fields, others=(), history=(), today=None):
@@ -164,11 +177,18 @@ def run_checks(fields, others=(), history=(), today=None):
                  if norm(o.get("supplier_name")) == sup}
         known.discard("")
         if known and iban not in known:
-            flags.append(flag("warning", "iban", f"IBAN {iban} wijkt af van eerdere stukken van {f.get('supplier_name')} "
-                                                 f"({', '.join(sorted(known))}). Check bij de leverancier via een bekend nummer."))
+            # An error, not a warning: paying to a changed account number is the one mistake that cannot be undone.
+            flags.append(flag("error", "iban", f"IBAN {iban} wijkt af van eerdere stukken van {f.get('supplier_name')} "
+                                               f"({', '.join(sorted(known))}). Niet betalen voordat het nummer is "
+                                               "geverifieerd via een bekend telefoonnummer (terugbelcontrole)."))
 
     if doc_type in ("invoice", "receipt") and gross is not None and not lines and not foreign:
-        flags.append(flag("warning", "vat_lines", "Geen btw gevonden op het document. Zonder btw op de factuur geen aftrek."))
+        codes = [c for c in f.get("no_vat_codes") or [] if c in NO_VAT_CODES]
+        if codes:
+            flags.append(flag("info", "vat_lines", "Geen btw op het document: geboekt zonder voorbelasting ("
+                              + ", ".join(sorted({NO_VAT_CODES[c] for c in codes})) + ")."))
+        else:
+            flags.append(flag("warning", "vat_lines", "Geen btw gevonden op het document. Zonder btw op de factuur geen aftrek."))
     for i, l in enumerate(lines, 1):
         if l.get("amount") in (None, "") and l.get("rate") not in (None, ""):
             flags.append(flag("warning", "vat_lines", f"Btw-bedrag regel {i} niet leesbaar. Niet zelf uitrekenen: controleren of opvragen."))
@@ -193,3 +213,91 @@ def model_flags(f):
 def status_of(flags):
     levels = {x["level"] for x in flags}
     return "red" if "error" in levels else "amber" if "warning" in levels else "green"
+
+
+# ---------------------------------------------------------------- what a reviewer wants to see confirmed
+def evidence(lines, supplier, history, names=None):
+    """How the booking proposal relates to this supplier's earlier bookings. Counted from the ledger history, not an
+    AI confidence: "14 of 14 earlier bookings of this supplier are on 7000". Returns None when there is no proposal."""
+    proposed = sorted({str(l.get("account")) for l in lines or [] if l.get("account")})
+    if not proposed:
+        return None
+    names = names or {}
+    label = " + ".join(f"{a} {names[a]}" if names.get(a) else a for a in proposed)
+    sup = norm(supplier)
+    rows = [h for h in history or [] if sup and norm(h.get("supplier_name")) == sup and h.get("account")]
+    if not rows:
+        return {"status": "new", "same": 0, "total": 0, "share": None, "accounts": proposed, "usual": None,
+                "text": "Nieuwe crediteur: nog geen eerdere boekingen om het voorstel mee te vergelijken."}
+    used = Counter("+".join(sorted(str(h["account"]).split("+"))) for h in rows)
+    key = "+".join(proposed)
+    same, total = used.get(key, 0), len(rows)
+    usual = used.most_common(1)[0][0]
+    usual_label = " + ".join(f"{a} {names[a]}" if names.get(a) else a for a in usual.split("+"))
+    if same == total:
+        status, text = "match", f"{same}x eerder geboekt op {label}: alle eerdere facturen van deze crediteur."
+    elif same:
+        status, text = "partial", f"{same} van {total} eerdere boekingen op {label}; meestal op {usual_label}."
+    else:
+        status, text = "differs", f"Wijkt af van de historie: {total}x eerder geboekt op {usual_label}, nu voorgesteld op {label}."
+    return {"status": status, "same": same, "total": total, "share": round(100 * same / total), "accounts": proposed,
+            "usual": usual.split("+"), "text": text}
+
+
+def badges(f, flags, others=(), history=()):
+    """The positive side of the checks: what was verified and came out right. Each badge is
+    {"key", "ok": True|False|None, "label", "detail"}; ok None means "nothing to compare with yet"."""
+    out = []
+    f = f or {}
+    if (f.get("doc_type") or "invoice") == "other":
+        return out
+    errors = {x.get("field") for x in flags if x["level"] == "error"}
+    net, gross = D(f.get("net_total")), D(f.get("gross_total"))
+    lines = [l for l in (f.get("vat_lines") or []) if l]
+    vat_sum = sum((D(l.get("amount")) or Decimal("0")) for l in lines) if lines else None
+    if gross is not None:
+        if errors & {"gross_total", "vat_lines"}:
+            out.append({"key": "btw", "ok": False, "label": "Btw-som klopt niet", "detail": "Zie de rode vlag."})
+        elif lines and net is not None and net + vat_sum == gross:
+            rates = ", ".join(f"{D(l.get('rate')).normalize():f}%" for l in lines if D(l.get("rate")) is not None)
+            out.append({"key": "btw", "ok": True, "label": "Btw-som klopt op de cent",
+                        "detail": f"{nl(net)} + {nl(vat_sum)} = {nl(gross)} ({rates})"})
+        elif not lines:
+            out.append({"key": "btw", "ok": None, "label": "Geen btw op het document",
+                        "detail": "Verlegd, vrijgesteld of niet aftrekbaar: zie de btw-code van de boekingsregel."})
+    sup = norm(f.get("supplier_name"))
+    compared = [o for o in list(others) + list(history) if sup and norm(o.get("supplier_name")) == sup]
+    dup = [x for x in flags if x.get("field") == "invoice_number" and "ubbel" in (x.get("message") or "")]
+    year = (parse_date(f.get("invoice_date")) or date.today()).year
+    if dup:
+        out.append({"key": "dubbel", "ok": False, "label": "Mogelijk dubbel", "detail": dup[0]["message"]})
+    elif f.get("invoice_number") or gross is not None:
+        out.append({"key": "dubbel", "ok": True, "label": f"Geen dubbele factuur in {year}",
+                    "detail": f"Vergeleken met {len(compared)} eerdere stukken van deze crediteur "
+                              f"en {len(list(others))} stukken uit deze aanlevering."})
+    iban = re.sub(r"\s+", "", f.get("iban") or "").upper()
+    if iban:
+        known = [re.sub(r"\s+", "", o.get("iban") or "").upper() for o in compared]
+        known = [k for k in known if k]
+        if "iban" in errors:
+            out.append({"key": "iban", "ok": False, "label": "IBAN wijkt af of klopt niet", "detail": "Zie de rode vlag."})
+        elif known:
+            out.append({"key": "iban", "ok": True, "label": f"IBAN gelijk aan {len(known)} eerdere facturen",
+                        "detail": "Zelfde rekeningnummer als op de eerdere stukken van deze crediteur."})
+        else:
+            out.append({"key": "iban", "ok": None, "label": "IBAN geldig, eerste factuur",
+                        "detail": "Controlegetal klopt. Nog geen eerdere factuur van deze crediteur om mee te vergelijken."})
+    vat_no = re.sub(r"[\s.]", "", (f.get("supplier_vat_number") or "")).upper()
+    kvk = re.sub(r"\s", "", f.get("supplier_kvk") or "")
+    if vat_no or kvk:
+        bad = errors & {"supplier_vat_number", "supplier_kvk"} or any(
+            x.get("field") in ("supplier_vat_number", "supplier_kvk") for x in flags if x["level"] == "warning")
+        parts = []
+        if kvk:
+            parts.append(f"KvK {kvk}")
+        if vat_no:
+            parts.append(f"btw-nummer {vat_no}" + ("" if vat_no.startswith("NL") else f" ({vat_no[:2]}, buitenland)"))
+        out.append({"key": "ids", "ok": not bad, "label": "KvK- en btw-nummer: geldig formaat" if not bad else
+                    "KvK- of btw-nummer: formaat klopt niet",
+                    "detail": ", ".join(parts) + ". Alleen het formaat is gecontroleerd, niet het register."})
+    return out
