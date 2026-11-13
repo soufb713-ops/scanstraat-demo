@@ -939,7 +939,7 @@ async function start() {
   clock = setInterval(() => { const r = O.run; if (r && r.n && r.last && Date.now() - r.last < 4000) { const el = $('.tp-run .mono'); if (el) el.textContent = fmtSecs((Date.now() - r.start) / 1000); } }, 100);
   window.addEventListener('resize', fit);
   window.addEventListener('hashchange', () => { const x = decodeURIComponent(location.hash.slice(1)); if (x === 'bonnen') { const l = missing()[0]; if (l) select(l.id, 'bank'); } });
-  if (SIM && !O.hints.welcome) { O.hints.welcome = 1; save(); setTimeout(() => toast('Druk op <kbd>Enter</kbd> om het eerste document goed te keuren. <kbd>?</kbd> toont alle sneltoetsen.', '', true), 600); }
+  if (SIM && !O.hints.welcome) { O.hints.welcome = 1; save(); setTimeout(() => toast(matchMedia('(pointer:coarse)').matches ? 'Tik onderaan op <b>Goedkeuren &amp; volgende</b> om het eerste document goed te keuren.' : 'Druk op <kbd>Enter</kbd> om het eerste document goed te keuren. <kbd>?</kbd> toont alle sneltoetsen.', '', true), 600); }
 }
 start();
 })();

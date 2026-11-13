@@ -1,7 +1,7 @@
 /* Scanstraat public site, Kantoorportaal sign-in and the client's upload page.
    Builds on style.css (tokens, buttons) and work.css (document boxes, phone, bank card, code view). */
 html{scroll-behavior:smooth;scroll-padding-top:76px}
-body.pub{background:#fff;font-size:15px;line-height:1.55}
+body.pub{background:#fff;font-size:15px;line-height:1.55;height:auto;min-height:100%}
 .wrap{max-width:1216px;margin:0 auto;padding:0 24px}
 .skip{position:absolute;left:-999px;top:0;background:#fff;color:var(--ink);padding:10px 14px;z-index:99;font-weight:600}
 .skip:focus{left:8px;top:8px}
