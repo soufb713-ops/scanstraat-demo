@@ -1682,18 +1682,39 @@ def bank_import():
     return redirect(url_for("clients_page"))
 
 
-@app.get("/klanten/scheidingsbladen.pdf")
-def cover_sheets():
+def _sheet_request():
+    """The dossiers and the firm name for a cover sheet request. White-label: the firm's own name is on the sheet;
+    a tour guest may type a name to see their own firm on it (fictional dossiers only)."""
     cl = showroom()["clients"] if guest() else clients()
+    if guest():
+        cl = {nr: c for nr, c in cl.items() if nr in {p["ref"] for p in showroom()["pages"]}}
     nrs = request.args.getlist("nr") or list(cl)
     sel = [cl[n] for n in nrs if n in cl]
     if not sel:
         abort(404)
-    # white-label: the firm's own name on the sheet. A tour guest may type a name to see their own firm on it.
     typed = re.sub(r"[^\w .,&'()+-]", "", request.args.get("kantoor", ""), flags=re.UNICODE).strip()[:48]
-    firm = typed or (showroom()["firm"] if guest() else firm_name())
+    return sel, typed or (showroom()["firm"] if guest() else firm_name())
+
+
+@app.get("/klanten/scheidingsbladen.pdf")
+def cover_sheets():
+    sel, firm = _sheet_request()
     return send_file(io.BytesIO(coversheet.pdf(sel, BRAND, firm)), mimetype="application/pdf",
                      download_name="scheidingsbladen.pdf")
+
+
+@app.get("/klanten/scheidingsblad.jpg")
+def cover_sheet_preview():
+    """The first requested cover sheet as an image: the preview next to the print button, from the same code as the PDF."""
+    import pypdfium2 as pdfium
+    sel, firm = _sheet_request()
+    with _pdf_lock:
+        page = pdfium.PdfDocument(coversheet.pdf(sel[:1], BRAND, firm))[0]
+        buf = io.BytesIO()
+        page.render(scale=1.25).to_pil().convert("RGB").save(buf, "JPEG", quality=84)
+    resp = send_file(io.BytesIO(buf.getvalue()), mimetype="image/jpeg")
+    resp.headers["Cache-Control"] = "private, max-age=300"
+    return resp
 
 
 # ---------------------------------------------------------------- integrations

@@ -43,7 +43,7 @@ GUEST = {"email": "gast@rondleiding", "name": "Gast (rondleiding)", "role": "gue
 GUEST_MSG = ("Dit hoort niet bij de rondleiding: u werkt hier met een fictieve voorbeeldstapel en er wordt niets "
              "opgeslagen of geüpload. Uw eigen stapel zien? Plan een demo via de contactgegevens op de website.")
 # What a guest may open (GET). Everything else answers with GUEST_MSG.
-GUEST_VIEWS = {"cockpit", "stack", "deliver", "security_page", "clients_page", "cover_sheets", "guest_tour", "logout",
+GUEST_VIEWS = {"cockpit", "stack", "deliver", "security_page", "clients_page", "cover_sheets", "cover_sheet_preview", "guest_tour", "logout",
                "static", "health"}
 # The stateless requests a guest may post: the real checks and exports on the visitor's simulation. Nothing is stored.
 GUEST_POSTS = {"sample_check", "sample_export", "logout"}
