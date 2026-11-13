@@ -1,78 +1,95 @@
-{% extends "base.html" %}{% set nav='deliver' %}{% block title %}Afhandelen{% endblock %}
+{% extends "base.html" %}
+{% block title %}Exporteren{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='work.css') }}?v={{ asset_v }}">{% endblock %}
+{% macro post(action, label, cls='', fields={}, disabled=false) %}<form method="post" action="{{ action }}" class="inline" data-form="{{ fields.get('format') or fields.get('route') or action.rsplit('/', 1)[-1] }}"><input type="hidden" name="csrf" value="{{ csrf_token() }}">{% for k, v in fields.items() %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}<button class="btn sm {{ cls }}" {{ 'disabled' if disabled }}>{{ label }}</button></form>{% endmacro %}
 {% block main %}
-<div class="head"><div><h1>Afhandelen</h1><p>Alleen goedgekeurde documenten komen hier. Kies per bestemming wat er gebeurt; alles wordt vastgelegd in de auditlog.</p></div></div>
+<div id="hub" data-sim="{{ '1' if sim else '0' }}">
+  <div class="head">
+    <div>{% if sim %}<div class="crumbs">Rondleiding · stap 4 van 4</div>{% endif %}
+      <h1>Exporteren</h1>
+      <p>Alleen wat een medewerker heeft goedgekeurd gaat mee. Bekijk eerst wat er uitgaat: het SI-UBL-bestand per factuur, de regels van het Excel-register en de mappen in het dossier. Scanstraat dient niets in en boekt niets definitief: uw pakket blijft de administratie.</p></div>
+  </div>
 
-{% set unconf_mk = docs|selectattr('exports.mijnkantoor')|selectattr('exports.mijnkantoor.confirmed', 'sameas', false)|list %}
-{% set unconf_ex = docs|selectattr('exports.exact')|selectattr('exports.exact.confirmed', 'sameas', false)|list %}
-{% set unconf_ubl = docs|selectattr('exports.ubl')|selectattr('exports.ubl.confirmed', 'sameas', false)|list %}
-{% if unconf_mk or unconf_ex or unconf_ubl %}
-<div class="card" style="margin-bottom:18px;border-color:#f59e0b">
-  <div class="card-h"><h2>Bevestig de import</h2><span class="sub">daarna worden de originelen hier gewist</span></div>
-  <div class="card-b stack">
-    <p class="sub" style="margin:0">Een ZIP of importbestand is een download: alleen jij kunt zien of de import in MijnKantoor, Exact of je pakket (UBL) gelukt is. Na je bevestiging wissen we het origineel, de paginabeelden en de koppeltabel van die documenten (als ook de andere verplichte bestemming klaar is).</p>
-    {% for key, list_, name in [('mijnkantoor', unconf_mk, 'MijnKantoor (ZIP)'), ('exact', unconf_ex, 'Exact (importbestand)'), ('ubl', unconf_ubl, 'je pakket (UBL)')] %}{% if list_ %}
-    <form method="post" action="/afhandelen/bevestigen" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-      <input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="key" value="{{ key }}">
-      {% for d in list_ %}<input type="hidden" name="ids" value="{{ d.id }}">{% endfor %}
-      <span><b>{{ name }}:</b> {{ list_|length }} document{{ 'en' if list_|length != 1 }}</span>
-      <button class="btn primary sm" onclick="return confirm('Staan deze {{ list_|length }} documenten echt in {{ name }}? Daarna wissen we de originelen hier.')">Import gelukt, bevestigen</button>
-    </form>{% endif %}{% endfor %}
+  {% if not sim %}
+  {% set unconf_mk = docs|selectattr('exports.mijnkantoor')|selectattr('exports.mijnkantoor.confirmed', 'sameas', false)|list %}
+  {% set unconf_ex = docs|selectattr('exports.exact')|selectattr('exports.exact.confirmed', 'sameas', false)|list %}
+  {% set unconf_ubl = docs|selectattr('exports.ubl')|selectattr('exports.ubl.confirmed', 'sameas', false)|list %}
+  {% if unconf_mk or unconf_ex or unconf_ubl %}
+  <div class="card" style="margin-bottom:16px;border-color:var(--am-line)">
+    <div class="card-h"><h2>Bevestig de import</h2><span class="sub">daarna worden de originelen hier gewist</span></div>
+    <div class="card-b stack">
+      <p class="sub" style="margin:0">Een ZIP of importbestand is een download: alleen jij kunt zien of de import in MijnKantoor, Exact of je pakket (UBL) is gelukt. Na je bevestiging wissen we het origineel, de paginabeelden en de koppeltabel van die documenten, zodra ook de andere verplichte bestemming klaar is.</p>
+      {% for key, list_, name in [('mijnkantoor', unconf_mk, 'MijnKantoor (ZIP)'), ('exact', unconf_ex, 'Exact (importbestand)'), ('ubl', unconf_ubl, 'je pakket (UBL)')] %}{% if list_ %}
+      <form method="post" action="/afhandelen/bevestigen" class="row">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="key" value="{{ key }}">
+        {% for d in list_ %}<input type="hidden" name="ids" value="{{ d.id }}">{% endfor %}
+        <span><b>{{ name }}:</b> {{ list_|length }} document{{ 'en' if list_|length != 1 }}</span>
+        <button class="btn primary sm" onclick="return confirm('Staan deze {{ list_|length }} documenten echt in {{ name }}? Daarna wissen we de originelen hier.')">Import gelukt, bevestigen</button>
+      </form>{% endif %}{% endfor %}
+    </div>
   </div>
-</div>
-{% endif %}
+  {% endif %}
+  {% endif %}
 
-<div class="grid-auto" style="margin-bottom:18px">
-  <div class="route">
-    <div class="top"><span class="ico" style="background:#1f5b98">MK</span><div><b>MijnKantoor</b><div class="sub">{{ pending.mijnkantoor }} nog te archiveren</div></div></div>
-    <p>Elk document als eigen pdf in de juiste map van het klantdossier, met een nette bestandsnaam.</p>
-    <div class="btns">
-      {% if s.mk_route == 'folder' and s.mk_sync_dir %}
-      <form method="post" action="/afhandelen/mijnkantoor"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="route" value="folder"><button class="btn primary" {{ 'disabled' if not pending.mijnkantoor }}>In dossiermap zetten</button></form>
-      {% endif %}
-      <form method="post" action="/afhandelen/mijnkantoor"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><button class="btn {{ 'primary' if not (s.mk_route == 'folder' and s.mk_sync_dir) }}" {{ 'disabled' if not pending.mijnkantoor }}>ZIP voor upload</button></form>
-    </div>
-    <div class="honest">{% if s.mk_route == 'folder' and s.mk_sync_dir %}Schrijft naar de map die MijnKantoor via SharePoint synchroniseert.{% else %}ZIP met de mappen per klant: uitpakken en in het dossier slepen. Automatisch kan via de SharePoint-synchronisatie van MijnKantoor{% if user.role == 'admin' %} (<a href="/koppelingen#mijnkantoor">instellen</a>){% endif %}.{% endif %}</div>
+  <div class="hub-bar" id="hub-bar">
+    <div class="nums"><div><b id="n-docs">{{ docs|length if not sim else '–' }}</b><span>goedgekeurd</span></div><div><b id="n-ubl">–</b><span>SI-UBL-bestanden</span></div><div><b id="n-lines">–</b><span>boekingsregels</span></div><div><b id="n-rules">–</b><span>rekenregels gecontroleerd</span></div></div>
+    <button class="btn go lg" id="hub-go" type="button" disabled>Exporteer batch</button>
   </div>
-  <div class="route">
-    <div class="top"><span class="ico" style="background:#e11d48">E</span><div><b>Exact Online</b><div class="sub">{{ pending.exact if bookable else 0 }} boekingen klaar</div></div></div>
-    <p>Inkoop- en verkoopfacturen als boeking, met de pdf als bijlage. Brieven en afschriften niet.</p>
-    <div class="btns">
-      {% if exact_tok %}<form method="post" action="/afhandelen/exact"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="format" value="api"><button class="btn primary" {{ 'disabled' if not pending.exact }}>Boeken in Exact</button></form>{% endif %}
-      <form method="post" action="/afhandelen/exact"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="format" value="xml"><button class="btn {{ 'primary' if not exact_tok }}" {{ 'disabled' if not pending.exact }}>Importbestand (XML)</button></form>
-      <form method="post" action="/afhandelen/exact"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="format" value="csv"><button class="btn" {{ 'disabled' if not pending.exact }}>CSV</button></form>
-    </div>
-    <div class="honest">{% if exact_tok %}Gekoppeld met administratie {{ exact_tok.division }}.{% else %}Nog niet gekoppeld: het importbestand is nog niet getest in een echte Exact-administratie, dus eerst één boeking proberen.{% endif %}{% if not integ.vat_map %} Btw-codes nog niet gekoppeld aan de codes in Exact{% if user.role == 'admin' %} (<a href="/koppelingen#exact">instellen</a>){% endif %}.{% endif %}</div>
-  </div>
-  <div class="route">
-    <div class="top"><span class="ico" style="background:#15803d">X</span><div><b>Excel-register</b><div class="sub">{{ pending.excel }} nieuw sinds het laatste register</div></div></div>
-    <p>Eén overzicht met alle gescande documenten, bedragen, map en wie het controleerde. Tweede tab: boekingsregels.</p>
-    <div class="btns"><a class="btn primary" href="/afhandelen/register.xlsx">Nieuwe regels (.xlsx)</a><a class="btn" href="/afhandelen/register.xlsx?all=1">Alles</a></div>
-    <div class="honest">Vervangt het overtypen in Excel. Kolommen zijn aan te passen aan jullie huidige sheet.</div>
-  </div>
-  <div class="route">
-    <div class="top"><span class="ico" style="background:#6d28d9;font-size:12px">UBL</span><div><b>UBL voor SnelStart en andere pakketten</b><div class="sub">{{ pending.ubl }} inkoopstukken klaar</div></div></div>
-    <p>Elke goedgekeurde inkoopfactuur, bon of creditnota als UBL 2.1 (NLCIUS) met de pdf erin. Voor de UBL-mailbox van SnelStart en de UBL-import van Yuki, Twinfield, Moneybird en andere pakketten.</p>
-    <div class="btns">
-      {% if not guest %}<form method="post" action="/afhandelen/ubl"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><button class="btn primary" {{ 'disabled' if not pending.ubl }}>UBL-bestanden (ZIP)</button></form>{% endif %}
-      {% if sample_ubl %}<a class="btn" href="/document/{{ sample_ubl.id }}/ubl.xml">Voorbeeld (.xml)</a>{% endif %}
-    </div>
-    <div class="honest">Nog niet door een officiële validator gehaald: per pakket eerst één bestand proberen. Alleen goedgekeurde stukken; het voorbeeld uit de fictieve scan heet CONCEPT.</div>
-  </div>
-</div>
 
-<div class="card tablewrap">
-  <div class="card-h"><h2>Goedgekeurde documenten</h2><span class="sub">{{ docs|length }}</span></div>
-  <table><tr><th>Document</th><th>Klant</th><th>Map en bestand</th><th class="num">Totaal</th><th>MijnKantoor</th><th>Exact</th><th>Excel</th><th>Origineel</th></tr>
-  {% for d in docs %}{% set c = clients.get(d.client_nr) %}<tr class="link" onclick="location='/document/{{ d.id }}'">
-    <td><b>{{ d.result.counterparty or KINDS[d.kind] }}</b><div class="sub">{{ d.id }} · {{ KINDS[d.kind] }} · {{ d.approved.by }}</div></td>
-    <td>{{ c.name if c else '?' }}</td>
-    <td class="sub" style="max-width:320px;word-break:break-all">{{ d.filing.folder }}/<br>{{ d.filing.filename }}</td>
-    <td class="num">{{ d.result.gross_total|eur }}</td>
-    <td>{% if d.exports.mijnkantoor %}<span class="tick">✓</span> <span class="sub">{{ d.exports.mijnkantoor.route }}{{ ' · niet bevestigd' if d.exports.mijnkantoor.confirmed is sameas false }}</span>{% else %}<span class="badge amber plain">Open</span>{% endif %}</td>
-    <td>{% if d.kind not in ('inkoopfactuur','kassabon','creditnota','verkoopfactuur') %}<span class="sub">n.v.t.</span>{% elif d.exports.exact %}<span class="tick">✓</span> <span class="sub">{{ d.exports.exact.route }}{{ ' · niet bevestigd' if d.exports.exact.confirmed is sameas false }}</span>{% else %}<span class="badge amber plain">Open</span>{% endif %}</td>
-    <td>{% if d.exports.excel %}<span class="tick">✓</span>{% else %}<span class="sub">–</span>{% endif %}</td>
-    <td>{% if d.purged %}<span class="badge grey">Gewist</span>{% else %}<span class="sub">Versleuteld bewaard</span>{% endif %}</td></tr>
-  {% else %}<tr><td colspan="8" class="empty">Nog niets goedgekeurd. <a href="/">Naar controleren</a>.</td></tr>{% endfor %}
-  </table>
+  <div class="card insp" id="insp" hidden>
+    <div class="insp-tabs" role="tablist">
+      <button class="on" data-tab="ubl" type="button">SI-UBL 2.0 <b id="t-ubl">0</b></button>
+      <button data-tab="register" type="button">Excel-auditregister <b id="t-reg">0</b></button>
+      <button data-tab="tree" type="button">MijnKantoor-mappen <b id="t-tree">0</b></button>
+      <button data-tab="exact" type="button">Exact Online-import</button>
+    </div>
+    <div class="insp-body" id="insp-body"></div>
+  </div>
+
+  <h3 style="margin:22px 0 10px">Bestemmingen</h3>
+  <div class="hub-grid">
+    <div class="dest"><div class="top"><span class="ico" style="background:#0b6bcb">SS</span><div><b>SnelStart</b><small>SI-UBL 2.0 · bestand</small></div></div>
+      <p>Elke goedgekeurde inkoopfactuur, bon of creditnota als SI-UBL 2.0 met de pdf erin, voor de UBL-inbox of de inkoopimport.</p>
+      <div class="btns">{% if sim %}<button class="btn sm primary" data-open="ubl" type="button">Bekijk SI-UBL</button><button class="btn sm" data-want="ubl.zip" type="button">ZIP</button>{% else %}{{ post('/afhandelen/ubl', 'UBL-bestanden (ZIP)', 'primary', {}, not pending.ubl) }}<button class="btn sm" data-open="ubl" type="button">Bekijk</button>{% endif %}</div></div>
+    <div class="dest"><div class="top"><span class="ico" style="background:#e1002a">EO</span><div><b>Exact Online</b><small>{{ 'koppeling actief' if exact_tok else 'koppeling of importbestand' }}</small></div></div>
+      <p>Inkoop- en verkoopboekingen met de pdf als bijlage via de koppeling, of als importbestand in XML of CSV.</p>
+      <div class="btns">{% if sim %}<button class="btn sm primary" data-open="exact" type="button">Bekijk import</button><button class="btn sm" data-want="exact.xml" type="button">XML</button><button class="btn sm" data-want="exact.csv" type="button">CSV</button>{% else %}{% if exact_tok %}{{ post('/afhandelen/exact', 'Boeken in Exact', 'primary', {'format': 'api'}, not pending.exact) }}{% endif %}{{ post('/afhandelen/exact', 'XML', '' if exact_tok else 'primary', {'format': 'xml'}, not pending.exact) }}{{ post('/afhandelen/exact', 'CSV', '', {'format': 'csv'}, not pending.exact) }}{% endif %}</div></div>
+    <div class="dest"><div class="top"><span class="ico" style="background:#0f766e">TW</span><div><b>Twinfield</b><small>SI-UBL 2.0 · bestand</small></div></div>
+      <p>Hetzelfde SI-UBL-bestand voor de import van inkoopfacturen, met de pdf als bijlage in het bestand en de btw per tarief uitgesplitst.</p>
+      <div class="btns">{% if sim %}<button class="btn sm primary" data-open="ubl" type="button">Bekijk SI-UBL</button><button class="btn sm" data-want="ubl.zip" type="button">ZIP</button>{% else %}<button class="btn sm" data-open="ubl" type="button">Bekijk SI-UBL</button>{% endif %}</div></div>
+    <div class="dest"><div class="top"><span class="ico" style="background:#f97316">YK</span><div><b>Yuki</b><small>SI-UBL 2.0 · bestand</small></div></div>
+      <p>SI-UBL met de pdf erin voor het aanleveradres van de administratie. Eén bestand per document.</p>
+      <div class="btns">{% if sim %}<button class="btn sm primary" data-open="ubl" type="button">Bekijk SI-UBL</button><button class="btn sm" data-want="ubl.zip" type="button">ZIP</button>{% else %}<button class="btn sm" data-open="ubl" type="button">Bekijk SI-UBL</button>{% endif %}</div></div>
+    <div class="dest"><div class="top"><span class="ico" style="background:#16a34a">eB</span><div><b>e-Boekhouden</b><small>SI-UBL 2.0 · bestand</small></div></div>
+      <p>SI-UBL voor de factuurimport. Eén bestand per document, per klantdossier in een eigen map.</p>
+      <div class="btns">{% if sim %}<button class="btn sm primary" data-open="ubl" type="button">Bekijk SI-UBL</button><button class="btn sm" data-want="ubl.zip" type="button">ZIP</button>{% else %}<button class="btn sm" data-open="ubl" type="button">Bekijk SI-UBL</button>{% endif %}</div></div>
+    <div class="dest"><div class="top"><span class="ico" style="background:#1f5b98">MK</span><div><b>MijnKantoor</b><small>{{ 'dossiermap' if not sim and s.mk_route == 'folder' and s.mk_sync_dir else 'dossiermap of zip' }}</small></div></div>
+      <p>Elk document als eigen pdf in de juiste map van het klantdossier, met een vaste bestandsnaam. Brieven en polissen gaan hier ook heen.</p>
+      <div class="btns">{% if sim %}<button class="btn sm primary" data-open="tree" type="button">Bekijk mappen</button><button class="btn sm" data-want="mijnkantoor.zip" type="button">ZIP</button>{% else %}{% if s.mk_route == 'folder' and s.mk_sync_dir %}{{ post('/afhandelen/mijnkantoor', 'In dossiermap zetten', 'primary', {'route': 'folder'}, not pending.mijnkantoor) }}{% endif %}{{ post('/afhandelen/mijnkantoor', 'ZIP voor upload', '' if s.mk_route == 'folder' and s.mk_sync_dir else 'primary', {}, not pending.mijnkantoor) }}<button class="btn sm" data-open="tree" type="button">Bekijk</button>{% endif %}</div></div>
+    <div class="dest"><div class="top"><span class="ico" style="background:#15803d">XL</span><div><b>Excel-auditregister</b><small>xlsx · twee tabbladen</small></div></div>
+      <p>Eén regel per document: bedragen, grootboek, map, wie controleerde en wanneer. Tweede tabblad met de boekingsregels.</p>
+      <div class="btns">{% if sim %}<button class="btn sm primary" data-open="register" type="button">Bekijk register</button><button class="btn sm" data-want="register.xlsx" type="button">XLSX</button>{% else %}<a class="btn sm primary" href="/afhandelen/register.xlsx">Nieuwe regels (.xlsx)</a><a class="btn sm" href="/afhandelen/register.xlsx?all=1">Alles</a><button class="btn sm" data-open="register" type="button">Bekijk</button>{% endif %}</div></div>
+  </div>
+  <div class="honest" style="margin-bottom:18px">SI-UBL 2.0 is de Nederlandse invulling (NLCIUS) van de Europese factuurnorm EN 16931. Elk bestand gaat hier door onze eigen controle op de kernvelden en de rekenregels; dat is niet de officiële validator. De eerste import per boekhoudpakket testen we samen met het kantoor in de proefperiode, voordat er iets op volume doorheen gaat.{% if not sim and not exact_tok %} Exact Online is nog niet gekoppeld: het importbestand eerst met één boeking proberen.{% endif %}</div>
+
+  {% if not sim %}
+  <div class="card tablewrap">
+    <div class="card-h"><h2>Goedgekeurde documenten</h2><span class="sub">{{ docs|length }}</span></div>
+    <table><tr><th>Document</th><th>Klant</th><th>Map en bestand</th><th class="num">Totaal</th><th>MijnKantoor</th><th>Exact</th><th>UBL</th><th>Excel</th><th>Origineel</th></tr>
+    {% for d in docs %}{% set c = clients.get(d.client_nr) %}<tr class="link" onclick="location='/document/{{ d.id }}'">
+      <td><b>{{ d.result.counterparty or KINDS[d.kind] }}</b><div class="sub">{{ d.id }} · {{ KINDS[d.kind] }} · {{ d.approved.by }}</div></td>
+      <td>{{ c.name if c else '?' }}</td>
+      <td class="sub mono" style="max-width:320px;word-break:break-all">{{ d.filing.folder }}/<br>{{ d.filing.filename }}</td>
+      <td class="num">{{ d.result.gross_total|eur }}</td>
+      <td>{% if d.exports.mijnkantoor %}<span class="tick">✓</span> <span class="sub">{{ d.exports.mijnkantoor.route }}{{ ' · niet bevestigd' if d.exports.mijnkantoor.confirmed is sameas false }}</span>{% else %}<span class="badge amber plain">Open</span>{% endif %}</td>
+      <td>{% if d.kind not in ('inkoopfactuur','kassabon','creditnota','verkoopfactuur') %}<span class="sub">n.v.t.</span>{% elif d.exports.exact %}<span class="tick">✓</span> <span class="sub">{{ d.exports.exact.route }}{{ ' · niet bevestigd' if d.exports.exact.confirmed is sameas false }}</span>{% else %}<span class="badge amber plain">Open</span>{% endif %}</td>
+      <td>{% if d.kind not in ('inkoopfactuur','kassabon','creditnota') %}<span class="sub">n.v.t.</span>{% elif d.exports.ubl %}<span class="tick">✓</span>{{ ' <span class="sub">niet bevestigd</span>'|safe if d.exports.ubl.confirmed is sameas false }}{% else %}<span class="sub">–</span>{% endif %}</td>
+      <td>{% if d.exports.excel %}<span class="tick">✓</span>{% else %}<span class="sub">–</span>{% endif %}</td>
+      <td>{% if d.purged %}<span class="badge grey plain">Gewist</span>{% else %}<span class="sub">Versleuteld bewaard</span>{% endif %}</td></tr>
+    {% else %}<tr><td colspan="9" class="empty">Nog niets goedgekeurd. <a href="/werkbank">Naar de werkbank</a>.</td></tr>{% endfor %}
+    </table>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/export.js') }}?v={{ asset_v }}" defer></script>{% endblock %}
