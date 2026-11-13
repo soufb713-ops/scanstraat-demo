@@ -1,12 +1,59 @@
 [
  {
+  "nr": "1042",
+  "name": "Bakkerij Van Dijk B.V.",
+  "kvk": "68120934",
+  "vat": "NL859310447B01",
+  "city": "Schiedam",
+  "address": "Lange Haven 71, 3111 CD Schiedam",
+  "exact_division": "",
+  "chart": "mkb",
+  "contact": "Sanne",
+  "whatsapp": "31600001042",
+  "legal_form": "B.V.",
+  "activity": "Ambachtelijke bakkerij met winkel"
+ },
+ {
+  "nr": "1057",
+  "name": "Marco Bouw & Onderhoud",
+  "kvk": "77412093",
+  "vat": "NL003481207B41",
+  "city": "Rotterdam",
+  "address": "Schiedamseweg 212, 3025 AS Rotterdam",
+  "exact_division": "",
+  "chart": "mkb",
+  "contact": "Marco",
+  "whatsapp": "31600001057",
+  "legal_form": "eenmanszaak",
+  "activity": "Aannemer, renovatie en onderhoud"
+ },
+ {
+  "nr": "1063",
+  "name": "Eetcafé De Kade V.O.F.",
+  "kvk": "70233418",
+  "vat": "NL858877120B01",
+  "city": "Rotterdam",
+  "address": "Maaskade 48, 3071 NE Rotterdam",
+  "exact_division": "",
+  "chart": "mkb",
+  "contact": "Yasmina",
+  "whatsapp": "31600001063",
+  "legal_form": "V.O.F.",
+  "activity": "Eetcafé"
+ },
+ {
   "nr": "1001",
   "name": "Studio Lindewerf B.V.",
   "kvk": "90412276",
   "vat": "NL865512093B01",
   "city": "Rotterdam",
+  "address": "Hoogstraat 118, 3011 PV Rotterdam",
   "exact_division": "",
-  "chart": "lindewerf"
+  "chart": "lindewerf",
+  "contact": "Noor",
+  "whatsapp": "31600001001",
+  "legal_form": "B.V.",
+  "activity": "Grafisch ontwerp en webdesign"
  },
  {
   "nr": "1002",
@@ -14,16 +61,12 @@
   "kvk": "93120458",
   "vat": "NL866230417B01",
   "city": "Delft",
+  "address": "Oude Delft 212, 2611 HJ Delft",
   "exact_division": "",
-  "chart": "standaard"
- },
- {
-  "nr": "1003",
-  "name": "Bakkerij Van Oord B.V.",
-  "kvk": "91877302",
-  "vat": "NL865990214B01",
-  "city": "Schiedam",
-  "exact_division": "",
-  "chart": "standaard"
+  "chart": "standaard",
+  "contact": "Ruben",
+  "whatsapp": "",
+  "legal_form": "B.V.",
+  "activity": "Fietsenwinkel en werkplaats"
  }
 ]

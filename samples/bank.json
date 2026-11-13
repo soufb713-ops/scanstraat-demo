@@ -1,0 +1,130 @@
+{
+ "1042": [
+  {
+   "id": "B1042-01",
+   "date": "2026-11-02",
+   "type": "incasso",
+   "description": "Belnet Mobiel B.V. BM26-1107733",
+   "name": "",
+   "amount": -66.55
+  },
+  {
+   "id": "B1042-02",
+   "date": "2026-11-06",
+   "type": "pin",
+   "description": "SuperVers Schiedam Centrum",
+   "name": "SuperVers",
+   "amount": -33.41
+  },
+  {
+   "id": "B1042-03",
+   "date": "2026-11-09",
+   "type": "pin",
+   "description": "Parkeergarage Koemarkt Schiedam",
+   "name": "Parkeergarage Koemarkt",
+   "amount": -12.5
+  },
+  {
+   "id": "B1042-04",
+   "date": "2026-11-10",
+   "type": "bij",
+   "description": "Lunchroom Het Plein fact 2026-0412",
+   "name": "",
+   "amount": 529.74
+  }
+ ],
+ "1057": [
+  {
+   "id": "B1057-01",
+   "date": "2026-11-02",
+   "type": "pin",
+   "description": "TankPunt A20 Nieuwerkerk",
+   "name": "TankPunt A20",
+   "amount": -71.2
+  },
+  {
+   "id": "B1057-02",
+   "date": "2026-11-03",
+   "type": "incasso",
+   "description": "Polderland Verzekeringen 2026-771204",
+   "name": "",
+   "amount": -774.4
+  },
+  {
+   "id": "B1057-03",
+   "date": "2026-11-05",
+   "type": "pin",
+   "description": "Bouwmarkt De Schie Schiedam",
+   "name": "Bouwmarkt De Schie",
+   "amount": -48.4
+  },
+  {
+   "id": "B1057-04",
+   "date": "2026-11-08",
+   "type": "pin",
+   "description": "Bouwmarkt De Schie Schiedam",
+   "name": "Bouwmarkt De Schie",
+   "amount": -142.5
+  },
+  {
+   "id": "B1057-05",
+   "date": "2026-11-12",
+   "type": "pin",
+   "description": "TankPunt A20 Nieuwerkerk",
+   "name": "TankPunt A20",
+   "amount": -84.5
+  }
+ ],
+ "1063": [
+  {
+   "id": "B1063-01",
+   "date": "2026-11-03",
+   "type": "incasso",
+   "description": "PinPunt Betaaldiensten PP-1026-771",
+   "name": "",
+   "amount": -36.24
+  },
+  {
+   "id": "B1063-02",
+   "date": "2026-11-04",
+   "type": "ideal",
+   "description": "Bedrijfskleding Online B.V.",
+   "name": "Bedrijfskleding Online",
+   "amount": -219.0
+  },
+  {
+   "id": "B1063-03",
+   "date": "2026-11-05",
+   "type": "overboeking",
+   "description": "Horecagroothandel Maashal MH-26-448120",
+   "name": "",
+   "amount": -2801.76
+  }
+ ],
+ "1001": [
+  {
+   "id": "B1001-01",
+   "date": "2026-11-01",
+   "type": "pin",
+   "description": "Speelgoedplein Rotterdam",
+   "name": "Speelgoedplein",
+   "amount": -59.98
+  },
+  {
+   "id": "B1001-02",
+   "date": "2026-11-04",
+   "type": "incasso",
+   "description": "Vektorhub Ltd INV-2026-1104",
+   "name": "",
+   "amount": -54.0
+  },
+  {
+   "id": "B1001-03",
+   "date": "2026-11-05",
+   "type": "pin",
+   "description": "Brasserie Maaszicht Rotterdam",
+   "name": "Brasserie Maaszicht",
+   "amount": -86.4
+  }
+ ]
+}

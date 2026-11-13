@@ -24,6 +24,7 @@ shows the fictional sample scan.
 """
 import csv
 import hashlib
+import hmac
 import io
 import json
 import os
@@ -33,6 +34,7 @@ import threading
 import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor
+from copy import deepcopy
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote
@@ -46,6 +48,7 @@ import region
 import vault
 import ai
 import auth
+import bank
 import checks
 import coversheet
 import egress
@@ -74,6 +77,9 @@ REJECTED_GRACE_HOURS = float(os.environ.get("REJECTED_GRACE_HOURS", "24"))
 INBOX = Path(os.environ.get("SCAN_INBOX", DATA / "scanner-inbox"))
 AUDIT = DATA / "audit.jsonl"
 BRAND = os.environ.get("BRAND_NAME", "Scanstraat")
+DEMO = os.environ.get("DEMO_INSTANCE") == "1"
+DEMO_FIRM = "Maaskade Administraties"   # the fictional firm of the sample scan and the tour
+BOOT = datetime.now()
 ALLOWED = {".pdf", ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".heic", ".webp"}
 UBL_KINDS = {"inkoopfactuur", "kassabon", "creditnota"}  # purchase side: what a package imports as UBL
 TOUR_CONTACT = os.environ.get("TOUR_CONTACT", "").strip()
@@ -118,7 +124,8 @@ CLIENTS = JsonFile(DATA / "clients.json", [])
 SETTINGS = JsonFile(DATA / "settings.json", {
     "manual_minutes": None, "mk_route": "zip", "mk_sync_dir": "", "folders": dict(exports.DEFAULT_FOLDERS),
     "journal_purchase": "60", "journal_sales": "70", "vat_map": {}, "watch_inbox": True,
-    "retention_required": ["mijnkantoor", "exact"]})
+    "retention_required": ["mijnkantoor", "exact"], "firm_name": ""})
+BANK = JsonFile(DATA / "bank.json", {})
 state = STATE.load()
 
 
@@ -132,6 +139,11 @@ def settings():
     for k, v in SETTINGS.default.items():
         s.setdefault(k, v)
     return s
+
+
+def firm_name():
+    """The firm this instance works for: on cover sheets and under messages to clients (white-label)."""
+    return (settings().get("firm_name") or os.environ.get("FIRM_NAME") or (DEMO_FIRM if DEMO else BRAND)).strip()
 
 
 def clients():
@@ -190,6 +202,8 @@ egress._log = log_egress
 def first_start():
     if not CLIENTS.path.exists():
         CLIENTS.save(json.loads((SAMPLES / "clients.json").read_text(encoding="utf-8")))
+        if (SAMPLES / "bank.json").exists():   # the fictional clients come with fictional bank lines
+            BANK.save(json.loads((SAMPLES / "bank.json").read_text(encoding="utf-8")))
     if not SETTINGS.path.exists():
         SETTINGS.save(SETTINGS.load())
     INBOX.mkdir(parents=True, exist_ok=True)
@@ -322,13 +336,73 @@ def match_client(hint, cl):
     return None
 
 
-def sample_manifest():
-    f = SAMPLES / "scan-stack.json"
+SAMPLE_SCAN = "schoenendoos_2026-11-12.pdf"
+_manifests = None
+
+
+def manifests():
+    """Answer keys of the fictional sample scans, by sha256 of the scan file. A reply photo of the demo (the
+    client's WhatsApp answer) is a one-document answer key of its own."""
+    global _manifests
+    if _manifests is None:
+        found = {}
+        for f in sorted(SAMPLES.glob("*.json")):
+            try:
+                m = json.loads(f.read_text(encoding="utf-8"))
+            except ValueError:
+                continue
+            if not isinstance(m, dict) or not m.get("sha256") or not m.get("documents"):
+                continue
+            found[m["sha256"]] = m
+            for name, r in (m.get("replies") or {}).items():
+                if r.get("sha256"):
+                    found[r["sha256"]] = {"file": r["image"], "sha256": r["sha256"], "as_of": m.get("as_of"),
+                                          "documents": [{"key": f"R-{name}", "client": r.get("client"), "pages": [1],
+                                                         "answer": r["answer"], "boxes": r.get("boxes") or {}}]}
+        _manifests = found
+    return _manifests
+
+
+def sample_manifest(name="schoenendoos.json"):
+    f = SAMPLES / name
     return json.loads(f.read_text(encoding="utf-8")) if f.exists() else None
 
 
-def create_batch(files, source, actor, replay=False):
-    """files: list of (filename, bytes). Starts processing in the background."""
+def manifest_specs(manifest, page_set):
+    """The documents of an answer key whose first page is in page_set, as the pile is first offered: a staged
+    merge (two receipts as one document, see make_demo.py) comes out as one document that a reviewer splits."""
+    staged = {k: s for s in manifest.get("staged") or [] for k in s["keys"]}
+    out, used = [], set()
+    for d in manifest["documents"]:
+        key = d.get("key")
+        if d["pages"][0] not in page_set or key in used:
+            continue
+        st = staged.get(key)
+        if st:
+            parts = [x for x in manifest["documents"] if x.get("key") in st["keys"]]
+            used.update(st["keys"])
+            out.append({"key": "+".join(st["keys"]), "pages": [p for x in parts for p in x["pages"]],
+                        "answer": st["answer"], "boxes": parts[0].get("boxes") or {}})
+        else:
+            out.append({"key": key, "pages": d["pages"], "answer": d["answer"], "boxes": d.get("boxes") or {}})
+    return out
+
+
+def manifest_answer(manifest, pages):
+    """The answer for exactly these pages (after a reviewer split or merged documents), or None."""
+    for d in manifest["documents"]:
+        if d["pages"] == pages:
+            return {"key": d.get("key"), "answer": d["answer"], "boxes": d.get("boxes") or {}}
+    for spec in manifest_specs(manifest, {p for d in manifest["documents"] for p in d["pages"]}):
+        if spec["pages"] == pages:
+            return spec
+    return None
+
+
+def create_batch(files, source, actor, replay=False, fast=False, client_nr=None):
+    """files: list of (filename, bytes). Starts processing in the background.
+    fast: no pause between the replayed answers (the first-start seed). client_nr: the sender is known (the client's
+    WhatsApp number or personal upload link), so pages without a cover sheet go to that dossier."""
     bid = new_id("S")
     src = batch_dir(bid) / "source"
     src.mkdir(parents=True, exist_ok=True)
@@ -340,7 +414,7 @@ def create_batch(files, source, actor, replay=False):
     batch = {"id": bid, "name": names[0] if len(names) == 1 else f"{len(names)} bestanden", "files": names,
              "source": source, "by": actor, "created": now(), "status": "processing", "step": 0, "detail": "",
              "pages": [], "docs": [], "error": None, "seconds": None, "mode": "replay" if replay or not ai.live() else ai.MODE,
-             "usage": {"input_tokens": 0, "output_tokens": 0}}
+             "usage": {"input_tokens": 0, "output_tokens": 0}, "fast": bool(fast), "client_nr": client_nr}
     with lock:
         state["batches"][bid] = batch
         save_state()
@@ -413,7 +487,8 @@ def _process(batch):
             groups.append(cur)
         elif p["kind"] == "page":
             if cur is None:
-                cur = {"client_nr": None, "cover": None, "pages": []}
+                known = batch.get("client_nr") if batch.get("client_nr") in cl else None
+                cur = {"client_nr": known, "cover": None, "pages": [], "via": batch["source"] if known else None}
                 groups.append(cur)
             cur["pages"].append(p["n"])
     groups = [g for g in groups if g["pages"]]
@@ -425,8 +500,9 @@ def _process(batch):
 
     # 3: split into documents
     _set(batch, step=2, detail="")
-    manifest = sample_manifest()
-    is_sample = (manifest and len(sources) == 1 and source_hashes[0] == manifest["sha256"])
+    manifest = manifests().get(source_hashes[0]) if len(sources) == 1 and not use_ai else None
+    if manifest:
+        _set(batch, manifest=manifest["sha256"], as_of=manifest.get("as_of"))
     specs = []
     for g in groups:
         if use_ai:
@@ -441,19 +517,20 @@ def _process(batch):
                 for d in docs:
                     specs.append({"pages": [chunk[i - 1] for i in d["pages"]], "kind": d["kind"],
                                   "client_hint": d.get("client_hint"), "reason": d.get("reason", ""),
-                                  "group_client": g["client_nr"]})
-        elif is_sample:
-            ai.replay_delay()
-            for d in manifest["documents"]:
-                if d["pages"][0] in g["pages"]:
-                    specs.append({"pages": d["pages"], "kind": d["answer"]["kind"], "answer": d["answer"],
-                                  "client_hint": d["answer"].get("client_hint"),
-                                  "reason": d["answer"].get("split_reason") or "Zelfde afzender en kenmerk",
-                                  "group_client": g["client_nr"]})
+                                  "group_client": g["client_nr"], "via": g.get("via")})
+        elif manifest:
+            if not batch.get("fast"):
+                ai.replay_delay()
+            for d in manifest_specs(manifest, set(g["pages"])):
+                specs.append({"pages": d["pages"], "kind": d["answer"]["kind"], "answer": d["answer"],
+                              "client_hint": d["answer"].get("client_hint"), "boxes": d["boxes"], "key": d["key"],
+                              "reason": d["answer"].get("split_reason") or "Zelfde afzender en kenmerk",
+                              "group_client": g["client_nr"], "via": g.get("via")})
         else:
             for p in g["pages"]:
                 specs.append({"pages": [p], "kind": "overig", "answer": ai.empty_result(), "client_hint": None,
-                              "reason": "Replay-modus: elke pagina apart", "group_client": g["client_nr"]})
+                              "reason": "Replay-modus: elke pagina apart", "group_client": g["client_nr"],
+                              "via": g.get("via")})
 
     # 4: read each document
     _set(batch, step=3, detail=f"0 van {len(specs)} documenten")
@@ -461,10 +538,12 @@ def _process(batch):
     for spec in specs:
         did = new_id("D")
         client_nr = spec["group_client"] or match_client(spec.get("client_hint"), cl)
+        via = {"whatsapp": "WhatsApp-nummer van de klant", "klantlink": "aanleverlink van de klant"}.get(spec.get("via"))
         doc = {"id": did, "batch": bid, "pages": spec["pages"], "client_nr": client_nr,
-               "client_via": "scheidingsblad" if spec["group_client"] else ("herkend op document" if client_nr else None),
+               "client_via": via or ("scheidingsblad" if spec["group_client"] else ("herkend op document" if client_nr else None)),
                "kind": spec["kind"], "split_reason": spec.get("reason", ""), "result": None, "status": "reading",
-               "flags": [], "corrections": [], "exports": {}, "created": now(), "seconds": None, "filing": None}
+               "flags": [], "corrections": [], "exports": {}, "created": now(), "seconds": None, "filing": None,
+               "boxes": spec.get("boxes") or {}, "key": spec.get("key"), "flag_notes": {}}
         with lock:
             state["docs"][did] = doc
         for p in spec["pages"]:
@@ -481,8 +560,10 @@ def _process(batch):
         if use_ai:
             result = read_doc(doc, cl)
         else:
-            ai.replay_delay()
+            if not batch.get("fast"):
+                ai.replay_delay()
             result = json.loads(json.dumps(spec["answer"]))
+            result.pop("split_reason", None)
             doc["trail"] = {"route": "replay (geen AI)"}
         with lock:
             doc["result"] = result
@@ -546,26 +627,36 @@ def as_check_fields(doc):
         f[k] = r.get(k)
     f["uncertain_fields"] = [FIELD_ALIAS.get(x, x) for x in r.get("uncertain_fields") or []]
     f["issues"] = r.get("issues") or []
+    f["no_vat_codes"] = [l.get("vat_code") for l in r.get("lines") or [] if l.get("vat_code")]
     return f
 
 
-def compute_flags(doc, earlier, history):
+def check_fields(doc):
+    """as_check_fields for the checks: a sales invoice is compared with other sales invoices only."""
+    f = as_check_fields(doc)
+    if doc["kind"] == "verkoopfactuur":
+        f["supplier_name"] = f"verkoop {(doc['result'] or {}).get('counterparty')}"
+    return f
+
+
+def compute_flags(doc, earlier, history, today=None, chart=None):
+    """chart: the client's chart of accounts (rows of account, name[, RGS]); default: looked up for the client."""
     D = checks.D
     r = doc["result"] or {}
     flags = []
-    cl = clients()
+    today = today or date.today()
+    if chart is None:
+        chart = chart_for(clients().get(doc.get("client_nr")))
     if not doc.get("client_nr"):
         flags.append(checks.flag("error", "client", "Klant onbekend: geen scheidingsblad en niet herkend op het document. Kies de klant."))
     if doc["kind"] in ai.BOOKABLE:
-        f = as_check_fields(doc)
-        if doc["kind"] == "verkoopfactuur":
-            f["supplier_name"] = f"verkoop {r.get('counterparty')}"
-        flags += checks.run_checks(f, others=[as_check_fields(o) for o in earlier], history=history)
+        f = check_fields(doc)
+        flags += checks.run_checks(f, others=[check_fields(o) for o in earlier], history=history, today=today)
         lines = r.get("lines") or []
         if not lines:
             flags.append(checks.flag("error", "lines", "Geen boekingsregels. Vul grootboek en btw-code in."))
         else:
-            accounts = {a for a, _ in chart_for(cl.get(doc.get("client_nr")))}
+            accounts = {row[0] for row in chart}
             for l in lines:
                 if accounts and l.get("account") not in accounts:
                     flags.append(checks.flag("error", "lines", f"Grootboekrekening {l.get('account')} staat niet in het rekeningschema van deze klant."))
@@ -579,27 +670,53 @@ def compute_flags(doc, earlier, history):
         flags += checks.model_flags({"uncertain_fields": [FIELD_ALIAS.get(x, x) for x in r.get("uncertain_fields") or []],
                                      "issues": r.get("issues") or []})
         due = checks.parse_date(r.get("due_date"))
-        if due and due >= date.today() and due <= date.today() + timedelta(days=45) and \
+        if due and due >= today and due <= today + timedelta(days=45) and \
                 not any("termijn" in (x.get("message") or "").lower() for x in flags):
             flags.append(checks.flag("warning", "due_date", f"Termijn loopt af op {due.strftime('%d-%m-%Y')}."))
     if len(doc["pages"]) > 1:
         flags.append(checks.flag("info", None, f"{len(doc['pages'])} pagina's samengevoegd tot één document: {doc.get('split_reason') or 'zelfde document'}."))
+    for x in flags:
+        x["id"] = checks.flag_id(x)
     return flags
+
+
+def insight(doc, earlier, history, chart):
+    """What the reviewer sees next to the flags: the checks that came out right, and how the booking proposal
+    compares with this supplier's earlier bookings. Both are counted by plain code."""
+    if doc["kind"] not in ai.BOOKABLE:
+        return [], None
+    r = doc["result"] or {}
+    names = {row[0]: row[1] for row in chart}
+    found = checks.badges(check_fields(doc), doc["flags"], [check_fields(o) for o in earlier], history)
+    proof = None if doc["kind"] == "verkoopfactuur" else checks.evidence(r.get("lines"), r.get("counterparty"), history, names)
+    return found, proof
+
+
+def handled(doc):
+    """True when every error flag on the document carries a reviewer's note (what was checked, by whom)."""
+    notes = doc.get("flag_notes") or {}
+    return all(f.get("id") in notes for f in doc.get("flags") or [] if f["level"] == "error")
 
 
 def recheck_batch(bid):
     with lock:
-        docs = [state["docs"][d] for d in state["batches"][bid]["docs"]]
+        batch = state["batches"][bid]
+        docs = [state["docs"][d] for d in batch["docs"]]
+        today = checks.parse_date(batch.get("as_of")) or date.today()   # a sample scan is checked as of its own day
+        cl = clients()
         for i, doc in enumerate(docs):
             if doc["result"] is None or doc["status"] == "rejected":
                 continue
             earlier = [o for o in docs[:i] if o["result"] and o["status"] != "rejected" and o.get("client_nr") == doc.get("client_nr")]
             history = ledger_history(doc.get("client_nr")) + [
-                as_check_fields(o) | {"supplier_name": o["result"].get("counterparty")}
+                as_check_fields(o) | {"supplier_name": o["result"].get("counterparty"),
+                                      "account": "+".join(sorted({l["account"] for l in o["result"].get("lines") or []}))}
                 for o in state["docs"].values()
                 if o["batch"] != bid and o["status"] == "approved" and o.get("client_nr") == doc.get("client_nr")]
-            doc["flags"] = compute_flags(doc, earlier, history)
+            chart = chart_for(cl.get(doc.get("client_nr")))
+            doc["flags"] = compute_flags(doc, earlier, history, today, chart)
             doc["light"] = checks.status_of(doc["flags"])
+            doc["badges"], doc["evidence"] = insight(doc, earlier, history, chart)
         save_state()
 
 
@@ -628,10 +745,10 @@ def watch_inbox():
 
 def seed():
     """First start: process the sample scan once so the first visitor sees a full dashboard."""
-    stack = SAMPLES / "scan_2026-09-30_0915.pdf"
+    stack = SAMPLES / os.environ.get("SCAN_SEED_SAMPLE", SAMPLE_SCAN)
     if not state["batches"] and stack.exists() and os.environ.get("SCAN_SEED", "1") == "1":
         # The first-start sample replays the answer key (labelled replay): fast, and nothing is sent anywhere.
-        create_batch([(stack.name, stack.read_bytes())], "voorbeeld", "Systeem", replay=True)
+        create_batch([(stack.name, stack.read_bytes())], "voorbeeld", "Systeem", replay=True, fast=True)
 
 
 # ---------------------------------------------------------------- pages
@@ -677,7 +794,8 @@ def public_home():
     k = re.sub(r"[^a-z0-9-]", "", (request.args.get("k") or "").lower())[:60]
     phone_intl = re.sub(r"\D", "", os.environ.get("CONTACT_WHATSAPP", ""))
     wa_text = quote("Hallo, ik wil graag een demo van Scanstraat inplannen.")
-    return render_template("home.html", tour_url=url_for("guest_tour", k=k) if k else url_for("guest_tour"),
+    return render_template("home.html", hero=hero_data(), touring=guest(),
+                           tour_url=url_for("guest_tour", k=k) if k else url_for("guest_tour"),
                            wa_url=f"https://wa.me/{phone_intl}?text={wa_text}" if phone_intl else "",
                            contact_name=os.environ.get("CONTACT_NAME", ""), contact_phone=os.environ.get("CONTACT_PHONE", ""),
                            contact_email=os.environ.get("CONTACT_EMAIL", ""), contact_place=os.environ.get("CONTACT_PLACE", ""),
@@ -722,8 +840,8 @@ def integrations_status():
 def upload():
     if request.method == "POST":
         if request.form.get("sample"):
-            stack = SAMPLES / "scan_2026-09-30_0915.pdf"
-            bid = create_batch([(stack.name, stack.read_bytes())], "voorbeeld", who())
+            stack = SAMPLES / SAMPLE_SCAN
+            bid = create_batch([(stack.name, stack.read_bytes())], "voorbeeld", who(), replay=True)
             return redirect(url_for("batch_page", bid=bid))
         files = [(f.filename, f.read()) for f in request.files.getlist("files")
                  if f and f.filename and Path(f.filename).suffix.lower() in ALLOWED]
@@ -732,7 +850,7 @@ def upload():
             return redirect(url_for("upload"))
         bid = create_batch(files, "upload", who())
         return redirect(url_for("batch_page", bid=bid))
-    return render_template("upload.html", nav="scan", inbox=str(INBOX), sample=(SAMPLES / "scan-stack.json").exists())
+    return render_template("upload.html", nav="scan", inbox=str(INBOX), sample=(SAMPLES / SAMPLE_SCAN).exists())
 
 
 def batch_view(bid):
@@ -756,39 +874,45 @@ def batch_api(bid):
                     "read": sum(1 for d in docs if d["result"] is not None)})
 
 
-@app.post("/scan/<bid>/indeling")
-def batch_regroup(bid):
-    """Merge a document with the previous one, or split it after a page. Re-reads the changed documents."""
-    batch, docs = batch_view(bid)
+def regroup(batch, did, action, after=None):
+    """Merge a document with the previous one, or split it after a page. Re-reads the changed documents.
+    Returns (ok, message)."""
+    bid, ids = batch["id"], batch["docs"]
     if batch["status"] != "done":
-        abort(400, "Wacht tot de scan klaar is.")
-    action, did = request.form.get("action"), request.form.get("doc")
-    ids = batch["docs"]
-    if did not in ids:
-        abort(404)
+        return False, "Wacht tot de scan klaar is."
+    if did not in ids or action not in ("merge", "split"):
+        return False, "Dit document staat niet in deze scan."
     i = ids.index(did)
     doc = state["docs"][did]
-    if doc["status"] == "approved" or (action == "merge" and state["docs"][ids[i - 1]]["status"] == "approved"):
-        abort(400, "Goedgekeurde documenten kun je niet meer samenvoegen of splitsen.")
+    if doc["status"] == "approved" or (action == "merge" and i > 0 and state["docs"][ids[i - 1]]["status"] == "approved"):
+        return False, "Goedgekeurde documenten kun je niet meer samenvoegen of splitsen."
     changed = []
     with lock:
-        if action == "merge" and i > 0:
+        if action == "merge":
+            if i == 0:
+                return False, "Dit is het eerste document van de scan."
             prev = state["docs"][ids[i - 1]]
+            if prev.get("client_nr") != doc.get("client_nr"):
+                return False, "Het vorige document hoort bij een andere klant."
             prev["pages"] += doc["pages"]
             prev["split_reason"] = f"handmatig samengevoegd door {who()}"
             ids.remove(did)
             doc["status"] = "rejected"
             doc["rejected"] = {"by": who(), "at": now(), "note": f"samengevoegd met {prev['id']}"}
             changed = [prev]
-        elif action == "split":
-            after = int(request.form.get("after", 0))
+        else:
+            try:
+                after = int(after or 0)
+            except ValueError:
+                after = 0
             if after not in doc["pages"] or after == doc["pages"][-1]:
-                abort(400)
+                return False, "Kies de pagina waarna gesplitst wordt."
             k = doc["pages"].index(after) + 1
             nid = new_id("D")
-            new = json.loads(json.dumps(doc)) | {"id": nid, "pages": doc["pages"][k:], "created": now(),
+            new = json.loads(json.dumps(doc)) | {"id": nid, "pages": doc["pages"][k:], "created": now(), "flag_notes": {},
                                                  "split_reason": f"handmatig gesplitst door {who()}", "exports": {}}
             doc["pages"] = doc["pages"][:k]
+            doc["split_reason"] = f"handmatig gesplitst door {who()}"
             state["docs"][nid] = new
             ids.insert(i + 1, nid)
             changed = [doc, new]
@@ -796,13 +920,30 @@ def batch_regroup(bid):
             for c in changed:
                 if p["n"] in c["pages"]:
                     p["doc"] = c["id"]
+        for c in changed:
+            c["status"] = "reading"
+            c["flag_notes"] = {}
         save_state()
     for c in changed:
         scan.build_pdf(batch_dir(bid) / "pages", c["pages"], batch_dir(bid) / "docs" / f"{c['id']}.pdf")
-        c["status"] = "reading"
-        threading.Thread(target=reread, args=(c["id"],), daemon=True).start()
     audit(bid, did, "regrouped", who(), action=action)
-    flash("Indeling aangepast. De betrokken documenten worden opnieuw gelezen.")
+    manifest = manifests().get(batch.get("manifest")) if batch.get("mode") == "replay" else None
+    if manifest and all(manifest_answer(manifest, c["pages"]) for c in changed):
+        for c in changed:      # the answer for these pages is known: no need to wait for a reader
+            reread(c["id"])
+    else:
+        for c in changed:
+            threading.Thread(target=reread, args=(c["id"],), daemon=True).start()
+    return True, "Indeling aangepast. De betrokken documenten worden opnieuw gelezen."
+
+
+@app.post("/scan/<bid>/indeling")
+def batch_regroup(bid):
+    batch, _ = batch_view(bid)
+    ok, message = regroup(batch, request.form.get("doc"), request.form.get("action"), request.form.get("after"))
+    if not ok:
+        abort(400, message)
+    flash(message)
     return redirect(url_for("batch_page", bid=bid))
 
 
@@ -810,13 +951,20 @@ def reread(did):
     doc = state["docs"][did]
     cl = clients()
     client = cl.get(doc.get("client_nr"))
-    if ai.live():
+    batch = state["batches"][doc["batch"]]
+    manifest = manifests().get(batch.get("manifest")) if batch.get("mode") == "replay" else None
+    known = manifest_answer(manifest, doc["pages"]) if manifest else None
+    if known:
+        result = json.loads(json.dumps(known["answer"]))
+        result.pop("split_reason", None)
+        doc["boxes"], doc["key"] = known["boxes"], known["key"]
+    elif ai.live():
         result = read_doc(doc, cl)
     else:
-        ai.replay_delay()
         result = doc["result"] or ai.empty_result()
-        result = dict(result, issues=list(result.get("issues") or []) +
-                      ["Replay-modus: na splitsen of samenvoegen niet opnieuw gelezen. Controleer de velden."])
+        note = "Replay-modus: na splitsen of samenvoegen niet opnieuw gelezen. Controleer de velden."
+        result = dict(result, issues=[x for x in result.get("issues") or [] if x != note] + [note])
+        doc["boxes"] = {k: v for k, v in (doc.get("boxes") or {}).items() if v.get("page") in doc["pages"]}
     with lock:
         doc["result"] = result
         doc["kind"] = result.get("kind") or doc["kind"]
@@ -857,77 +1005,255 @@ def _num(v):
         return None
 
 
+def doc_action(doc, form):
+    """One reviewer action on one document, from the cockpit (keyboard) or a posted form. Returns (ok, message).
+    Actions: approve, ask (draft a question), send (draft, approve and send it), reject, save, reopen,
+    flagnote / unnote (what the reviewer checked about a red flag: it goes into the audit trail)."""
+    did, action, cl = doc["id"], form.get("action"), clients()
+    if doc["status"] == "reading":
+        return False, "Dit document wordt nog gelezen."
+    if action == "reopen":
+        if any(doc["exports"].values()) or doc.get("purged"):
+            return False, "Al doorgezet naar MijnKantoor of Exact: heropenen kan niet meer."
+        with lock:
+            doc["status"] = "review"
+            for k in ("approved", "rejected"):
+                doc.pop(k, None)
+        audit(doc["batch"], did, "reopened", who())
+        recheck_batch(doc["batch"])
+        return True, "Heropend."
+    if action in ("flagnote", "unnote"):
+        flag = next((f for f in doc["flags"] if f.get("id") == form.get("flag")), None)
+        if not flag:
+            return False, "Deze vlag bestaat niet meer. Ververs het document."
+        notes = doc.setdefault("flag_notes", {})
+        if action == "unnote":
+            notes.pop(flag["id"], None)
+            audit(doc["batch"], did, "flag_note_removed", who(), flag=flag["message"][:160])
+        else:
+            note = " ".join(form.get("note", "").split())[:500]
+            if len(note) < 3:
+                return False, "Schrijf in een paar woorden wat je hebt gecontroleerd."
+            notes[flag["id"]] = {"note": note, "by": who(), "at": now(), "flag": flag["message"]}
+            audit(doc["batch"], did, "flag_noted", who(), flag=flag["message"][:160], note=note)
+        save_state()
+        return True, "Notitie vastgelegd in het controlespoor."
+    if action not in ("approve", "ask", "send", "reject", "save"):
+        return False, "Onbekende actie."
+    changes = apply_form(doc, form, cl)
+    if changes:
+        audit(doc["batch"], did, "corrected", who(), changes=changes)
+    recheck_batch(doc["batch"])
+    ids = {f.get("id") for f in doc["flags"]}
+    doc["flag_notes"] = {k: v for k, v in (doc.get("flag_notes") or {}).items() if k in ids}
+    open_flags = [f["message"] for f in doc["flags"] if f["level"] in ("error", "warning")]
+    message = "Opgeslagen."
+    if action == "approve":
+        if not doc.get("client_nr"):
+            return False, "Kies eerst de klant."
+        if doc.get("light") == "red" and not handled(doc) and not form.get("ack"):
+            return False, ("Er staat nog een rode vlag open. Leg vast wat je hebt gecontroleerd (R), "
+                           "of vraag het de klant (W).")
+        doc["status"] = "approved"
+        doc["approved"] = {"by": who(), "at": now(), "open_flags": open_flags,
+                           "notes": [v["note"] for v in (doc.get("flag_notes") or {}).values()]}
+        audit(doc["batch"], did, "approved", who(), open_flags=open_flags, notes=doc["approved"]["notes"])
+        message = "Goedgekeurd."
+    elif action in ("ask", "send"):
+        c = cl.get(doc.get("client_nr")) or {}
+        note = form.get("note", "").strip() or "Graag een leesbare kopie of toelichting."
+        channel = form.get("channel") if form.get("channel") in outbox_mod.CHANNELS else "email"
+        to = form.get("to", "").strip() or (("+" + c["whatsapp"]) if channel == "whatsapp" and c.get("whatsapp") else c.get("email") or "")
+        body = form.get("body", "").strip() or client_question(doc, c, note, channel)
+        mid = outbox.draft(channel, to, f"Vraag over uw administratie ({c.get('name', 'klant')})", body,
+                           doc.get("client_nr"), did, who(), "vraag bij controle")
+        doc["status"] = "asked"
+        doc["asked"] = {"by": who(), "at": now(), "note": note, "message": mid, "channel": channel}
+        audit(doc["batch"], did, "asked_client", who(), note=note, message=mid)
+        message = "Conceptbericht klaargezet onder Berichten. Er is nog niets verstuurd."
+        if action == "send":
+            message = approve_message(mid, form, c)
+    elif action == "reject":
+        note = form.get("note", "").strip() or "Niet voor de administratie"
+        doc["status"] = "rejected"
+        doc["rejected"] = {"by": who(), "at": now(), "note": note}
+        audit(doc["batch"], did, "rejected", who(), note=note)
+        message = "Uit de stapel gehaald."
+        recheck_batch(doc["batch"])   # a later document is no longer its duplicate
+    save_state()
+    return True, message
+
+
+def approve_message(mid, form, client):
+    """A logged-in person approves this exact text with both statements; only then the outbox sends it."""
+    try:
+        sent = outbox.approve_and_send(mid, auth.current_user(), bool(form.get("confirm_read")),
+                                       bool(form.get("confirm_wwft")), bool(client.get("wwft_stop")))
+    except outbox_mod.OutboxError as e:
+        return f"Concept klaargezet, nog niet verstuurd: {e}."
+    return "Goedgekeurd en verstuurd." if sent["status"] == "sent" else f"Goedgekeurd. {sent['sent']['route']}."
+
+
 @app.route("/document/<did>", methods=["GET", "POST"])
 def review(did):
     doc = state["docs"].get(did) or abort(404)
     guest_may_see(doc["batch"])
-    batch = state["batches"][doc["batch"]]
-    cl = clients()
     if request.method == "POST":
         action = request.form.get("action")
-        if doc["status"] == "reading":
-            abort(400, "Dit document wordt nog gelezen.")
-        if action == "reopen":
-            if any(doc["exports"].values()) or doc.get("purged"):
-                abort(400, "Al doorgezet naar MijnKantoor of Exact: heropenen kan niet meer.")
-            doc["status"] = "review"
-            doc.pop("approved", None)
-            audit(doc["batch"], did, "reopened", who())
-        else:
-            changes = apply_form(doc, request.form, cl)
-            if changes:
-                audit(doc["batch"], did, "corrected", who(), changes=changes)
-            recheck_batch(doc["batch"])
-            open_flags = [f["message"] for f in doc["flags"] if f["level"] in ("error", "warning")]
-            if action == "approve":
-                if not doc.get("client_nr"):
-                    flash("Kies eerst de klant.", "error")
-                    return redirect(url_for("review", did=did))
-                if doc.get("light") == "red" and not request.form.get("ack"):
-                    flash("Er staan nog fouten open. Vink aan dat je ze gezien hebt, of vraag de klant.", "error")
-                    return redirect(url_for("review", did=did))
-                doc["status"] = "approved"
-                doc["approved"] = {"by": who(), "at": now(), "open_flags": open_flags}
-                audit(doc["batch"], did, "approved", who(), open_flags=open_flags)
-            elif action == "ask":
-                note = request.form.get("note", "").strip() or "Graag een leesbare kopie of toelichting."
-                doc["status"] = "asked"
-                c = cl.get(doc.get("client_nr")) or {}
-                mid = outbox.draft(request.form.get("channel") if request.form.get("channel") in outbox_mod.CHANNELS else "email",
-                                   c.get("email") or "", f"Vraag over uw administratie ({c.get('name', 'klant')})",
-                                   client_question(doc, c, note), doc.get("client_nr"), did, who(), "vraag bij controle")
-                doc["asked"] = {"by": who(), "at": now(), "note": note, "message": mid}
-                audit(doc["batch"], did, "asked_client", who(), note=note, message=mid)
-            elif action == "reject":
-                note = request.form.get("note", "").strip() or "Niet voor de administratie"
-                doc["status"] = "rejected"
-                doc["rejected"] = {"by": who(), "at": now(), "note": note}
-                audit(doc["batch"], did, "rejected", who(), note=note)
-        save_state()
-        if action in ("approve", "ask", "reject"):
+        ok, message = doc_action(doc, request.form)
+        if not ok:
+            flash(message, "error")
+            return redirect(url_for("review", did=did))
+        flash(message)
+        if action in ("approve", "ask", "send", "reject"):
             nxt = next((d for d in sorted(open_docs(), key=lambda d: d["id"]) if d["id"] != did), None)
-            flash({"approve": "Goedgekeurd.", "ask": "Conceptbericht klaargezet onder Berichten. Er is nog niets verstuurd.",
-                   "reject": "Uit de stapel gehaald."}[action])
             return redirect(url_for("review", did=nxt["id"]) if nxt else url_for("dashboard"))
-        flash("Opgeslagen.")
         return redirect(url_for("review", did=did))
-    siblings = batch["docs"]
-    i = siblings.index(did) if did in siblings else 0
-    client = cl.get(doc.get("client_nr"))
-    return render_template("review.html", nav="scan", doc=doc, b=batch, clients=cl, client=client,
-                           mapping_kinds=privacy.summary(vault.read_json(MAPS / f"{did}.json", {})),
-                           chart=chart_for(client) if client else [],
-                           prev=siblings[i - 1] if i > 0 else None, next=siblings[i + 1] if i + 1 < len(siblings) else None,
-                           pos=i + 1, total=len(siblings), s=settings())
+    return render_template("cockpit.html", nav="review", sim=False, focus=did, doc=doc, scan=None)
 
 
-def client_question(doc, client, note):
+@app.get("/werkbank")
+def cockpit():
+    """The review cockpit. Staff work on their own documents; a tour guest gets the simulation of the fictional
+    sample (kept in the visitor's browser, nothing is stored here)."""
+    return render_template("cockpit.html", nav="review", sim=guest(), focus=request.args.get("doc"), doc=None,
+                           scan=request.args.get("scan"))
+
+
+@app.get("/stapel")
+def stack():
+    """Batch splitter studio of the fictional sample (tour). Staff see their own scans under /scan/<id>."""
+    if not guest():
+        latest = sorted(visible_batches(), key=lambda b: b["created"], reverse=True)
+        return redirect(url_for("batch_page", bid=latest[0]["id"]) if latest else url_for("upload"))
+    return render_template("stack.html", nav="stack", sim=True)
+
+
+def audit_text(x):
+    """One line of plain Dutch for an audit entry's details (the cockpit's trail and the audit page)."""
+    if x.get("changes"):
+        return "Aangepast: " + ", ".join(x["changes"].keys())
+    if x.get("flag"):
+        return f"{x['flag']}" + (f" Notitie: {x['note']}" if x.get("note") else "")
+    if x.get("format"):
+        return x["format"]
+    if x.get("open_flags") is not None and "notes" in x:
+        return (f"{len(x['open_flags'])} open punt(en) gezien" if x["open_flags"] else "Geen open punten") + \
+            (". Notities: " + " | ".join(x["notes"]) if x.get("notes") else "")
+    if x.get("deleted") is not None:
+        return f"{x['deleted']} bestanden gewist" + (f" ({x['why']})" if x.get("why") else "")
+    if x.get("message"):
+        return f"Bericht {x['message']}" + (f" · {x['route']}" if x.get("route") else "") + (f" · {x['note']}" if x.get("note") else "")
+    if x.get("model"):
+        return "Antwoordsleutel van de voorbeeldscan (replay, geen AI)" if x["model"] == "replay" else (x.get("route") or x["model"])
+    if x.get("destination"):
+        return str(x["destination"])
+    if x.get("action"):
+        return "Samengevoegd" if x["action"] == "merge" else "Gesplitst"
+    return x.get("note") or x.get("error") or ""
+
+
+def doc_trails(ids):
+    """Audit entries per document id, oldest first: the trail the cockpit shows next to a booking."""
+    out = {i: [] for i in ids}
+    for e in read_audit():
+        if e.get("doc") in out:
+            out[e["doc"]].append({"ts": e["ts"], "event": e["event"], "label": EVENT_LABEL.get(e["event"], e["event"]),
+                                  "actor": e["actor"], "text": audit_text(e.get("details") or {})})
+    return out
+
+
+def cockpit_doc(doc, trail=None):
+    notes = doc.get("flag_notes") or {}
+    return {"id": doc["id"], "batch": doc["batch"], "key": doc.get("key"), "pages": doc["pages"],
+            "client_nr": doc.get("client_nr"), "client_via": doc.get("client_via"), "kind": doc["kind"],
+            "status": doc["status"], "light": doc.get("light") or "green", "handled": handled(doc),
+            "result": doc["result"], "filing": doc.get("filing"), "split_reason": doc.get("split_reason"),
+            "flags": [dict(f, note=notes.get(f.get("id"))) for f in doc.get("flags") or []],
+            "badges": doc.get("badges") or [], "evidence": doc.get("evidence"), "boxes": doc.get("boxes") or {},
+            "approved": doc.get("approved"), "asked": doc.get("asked"), "rejected": doc.get("rejected"),
+            "purged": bool(doc.get("purged")), "exported": sorted(k for k, v in (doc.get("exports") or {}).items() if v),
+            "route": (doc.get("trail") or {}).get("route"), "seconds": doc.get("seconds"), "image": doc.get("image"),
+            "corrections": doc.get("corrections") or [], "trail": trail or [], "created": doc.get("created")}
+
+
+def client_public(c):
+    return {"nr": c["nr"], "name": c["name"], "city": c.get("city"), "contact": c.get("contact"), "chart": c.get("chart", "standaard"),
+            "legal_form": c.get("legal_form"), "activity": c.get("activity"), "wwft_stop": bool(c.get("wwft_stop")),
+            "whatsapp": whatsapp.mask("+" + c["whatsapp"]) if c.get("whatsapp") else "", "email": c.get("email") or "",
+            "kvk": c.get("kvk"), "vat": c.get("vat"), "upload": upload_url(c["nr"])}
+
+
+def cockpit_payload(focus=None, scan_id=None):
+    cl, ch = clients(), charts()
+    docs = [d for d in visible_docs() if d.get("result")]
+    reading = sum(1 for d in visible_docs() if d["status"] == "reading")
+    docs = [d for d in docs if d["status"] != "reading"]
+    if scan_id:
+        docs = [d for d in docs if d["batch"] == scan_id]
+    else:
+        keep = {d["batch"] for d in docs if d["status"] in ("review", "asked")}
+        if focus:
+            keep.add(focus["batch"])
+        if not keep and docs:
+            keep = {max(docs, key=lambda d: d["created"])["batch"]}
+        docs = [d for d in docs if d["batch"] in keep]
+    order = {bid: i for i, bid in enumerate(state["batches"])}
+    docs.sort(key=lambda d: (order.get(d["batch"], 0), d["pages"][0] if d["pages"] else 0))
+    trails = doc_trails([d["id"] for d in docs])
+    s = settings()
+    return {"mode": "live", "firm": firm_name(), "user": who(), "as_of": date.today().isoformat(), "reading": reading,
+            "kinds": ai.KINDS, "vat_codes": ai.VAT_CODES, "clients": {nr: client_public(c) for nr, c in cl.items()},
+            "charts": ch, "docs": [cockpit_doc(d, trails.get(d["id"])) for d in docs], "alternates": [], "staged": [],
+            "replies": demo_replies(), "bank": bank_view(cl), "img": "/pagina/{batch}/{n}.jpg",
+            "confirm": {"read": outbox_mod.CONFIRM_READ, "wwft": outbox_mod.CONFIRM_WWFT},
+            "manual_minutes": s.get("manual_minutes"), "demo": DEMO, "ai": ai.label(),
+            "channels": {"whatsapp": whatsapp.configured(), "email": bool(os.environ.get("SMTP_HOST"))}}
+
+
+@app.get("/api/cockpit")
+def cockpit_api():
+    return jsonify(cockpit_payload(state["docs"].get(request.args.get("doc") or ""), request.args.get("scan")))
+
+
+def _signature(bid):
+    return {d: (state["docs"][d]["status"], state["docs"][d].get("light"), len(state["docs"][d].get("flags") or []),
+                bool(state["docs"][d].get("flag_notes"))) for d in state["batches"][bid]["docs"] if d in state["docs"]}
+
+
+@app.post("/api/document/<did>")
+def doc_api(did):
+    """The cockpit's keyboard actions. Same rules as the form: see doc_action."""
+    doc = state["docs"].get(did) or abort(404)
+    before = _signature(doc["batch"])
+    ok, message = doc_action(doc, request.form)
+    after = _signature(doc["batch"])
+    changed = [i for i in after if after[i] != before.get(i) and i != did]
+    trails = doc_trails([did])
+    return jsonify({"ok": ok, "message": message, "doc": cockpit_doc(doc, trails[did]),
+                    "docs": [cockpit_doc(state["docs"][i]) for i in changed], "bank": bank_view()})
+
+
+@app.post("/api/scan/<bid>/indeling")
+def regroup_api(bid):
+    """Split a document after a page (S) or merge it with the previous one (M), from the cockpit."""
+    batch, _ = batch_view(bid)
+    ok, message = regroup(batch, request.form.get("doc"), request.form.get("action"), request.form.get("after"))
+    return jsonify({"ok": ok, "message": message})
+
+
+def client_question(doc, client, note, channel="email"):
     """Draft text for a question to the client. Plain and factual: only the document and what is missing."""
     r = doc.get("result") or {}
-    what = " ".join(x for x in [ai.KINDS.get(doc["kind"], "document").lower(), r.get("counterparty") or "",
-                                r.get("reference") or "", f"van {r['doc_date']}" if r.get("doc_date") else ""] if x)
+    when = checks.parse_date(r.get("doc_date"))
+    what = " ".join(x for x in [ai.KINDS.get(doc["kind"], "document").lower(), "van" if r.get("counterparty") else "",
+                                r.get("counterparty") or "", r.get("reference") or "",
+                                f"({when.strftime('%d-%m-%Y')})" if when else ""] if x)
+    if channel == "whatsapp":
+        first = (client.get("contact") or "").split(" ")[0]
+        return f"Hoi {first or 'daar'}, we hebben een vraag over de {what}. {note} Groet, {firm_name()}"
     return (f"Beste {client.get('contact') or 'klant'},\n\nBij het verwerken van uw administratie hebben we een vraag over "
-            f"het volgende stuk: {what}.\n\n{note}\n\nAlvast bedankt.\n\nMet vriendelijke groet,\n{who()}")
+            f"het volgende stuk: {what}.\n\n{note}\n\nAlvast bedankt.\n\nMet vriendelijke groet,\n{who()}\n{firm_name()}")
 
 
 EDITABLE = ["counterparty", "reference", "doc_date", "due_date", "supplier_vat_number", "iban", "description"]
@@ -1000,16 +1326,19 @@ def _selected(key):
     return [state["docs"][i] for i in ids if i in state["docs"] and state["docs"][i]["status"] == "approved"]
 
 
-def _exact_doc(doc):
-    s = settings()
+def _exact_doc(doc, s=None):
+    s = s or settings()
     return doc | {"exact_journal": s["journal_sales"] if doc["kind"] == "verkoopfactuur" else s["journal_purchase"],
                   "exact_vat": s.get("vat_map") or {}}
 
 
 @app.get("/afhandelen")
 def deliver():
+    if guest():
+        return render_template("deliver.html", nav="deliver", sim=True, docs=[], clients={}, s=settings(), pending={},
+                               integ={}, exact_tok=None, exact_ready=False, bookable=[], sample_ubl=None)
     ds = approved_docs()
-    return render_template("deliver.html", nav="deliver", docs=ds, clients=clients(), s=settings(),
+    return render_template("deliver.html", nav="deliver", sim=False, docs=ds, clients=clients(), s=settings(),
                            integ=integrations_status(), exact_tok=exact.token(), exact_ready=exact_configured(),
                            pending={k: len(approved_docs(k)) for k in ("mijnkantoor", "exact", "excel")}
                            | {"ubl": len([d for d in approved_docs("ubl") if d["kind"] in UBL_KINDS])},
@@ -1218,16 +1547,20 @@ def ubl_allowed(doc):
     return doc["status"] == "approved" or state["batches"][doc["batch"]].get("source") == "voorbeeld"
 
 
-def ubl_for(doc, cl):
+def ubl_xml(doc, cl, pdf_bytes, concept=False):
     c = cl.get(doc.get("client_nr")) or {"name": "Onbekende klant"}
     fields = as_check_fields(doc) | {"description": (doc["result"] or {}).get("description")}
     filename = (doc.get("filing") or {}).get("filename") or f"{doc['id']}.pdf"
     xml = ubl.build(fields, {"name": c["name"], "address": c.get("address") or c.get("city"), "vat": c.get("vat")},
-                    vault.read(pdf_path(doc)), filename)
-    if doc["status"] != "approved":
+                    pdf_bytes, filename)
+    if concept:
         xml = xml.replace("Opgesteld uit het originele document (bijlage) en goedgekeurd door een medewerker.",
                           "CONCEPT uit de voorbeeldscan: nog niet goedgekeurd door een medewerker. Niet importeren.")
     return xml, filename.rsplit(".", 1)[0] + ".xml"
+
+
+def ubl_for(doc, cl):
+    return ubl_xml(doc, cl, vault.read(pdf_path(doc)), concept=doc["status"] != "approved")
 
 
 @app.get("/document/<did>/ubl.xml")
@@ -1311,19 +1644,54 @@ def clients_page():
         CLIENTS.save(cl)
         return redirect(url_for("clients_page"))
     counts = {}
+    if guest():
+        sr = showroom()
+        for d in sr["docs"]:
+            counts[d["client_nr"]] = counts.get(d["client_nr"], 0) + 1
+        return render_template("clients.html", nav="clients", clients=list(sr["clients"].values()), counts=counts,
+                               charts=sr["charts"], firm=sr["firm"], bank={k: len(v) for k, v in sr["bank_lines"].items()})
     for d in state["docs"].values():
         counts[d.get("client_nr")] = counts.get(d.get("client_nr"), 0) + 1
-    return render_template("clients.html", nav="clients", clients=CLIENTS.load(), counts=counts, charts=charts())
+    return render_template("clients.html", nav="clients", clients=CLIENTS.load(), counts=counts, charts=charts(),
+                           firm=firm_name(), bank={k: len(v) for k, v in BANK.load().items()})
+
+
+@app.post("/klanten/bank")
+@auth.admin_required
+def bank_import():
+    """Bank lines of one client from a CAMT.053 file (the bank's own export). They are only used to list payments
+    that have no document yet."""
+    nr = re.sub(r"\D", "", request.form.get("nr", ""))
+    f = request.files.get("camt")
+    if nr not in clients() or not f:
+        flash("Kies een klant en een CAMT.053-bestand.", "error")
+        return redirect(url_for("clients_page"))
+    try:
+        lines = bank.parse_camt(f.read(), prefix=f"B{nr}")
+    except Exception:  # noqa: BLE001 - not a readable CAMT file
+        lines = []
+    if not lines:
+        flash("Geen boekingen gevonden. Is dit een CAMT.053-bestand (xml) van de bank?", "error")
+        return redirect(url_for("clients_page"))
+    data = BANK.load()
+    data[nr] = lines
+    BANK.save(data)
+    audit("-", "-", "bank_imported", who(), client=nr, lines=len(lines))
+    flash(f"{len(lines)} bankregels ingelezen. De betalingen zonder document staan in de werkbank onder Ontbrekende bonnen.")
+    return redirect(url_for("clients_page"))
 
 
 @app.get("/klanten/scheidingsbladen.pdf")
 def cover_sheets():
-    cl = clients()
+    cl = showroom()["clients"] if guest() else clients()
     nrs = request.args.getlist("nr") or list(cl)
     sel = [cl[n] for n in nrs if n in cl]
     if not sel:
         abort(404)
-    return send_file(io.BytesIO(coversheet.pdf(sel, BRAND)), mimetype="application/pdf",
+    # white-label: the firm's own name on the sheet. A tour guest may type a name to see their own firm on it.
+    typed = re.sub(r"[^\w .,&'()+-]", "", request.args.get("kantoor", ""), flags=re.UNICODE).strip()[:48]
+    firm = typed or (showroom()["firm"] if guest() else firm_name())
+    return send_file(io.BytesIO(coversheet.pdf(sel, BRAND, firm)), mimetype="application/pdf",
                      download_name="scheidingsbladen.pdf")
 
 
@@ -1335,6 +1703,7 @@ def integrations():
     if request.method == "POST":
         section = request.form.get("section")
         if section == "general":
+            s["firm_name"] = " ".join(request.form.get("firm_name", "").split())[:60]
             s["manual_minutes"] = _num(request.form.get("manual_minutes"))
             s["watch_inbox"] = bool(request.form.get("watch_inbox"))
         elif section == "mijnkantoor":
@@ -1357,7 +1726,7 @@ def integrations():
         return redirect(url_for("integrations") + f"#{section}")
     return render_template("integrations.html", nav="integrations", s=s, inbox=str(INBOX), exact_tok=exact.token(),
                            exact_ready=exact_configured(), redirect_uri=exact_redirect(), folders=exports.DEFAULT_FOLDERS,
-                           integ=integrations_status(), live_key=ai.live())
+                           integ=integrations_status(), live_key=ai.live(), firm=firm_name())
 
 
 def exact_redirect():
@@ -1482,7 +1851,10 @@ def whatsapp_webhook():
                 continue
             name = item.get("filename") or ("whatsapp" + whatsapp.EXT.get(mime or item.get("mime", ""), ".jpg"))
             if Path(name).suffix.lower() in ALLOWED:
-                create_batch([(name, data)], "whatsapp", f"WhatsApp {whatsapp.mask(item['from'])}")
+                sender = whatsapp.normalise(item["from"])
+                nr = next((c["nr"] for c in clients().values()
+                           if c.get("whatsapp") and whatsapp.normalise("+" + c["whatsapp"].lstrip("+")) == sender), None)
+                create_batch([(name, data)], "whatsapp", f"WhatsApp {whatsapp.mask(item['from'])}", client_nr=nr)
     return "ok"
 
 
@@ -1509,7 +1881,575 @@ EVENT_LABEL = {"received": "Scan ontvangen", "processed": "Scan verwerkt", "fail
                "message_discarded": "Bericht verwijderd", "message_approved": "Bericht goedgekeurd",
                "message_sent": "Bericht verstuurd", "message_not_sent": "Goedgekeurd, niet verstuurd (demo)",
                "wwft_stop_on": "Wwft-stop aan", "wwft_stop_off": "Wwft-stop uit", "whatsapp_failed": "WhatsApp-bestand mislukt",
-               "guest_tour": "Rondleiding geopend"}
+               "guest_tour": "Rondleiding geopend", "flag_noted": "Notitie bij rode vlag",
+               "flag_note_removed": "Notitie bij vlag verwijderd", "chase_drafted": "Bon opgevraagd (concept)",
+               "chase_closed": "Bankregel afgehandeld zonder bon", "bank_imported": "Bankregels ingelezen",
+               "client_upload": "Aangeleverd via klantlink", "sorted": "Dossier bepaald", "checked": "Controles uitgevoerd"}
+
+
+
+# ---------------------------------------------------------------- bonnenjacht: bank lines without a document
+def bank_view(cl=None):
+    """Every bank line of every client with its match and, when there is none, the question for the client."""
+    cl = cl or clients()
+    chase = state.setdefault("chase", {})
+    firm = firm_name()
+    out = []
+    for nr, lines in BANK.load().items():
+        if nr not in cl:
+            continue
+        mine = [{"id": d["id"], "kind": d["kind"], "status": d["status"], "counterparty": (d["result"] or {}).get("counterparty"),
+                 "doc_date": (d["result"] or {}).get("doc_date"), "gross_total": (d["result"] or {}).get("gross_total")}
+                for d in state["docs"].values() if d.get("client_nr") == nr and d.get("result") and d["status"] != "reading"]
+        found = bank.match(lines, mine)
+        for line in lines:
+            out.append(bank_line(line, nr, found.get(line["id"]), chase.get(line["id"]), cl[nr], firm))
+    return out
+
+
+def bank_line(line, nr, doc_id, chase, client, firm):
+    if chase and chase.get("closed"):
+        status = "afgehandeld"
+    elif doc_id:
+        status = "ontvangen" if chase else "gekoppeld"
+    else:
+        status = "gevraagd" if chase else ("ontbreekt" if line["amount"] < 0 else "open")
+    return dict(line, client_nr=nr, doc=doc_id, status=status, chase=chase, shop=bank.shop(line),
+                text=bank.text(line, client, firm), type_label=bank.TYPES.get(line.get("type"), line.get("type") or ""))
+
+
+def demo_replies():
+    """Demo instance only: the fictional reply photos staff can play back as the client's answer."""
+    if not DEMO:
+        return {}
+    m = sample_manifest() or {}
+    return {r["bank"]: {"image": "/static/" + r["image"], "size": r["size"], "name": name}
+            for name, r in (m.get("replies") or {}).items()}
+
+
+@app.post("/api/bank/<line_id>")
+def bank_api(line_id):
+    """ask: draft the question (WhatsApp or e-mail). send: draft it and approve it with both statements.
+    close: no document needed, with a note. reopen. demo_reply: play the fictional client's answer (demo instance)."""
+    cl = clients()
+    found = next(((nr, l) for nr, lines in BANK.load().items() for l in lines if l["id"] == line_id), None)
+    if not found or found[0] not in cl:
+        abort(404)
+    nr, line = found
+    c = cl[nr]
+    action = request.form.get("action")
+    chase = state.setdefault("chase", {})
+    message = ""
+    if action in ("ask", "send"):
+        channel = request.form.get("channel") if request.form.get("channel") in outbox_mod.CHANNELS else "whatsapp"
+        to = request.form.get("to", "").strip() or (("+" + c["whatsapp"]) if channel == "whatsapp" and c.get("whatsapp") else c.get("email") or "")
+        body = request.form.get("body", "").strip() or bank.text(line, c, firm_name())
+        mid = outbox.draft(channel, to, f"Ontbrekende bon ({c['name']})", body, nr, None, who(), "ontbrekende bon")
+        chase[line_id] = {"message": mid, "by": who(), "at": now(), "channel": channel}
+        audit("-", "-", "chase_drafted", who(), message=mid, note=f"{line['date']} {bank.shop(line)} {checks.nl(abs(line['amount']))}")
+        message = "Conceptbericht klaargezet onder Berichten. Er is nog niets verstuurd."
+        if action == "send":
+            message = approve_message(mid, request.form, c)
+    elif action == "close":
+        note = " ".join(request.form.get("note", "").split())[:300] or "Geen bon nodig"
+        chase[line_id] = {"closed": True, "by": who(), "at": now(), "note": note}
+        audit("-", "-", "chase_closed", who(), note=f"{line['date']} {bank.shop(line)}: {note}")
+        message = "Vastgelegd."
+    elif action == "reopen":
+        chase.pop(line_id, None)
+    elif action == "demo_reply" and DEMO:
+        m = sample_manifest() or {}
+        reply = next((r for r in (m.get("replies") or {}).values() if r.get("bank") == line_id), None)
+        if not reply:
+            return jsonify({"ok": False, "message": "Voor deze regel is geen voorbeeldantwoord.", "bank": bank_view(cl)})
+        data = (HERE / "static" / reply["image"]).read_bytes()
+        create_batch([("whatsapp-bon.jpg", data)], "whatsapp", f"WhatsApp {whatsapp.mask('+' + c.get('whatsapp', ''))} (demo)",
+                     replay=True, fast=True, client_nr=nr)
+        chase.setdefault(line_id, {"by": who(), "at": now(), "channel": "whatsapp"})["replied"] = now()
+        message = "Voorbeeldantwoord van de klant ingelezen."
+    else:
+        abort(400)
+    save_state()
+    return jsonify({"ok": True, "message": message, "bank": bank_view(cl)})
+
+
+# ---------------------------------------------------------------- the client's own upload link
+_uploads = {}  # token -> [timestamps], in memory: a simple brake on a leaked link
+
+
+def upload_token(nr):
+    sig = hmac.new(app.secret_key.encode(), f"aanleveren:{nr}".encode(), hashlib.sha256).hexdigest()[:20]
+    return f"{nr}-{sig}"
+
+
+def upload_url(nr):
+    return f"/aanleveren/{upload_token(nr)}"
+
+
+@app.route("/aanleveren/<token>", methods=["GET", "POST"])
+def client_upload(token):
+    """A page for the firm's client, in the firm's name: photograph a receipt, done. No account, no app. The link
+    is personal (signed) and can only add documents to that client's dossier; it shows nothing of the dossier.
+    On a demo instance nothing is accepted: the page plays the upload in the browser."""
+    nr = token.rsplit("-", 1)[0]
+    c = (showroom()["clients"] if DEMO else clients()).get(nr)
+    if not c or not hmac.compare_digest(token, upload_token(nr)):
+        abort(404)
+    firm = showroom()["firm"] if DEMO else firm_name()
+    done = None
+    if request.method == "POST":
+        if DEMO:
+            abort(403, "Dit is een demonstratie: er wordt niets verstuurd of bewaard.")
+        recent = [t for t in _uploads.get(token, []) if time.time() - t < 3600]
+        files = [(f.filename, f.read()) for f in request.files.getlist("files")[:10]
+                 if f and f.filename and Path(f.filename).suffix.lower() in ALLOWED]
+        if len(recent) + len(files) > 40:
+            abort(400, "Te veel bestanden in korte tijd. Probeer het later opnieuw of neem contact op met het kantoor.")
+        if files:
+            _uploads[token] = recent + [time.time()] * len(files)
+            create_batch(files, "klantlink", f"Aanleverlink {c['name']}", client_nr=nr)
+            audit("-", "-", "client_upload", "Klant", client=nr, files=len(files))
+            done = len(files)
+    return render_template("aanleveren.html", client=c, firm=firm, demo=DEMO, done=done, token=token)
+
+
+# ---------------------------------------------------------------- showroom: the fictional sample of the tour
+# The tour never touches stored state. Everything a guest sees is derived from the sample files in the repository
+# (so it is there right after a restart, and nothing staff do can change it); what a guest "does" lives in the
+# visitor's browser. The checks, the exports and the cover sheets a guest gets are made by the same code as for
+# staff, through stateless requests.
+_showroom = None
+_sample_pdf = None
+_sample_cache = {}
+_pdf_lock = threading.Lock()
+
+
+def showroom():
+    global _showroom
+    if _showroom is None:
+        with lock:
+            if _showroom is None:
+                _showroom = build_showroom()
+    return _showroom
+
+
+def build_showroom():
+    m = sample_manifest()
+    cl = {c["nr"]: c for c in json.loads((SAMPLES / "clients.json").read_text(encoding="utf-8"))}
+    ch = json.loads((SAMPLES / "charts.json").read_text(encoding="utf-8"))
+    lines = json.loads((SAMPLES / "bank.json").read_text(encoding="utf-8")) if (SAMPLES / "bank.json").exists() else {}
+    today = checks.parse_date(m.get("as_of")) or date.today()
+    stamp = f"{m.get('as_of')}T09:15:00"
+    owner, cur = {}, None
+    for p in m["pages"]:
+        cur = p["ref"] if p["kind"] == "cover" else cur
+        owner[p["n"]] = cur
+
+    def make(spec, nr, via="scheidingsblad"):
+        result = deepcopy(spec["answer"])
+        reason = result.pop("split_reason", None) or "Zelfde afzender en kenmerk"
+        doc = {"id": spec["key"], "batch": "voorbeeld", "key": spec["key"], "pages": list(spec["pages"]), "client_nr": nr,
+               "client_via": via, "kind": result["kind"], "split_reason": reason, "result": result, "status": "review",
+               "flags": [], "corrections": [], "exports": {}, "created": stamp, "seconds": None, "boxes": spec["boxes"],
+               "flag_notes": {}, "trail": {"route": "replay (geen AI)"}}
+        doc["filing"] = exports.proposal(doc, cl.get(nr) or {}, exports.DEFAULT_FOLDERS)
+        return doc
+
+    by_key = {d["key"]: d for d in m["documents"]}
+    every = {p for d in m["documents"] for p in d["pages"]}
+    first = [make(sp, owner[sp["pages"][0]]) for sp in manifest_specs(m, every)]
+    staged = [{"id": "+".join(st["keys"]), "parts": st["keys"]} for st in m.get("staged") or []]
+    alt = [make({"key": k, "pages": by_key[k]["pages"], "answer": by_key[k]["answer"], "boxes": by_key[k].get("boxes") or {}},
+                owner[by_key[k]["pages"][0]]) for st in staged for k in st["parts"]]
+    sr = {"sha": m["sha256"], "as_of": m.get("as_of"), "today": today, "firm": m.get("firm") or DEMO_FIRM, "title": m.get("title"),
+          "file": m["file"], "pages": m["pages"], "clients": cl, "charts": ch, "docs": first, "alternates": alt,
+          "staged": staged, "bank_lines": lines, "stamp": stamp}
+    whole = [d for d in first if d["id"] not in {st["id"] for st in staged}]
+    for d in first:
+        sample_recheck(sr, d, [o["id"] for o in first])
+    for d in alt:
+        sample_recheck(sr, d, [o["id"] for o in whole + alt])
+    sr["replies"] = {}
+    for name, r in (m.get("replies") or {}).items():
+        d = make({"key": f"R-{name}", "pages": [1], "answer": r["answer"], "boxes": r.get("boxes") or {}}, r["client"],
+                 "WhatsApp-nummer van de klant")
+        d["batch"], d["image"], d["size"] = "antwoord", "/static/" + r["image"], r["size"]
+        sample_recheck(sr, d, [o["id"] for o in whole + alt], reply=True)
+        sr["replies"][r["bank"]] = {"name": name, "image": "/static/" + r["image"], "size": r["size"], "doc": d}
+    return sr
+
+
+def sample_pool(sr):
+    pool = {d["id"]: d for d in sr["docs"] + sr["alternates"]}
+    pool.update({r["doc"]["id"]: r["doc"] for r in (sr.get("replies") or {}).values()})
+    return pool
+
+
+def sample_recheck(sr, doc, active, reply=False):
+    """Flags, badges and booking evidence for one document of the sample, with the real check code. active: the ids
+    of the documents that are in the visitor's pile right now (a split or removed document is not compared with)."""
+    pool = sample_pool(sr)
+    earlier = [pool[i] for i in active if i in pool and i != doc["id"] and pool[i]["client_nr"] == doc["client_nr"]
+               and pool[i]["batch"] == "voorbeeld" and (reply or doc["batch"] != "voorbeeld" or pool[i]["pages"][0] < doc["pages"][0])]
+    history = ledger_history(doc["client_nr"]) if doc.get("client_nr") else []
+    chart = sr["charts"].get((sr["clients"].get(doc.get("client_nr")) or {}).get("chart", "standaard"), [])
+    doc["flags"] = compute_flags(doc, earlier, history, sr["today"], chart)
+    doc["light"] = checks.status_of(doc["flags"])
+    doc["badges"], doc["evidence"] = insight(doc, earlier, history, chart)
+    return doc
+
+
+def sample_trail(sr, doc):
+    pages = ", ".join(str(p) for p in doc["pages"])
+    c = sr["clients"].get(doc.get("client_nr")) or {}
+    if doc["batch"] == "antwoord":
+        start = [{"ts": sr["stamp"], "event": "received", "label": "Foto ontvangen", "actor": "WhatsApp",
+                  "text": f"Antwoord van {c.get('contact') or 'de klant'} op de vraag van het kantoor"},
+                 {"ts": sr["stamp"], "event": "sorted", "label": "Dossier bepaald", "actor": "Systeem",
+                  "text": f"Dossier {doc['client_nr']} via het WhatsApp-nummer van de klant"}]
+    else:
+        start = [{"ts": sr["stamp"], "event": "received", "label": "Scan ontvangen", "actor": "Scanner",
+                  "text": f"{sr['file']} · pagina {pages}"},
+                 {"ts": sr["stamp"], "event": "sorted", "label": "Dossier bepaald", "actor": "Systeem",
+                  "text": f"Dossier {doc['client_nr']} via het scheidingsblad (QR-code, geen AI)"}]
+    flags = [f for f in doc["flags"] if f["level"] in ("error", "warning")]
+    return start + [
+        {"ts": sr["stamp"], "event": "read", "label": "Document gelezen", "actor": "Systeem",
+         "text": "Vaste uitkomst van de voorbeeldstapel: de rondleiding leest niet live"},
+        {"ts": sr["stamp"], "event": "checked", "label": "Controles uitgevoerd", "actor": "Systeem",
+         "text": f"Rekenregels, btw, IBAN, dubbel en termijnen: {len(flags)} punt(en) voor de controleur"
+                 if flags else "Rekenregels, btw, IBAN, dubbel en termijnen: geen bijzonderheden"}]
+
+
+_showroom_json = None
+
+
+def showroom_public():
+    global _showroom_json
+    if _showroom_json is None:
+        sr = showroom()
+        firm = sr["firm"]
+
+        def out(d):
+            return cockpit_doc(d, sample_trail(sr, d))
+
+        docs = [{"id": d["id"], "kind": d["kind"], "status": "review", "counterparty": d["result"].get("counterparty"),
+                 "doc_date": d["result"].get("doc_date"), "gross_total": d["result"].get("gross_total"), "client_nr": d["client_nr"]}
+                for d in sr["docs"] + sr["alternates"] if d["id"] not in {st["id"] for st in sr["staged"]}]
+        lines = []
+        for nr, rows in sr["bank_lines"].items():
+            found = bank.match(rows, [d for d in docs if d["client_nr"] == nr])
+            for line in rows:
+                lines.append(bank_line(line, nr, found.get(line["id"]), None, sr["clients"][nr], firm))
+        _showroom_json = {
+            "mode": "sim", "sha": sr["sha"][:12], "as_of": sr["as_of"], "firm": firm, "title": sr["title"], "file": sr["file"],
+            "user": "U (rondleiding)", "kinds": ai.KINDS, "vat_codes": ai.VAT_CODES, "reading": 0,
+            "clients": {nr: client_public(c) for nr, c in sr["clients"].items() if nr in {p["ref"] for p in sr["pages"]}},
+            "charts": sr["charts"], "pages": sr["pages"], "docs": [out(d) for d in sr["docs"]],
+            "alternates": [out(d) for d in sr["alternates"]], "staged": sr["staged"],
+            "replies": {k: {"image": r["image"], "size": r["size"], "name": r["name"], "doc": out(r["doc"])}
+                        for k, r in sr["replies"].items()},
+            "bank": lines, "img": f"/voorbeeld/p/{{n}}.jpg?v={sr['sha'][:8]}", "sprite": "/static/demo/stapel-42.jpg",
+            "confirm": {"read": outbox_mod.CONFIRM_READ, "wwft": outbox_mod.CONFIRM_WWFT}, "manual_minutes": None,
+            "demo": True, "ai": "Vaste voorbeeldstapel (geen AI)", "channels": {"whatsapp": False, "email": False}}
+    return _showroom_json
+
+
+@app.get("/api/voorbeeld.json")
+def showroom_json():
+    resp = jsonify(showroom_public())
+    resp.headers["Cache-Control"] = "public, max-age=300"
+    return resp
+
+
+def sample_pdf():
+    global _sample_pdf
+    import pypdfium2 as pdfium
+    if _sample_pdf is None:
+        _sample_pdf = pdfium.PdfDocument(str(SAMPLES / SAMPLE_SCAN))
+    return _sample_pdf
+
+
+def sample_page_jpeg(n):
+    """One page of the fictional sample scan as the JPEG that is inside the PDF (no re-encoding)."""
+    import pypdfium2 as pdfium
+    with _pdf_lock:
+        if ("p", n) not in _sample_cache:
+            pdf = sample_pdf()
+            if not 1 <= n <= len(pdf):
+                return None
+            page = pdf[n - 1]
+            images = list(page.get_objects(filter=[pdfium.raw.FPDF_PAGEOBJ_IMAGE]))
+            buf = io.BytesIO()
+            if images:
+                images[0].extract(buf, fb_format="jpeg")
+            else:
+                page.render(scale=scan.DPI / 72).to_pil().convert("RGB").save(buf, "JPEG", quality=80)
+            _sample_cache[("p", n)] = buf.getvalue()
+        return _sample_cache[("p", n)]
+
+
+def sample_doc_pdf(pages):
+    """The pages of one sample document as a PDF (the attachment of its UBL file)."""
+    import pypdfium2 as pdfium
+    key = ("d",) + tuple(pages)
+    with _pdf_lock:
+        if key not in _sample_cache:
+            new = pdfium.PdfDocument.new()
+            new.import_pages(sample_pdf(), [p - 1 for p in pages])
+            buf = io.BytesIO()
+            new.save(buf)
+            _sample_cache[key] = buf.getvalue()
+        return _sample_cache[key]
+
+
+def sample_pdf_of(doc):
+    if doc.get("image"):   # a reply photo: one image, wrapped as a PDF
+        key = ("r", doc["id"])
+        with _pdf_lock:
+            if key not in _sample_cache:
+                from PIL import Image
+                buf = io.BytesIO()
+                Image.open(HERE / doc["image"].lstrip("/")).convert("RGB").save(buf, "PDF", resolution=150)
+                _sample_cache[key] = buf.getvalue()
+            return _sample_cache[key]
+    return sample_doc_pdf(doc["pages"])
+
+
+@app.get("/voorbeeld/p/<int:n>.jpg")
+def showroom_page(n):
+    data = sample_page_jpeg(n)
+    if data is None:
+        abort(404)
+    resp = send_file(io.BytesIO(data), mimetype="image/jpeg")
+    resp.headers["Cache-Control"] = "public, max-age=86400"
+    return resp
+
+
+SIM_TEXT = ["counterparty", "reference", "doc_date", "due_date", "supplier_vat_number", "supplier_kvk", "iban", "description"]
+SIM_MAX = 300_000
+
+
+def _simnum(v):
+    try:
+        return None if v in (None, "") else round(float(v), 2)
+    except (TypeError, ValueError):
+        return None
+
+
+def sim_doc(sr, item):
+    """A copy of a sample document with what the visitor changed in the simulation. Only known documents, only the
+    fields a reviewer can edit, everything bounded: nothing a visitor sends is stored or trusted beyond this copy."""
+    pool = sample_pool(sr)
+    base = pool.get(str(item.get("id", "")).split("#")[0])
+    if not base:
+        return None
+    doc = deepcopy(base)
+    doc["id"] = str(item.get("id"))[:60]
+    pages = item.get("pages")
+    if isinstance(pages, list) and pages and set(pages) <= set(base["pages"]) and pages != base["pages"]:
+        doc["pages"] = [p for p in base["pages"] if p in pages]
+        doc["boxes"] = {k: v for k, v in doc["boxes"].items() if v.get("page") in doc["pages"]}
+        note = "Gesplitst in de rondleiding: dit deel is niet opnieuw gelezen. Met een eigen stapel leest Scanstraat beide delen opnieuw."
+        doc["result"]["issues"] = list(doc["result"].get("issues") or []) + [note]
+        doc["split_reason"] = "handmatig gesplitst (rondleiding)"
+    if item.get("kind") in ai.KINDS:
+        doc["kind"] = doc["result"]["kind"] = item["kind"]
+    if "client_nr" in item and (item["client_nr"] is None or item["client_nr"] in sr["clients"]):
+        if item["client_nr"] != doc["client_nr"]:
+            doc["client_nr"], doc["client_via"] = item["client_nr"], "gekozen in de rondleiding" if item["client_nr"] else None
+    r = item.get("result") if isinstance(item.get("result"), dict) else {}
+    for k in SIM_TEXT:
+        if k in r:
+            doc["result"][k] = (str(r[k])[:120].strip() or None) if r[k] is not None else None
+    for k in ("net_total", "gross_total"):
+        if k in r:
+            doc["result"][k] = _simnum(r[k])
+    if isinstance(r.get("vat_lines"), list):
+        doc["result"]["vat_lines"] = [{"rate": _simnum(v.get("rate")), "base": _simnum(v.get("base")), "amount": _simnum(v.get("amount"))}
+                                      for v in r["vat_lines"][:6] if isinstance(v, dict)]
+    if isinstance(r.get("lines"), list):
+        doc["result"]["lines"] = [{"account": str(l.get("account") or "")[:8], "vat_code": l.get("vat_code") if l.get("vat_code") in ai.VAT_CODES else "V21",
+                                   "amount_excl": _simnum(l.get("amount_excl")) or 0.0, "vat_amount": _simnum(l.get("vat_amount")) or 0.0,
+                                   "description": str(l.get("description") or "")[:80]}
+                                  for l in r["lines"][:12] if isinstance(l, dict) and l.get("account")]
+    doc["filing"] = exports.proposal(doc, sr["clients"].get(doc["client_nr"]) or {}, exports.DEFAULT_FOLDERS)
+    active = [str(i)[:60] for i in item.get("active") or [] if isinstance(i, str)][:60]
+    sample_recheck(sr, doc, active or [d["id"] for d in sr["docs"]], reply=doc["batch"] != "voorbeeld")
+    notes = item.get("notes") if isinstance(item.get("notes"), dict) else {}
+    ids = {f["id"] for f in doc["flags"]}
+    doc["flag_notes"] = {k: {"note": str(v)[:500], "by": "U (rondleiding)", "at": now()} for k, v in notes.items() if k in ids}
+    if item.get("status") == "approved":
+        doc["status"] = "approved"
+        doc["approved"] = {"by": "U (rondleiding)", "at": str(item.get("at") or now())[:19], "open_flags": []}
+    return doc
+
+
+def _sim_body():
+    if (request.content_length or 0) > SIM_MAX:
+        abort(413)
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        abort(400)
+    return body
+
+
+@app.post("/api/voorbeeld/check")
+def sample_check():
+    """Stateless: the real checks on a sample document as the visitor edited it. Nothing is stored."""
+    sr = showroom()
+    doc = sim_doc(sr, _sim_body())
+    if not doc:
+        abort(404)
+    return jsonify(cockpit_doc(doc, sample_trail(sr, doc)))
+
+
+def export_bundle(docs, cl, pdf_of, concept=False):
+    """What "Exporteer batch" shows before anything is downloaded: the SI-UBL file per purchase document with our own
+    checks, the rows of the Excel register, the MijnKantoor folders and the Exact import file."""
+    out = {"count": len(docs), "ubl": [], "skipped": []}
+    for d in docs:
+        if d["kind"] not in UBL_KINDS or d.get("purged"):
+            if d["kind"] in ai.BOOKABLE and not d.get("purged"):
+                out["skipped"].append({"id": d["id"], "why": "Verkoopfactuur: gaat mee in het register en de boekingsregels, niet als inkoop-UBL."})
+            continue
+        xml, name = ubl_xml(d, cl, pdf_of(d), concept)
+        out["ubl"].append({"id": d["id"], "name": name, "title": (d["result"] or {}).get("counterparty") or ai.KINDS[d["kind"]],
+                           "client": (cl.get(d.get("client_nr")) or {}).get("name", "onbekend"), "xml": ubl.shorten(xml),
+                           "kb": round(len(xml) / 1024), "checks": ubl.verify(xml)})
+
+    def cell(v):
+        return v.strftime("%d-%m-%Y") if isinstance(v, (date, datetime)) else v
+
+    out["register"] = {"cols": exports.REGISTER_COLS,
+                       "rows": [[cell(v) for v in row] for row in exports.register_rows(docs, cl, ai.KINDS)]}
+    out["lines"] = {"cols": ["Documentnr", "Klantnr", "Dagboek", "Wederpartij", "Kenmerk", "Datum", "Grootboek", "Omschrijving",
+                             "Bedrag excl.", "Btw-code", "Btw-bedrag"],
+                    "rows": [[d["id"], d.get("client_nr"), "Verkoop" if d["kind"] == "verkoopfactuur" else "Inkoop",
+                              d["result"].get("counterparty"), d["result"].get("reference"), cell(checks.parse_date(d["result"].get("doc_date"))),
+                              l["account"], l.get("description"), l.get("amount_excl"), l["vat_code"], l.get("vat_amount")]
+                             for d in docs for l in d["result"].get("lines") or []]}
+    out["tree"] = [{"id": d["id"], "dossier": exports.dossier_name(cl[d["client_nr"]]) if d.get("client_nr") in cl else "Klant onbekend",
+                    "folder": d["filing"]["folder"], "file": d["filing"]["filename"]} for d in docs if d.get("filing")]
+    bookable = [_exact_doc(d, SETTINGS.default if concept else None) for d in docs if d["kind"] in ai.BOOKABLE]
+    out["exact"] = exports.exact_xml(bookable).decode("utf-8") if bookable else ""
+    return out
+
+
+def _sim_docs(sr, body):
+    items = body.get("docs") if isinstance(body.get("docs"), list) else []
+    docs = [sim_doc(sr, i) for i in items[:60] if isinstance(i, dict)]
+    return [d for d in docs if d and d["status"] == "approved" and d.get("client_nr") in sr["clients"]]
+
+
+@app.post("/api/voorbeeld/export")
+def sample_export():
+    """Stateless: the export of the visitor's simulation, made by the same code as a real export. want: preview
+    (json), ubl (one xml), ubl.zip, register.xlsx, exact.xml, exact.csv, mijnkantoor.zip. Every file is a concept."""
+    import zipfile
+    sr = showroom()
+    body = _sim_body()
+    docs = _sim_docs(sr, body)
+    cl, want = sr["clients"], body.get("want") or "preview"
+    if want == "preview":
+        return jsonify(export_bundle(docs, cl, sample_pdf_of, concept=True))
+    if not docs:
+        abort(400, "Nog niets goedgekeurd in de rondleiding.")
+    stamp = "voorbeeld"
+    if want == "ubl":
+        doc = next((d for d in docs if d["id"] == body.get("id") and d["kind"] in UBL_KINDS), None) or abort(404)
+        xml, name = ubl_xml(doc, cl, sample_pdf_of(doc), concept=True)
+        return send_file(io.BytesIO(xml.encode("utf-8")), mimetype="application/xml", as_attachment=True, download_name=name)
+    if want == "ubl.zip":
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+            for d in docs:
+                if d["kind"] in UBL_KINDS:
+                    xml, name = ubl_xml(d, cl, sample_pdf_of(d), concept=True)
+                    z.writestr(f"{secure_filename(cl[d['client_nr']]['name']) or 'onbekend'}/{name}", xml)
+        return send_file(io.BytesIO(buf.getvalue()), mimetype="application/zip", as_attachment=True, download_name=f"ubl-{stamp}.zip")
+    if want == "register.xlsx":
+        return send_file(io.BytesIO(exports.excel_register(docs, cl, ai.KINDS)), as_attachment=True,
+                         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                         download_name=f"scanregister-{stamp}.xlsx")
+    if want in ("exact.xml", "exact.csv"):
+        xd = [_exact_doc(d, SETTINGS.default) for d in docs if d["kind"] in ai.BOOKABLE]
+        data = exports.exact_xml(xd) if want.endswith("xml") else exports.exact_csv(xd)
+        return send_file(io.BytesIO(data), as_attachment=True, download_name=f"exact-import-{stamp}.{want[-3:]}",
+                         mimetype="application/xml" if want.endswith("xml") else "text/csv")
+    if want == "mijnkantoor.zip":
+        data = exports.zip_bundle([(d, cl[d["client_nr"]], sample_pdf_of(d)) for d in docs])
+        return send_file(io.BytesIO(data), mimetype="application/zip", as_attachment=True, download_name=f"mijnkantoor-{stamp}.zip")
+    abort(400)
+
+
+@app.get("/api/export/preview")
+def export_preview():
+    """Staff: the same preview for their own approved documents (nothing is marked as exported by looking)."""
+    docs = [d for d in _selected(None) if not d.get("purged")]
+    return jsonify(export_bundle(docs, clients(), lambda d: vault.read(pdf_path(d))))
+
+
+def hero_data():
+    """The three scenarios of the homepage hero, taken from the sample with the real check results."""
+    sr = showroom()
+    pub = showroom_public()
+    by_id = {d["id"]: d for d in pub["docs"] + pub["alternates"]}
+    fraud = by_id.get("M-BGR-IBAN")
+    known = sorted({h["iban"] for h in ledger_history("1057") if h.get("iban") and
+                    checks.norm(h.get("supplier_name")) == checks.norm(fraud["result"]["counterparty"])}) if fraud else []
+    earlier = sum(1 for h in ledger_history("1057") if fraud and checks.norm(h.get("supplier_name")) == checks.norm(fraud["result"]["counterparty"]))
+    line = next((l for l in pub["bank"] if l["id"] == "B1057-04"), None)
+    reply = pub["replies"].get("B1057-04")
+    groups = []
+    for nr, c in pub["clients"].items():
+        ds = [d for d in pub["docs"] if d["client_nr"] == nr]
+        groups.append({"nr": nr, "name": c["name"], "docs": len(ds), "pages": sum(len(d["pages"]) for d in ds),
+                       "red": sum(d["light"] == "red" for d in ds), "amber": sum(d["light"] == "amber" for d in ds),
+                       "green": sum(d["light"] == "green" for d in ds)})
+    return {"pages": pub["pages"], "groups": groups, "docs": [{"id": d["id"], "pages": d["pages"], "client_nr": d["client_nr"],
+                                                               "light": d["light"], "title": d["result"].get("counterparty") or ai.KINDS[d["kind"]],
+                                                               "kind": ai.KINDS[d["kind"]], "total": d["result"].get("gross_total")} for d in pub["docs"]],
+            "fraud": {"doc": fraud, "known": known, "earlier": earlier} if fraud else None,
+            "chase": {"line": line, "reply": reply, "client": pub["clients"].get("1057")} if line and reply else None,
+            "firm": pub["firm"], "counts": {"pages": len(pub["pages"]), "blank": sum(p["kind"] == "blank" for p in pub["pages"]),
+                                            "cover": sum(p["kind"] == "cover" for p in pub["pages"]), "docs": len(pub["docs"]),
+                                            "multi": sum(len(d["pages"]) > 1 for d in pub["docs"])}}
+
+
+# ---------------------------------------------------------------- status (the login page's badge, and for monitoring)
+def hosting_label():
+    """Where this instance runs, as far as the app can know: a label the operator sets, or the region in the
+    Render blueprint this instance was deployed from. Never a guess."""
+    label = os.environ.get("HOSTING_LABEL", "").strip()
+    if label:
+        return label
+    if region.production():
+        return region.EU_LOCATIONS.get(os.environ.get("HOSTING_LOCATION", ""), "")
+    if os.environ.get("RENDER") and (HERE / "render.yaml").exists():
+        m = re.search(r"^\s*region:\s*(\w+)", (HERE / "render.yaml").read_text(encoding="utf-8"), re.M)
+        return {"frankfurt": "Frankfurt, Duitsland (EU)", "amsterdam": "Amsterdam (EU)"}.get(m.group(1).lower(), "") if m else ""
+    return ""
+
+
+@app.get("/status.json")
+def status_json():
+    try:
+        sealed = vault.unseal(vault.seal(b"ok", b"status"), b"status") == b"ok"
+    except Exception:  # noqa: BLE001
+        sealed = False
+    failed = [b for b in state["batches"].values() if b["status"] == "error" and b["created"] >= BOOT.isoformat()]
+    items = [{"key": "portaal", "label": "Kantoorportaal", "ok": True},
+             {"key": "kluis", "label": "Versleutelde opslag (AES-256-GCM)", "ok": sealed},
+             {"key": "2fa", "label": "Tweestapsverificatie verplicht", "ok": bool(auth.REQUIRE_2FA)},
+             {"key": "straat", "label": "Verwerkingsstraat", "ok": not failed}]
+    ok = all(i["ok"] for i in items)
+    where = hosting_label()
+    resp = jsonify({"ok": ok, "text": "Alle systemen operationeel" if ok else "Storing in een onderdeel",
+                    "location": where, "eu": bool(where) and "EU" in where or region.production(), "checks": items,
+                    "checked": now(), "up_since": BOOT.isoformat(timespec="seconds"), "ai": ai.label()})
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
 
 
 # ---------------------------------------------------------------- start

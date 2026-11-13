@@ -329,7 +329,7 @@ def _repair_split(docs, n):
 
 def _reference(client, chart, reference_text):
     ref = f"Client: {client['name']} (KvK {client.get('kvk')}, btw {client.get('vat')})\n\nChart of accounts:\n" + \
-        "\n".join(f"{a} {n}" for a, n in chart) + "\n\nVAT codes:\n" + \
+        "\n".join(f"{row[0]} {row[1]}" for row in chart) + "\n\nVAT codes:\n" + \
         "\n".join(f"{k} {v}" for k, v in VAT_CODES.items())
     if reference_text:
         ref += "\n\n" + reference_text
@@ -343,7 +343,7 @@ real value belongs (for example iban: "[IBAN_1]"). Never guess what is behind a 
 
 def read(page_jpegs, page_texts, client, chart, reference_text, pseudo, doc_id=None):
     """Returns (result, usage, trail). trail says where the document was read and, for Claude, the exact text sent."""
-    accounts = [a for a, _ in chart] or ["4900"]
+    accounts = [row[0] for row in chart] or ["4900"]
     ref = _reference(client, chart, reference_text)
     if demo():
         return _read_vision(page_jpegs, ref, accounts, doc_id)

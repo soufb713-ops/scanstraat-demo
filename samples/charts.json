@@ -2,177 +2,392 @@
  "lindewerf": [
   [
    "0210",
-   "Computers en hardware"
+   "Computers en hardware",
+   ""
   ],
   [
    "0215",
-   "Afschrijving computers en hardware"
+   "Afschrijving computers en hardware",
+   ""
   ],
   [
    "1100",
-   "Bank (zakelijke rekening)"
+   "Bank (zakelijke rekening)",
+   "BLimBanRba"
   ],
   [
    "1300",
-   "Debiteuren"
+   "Debiteuren",
+   "BVorDebHad"
   ],
   [
    "1400",
-   "Vooruitbetaalde kosten"
+   "Vooruitbetaalde kosten",
+   "BVorOvaVof"
   ],
   [
    "1510",
-   "Te vorderen btw (voorbelasting)"
+   "Te vorderen btw (voorbelasting)",
+   "BSchBepBoo"
   ],
   [
    "1520",
-   "Af te dragen btw"
+   "Af te dragen btw",
+   "BSchBepBtw"
   ],
   [
    "1530",
-   "Btw verlegd (af te dragen)"
+   "Btw verlegd (af te dragen)",
+   ""
   ],
   [
    "1600",
-   "Crediteuren"
+   "Crediteuren",
+   "BSchCreHac"
   ],
   [
    "1800",
-   "Rekening-courant DGA"
+   "Rekening-courant DGA",
+   ""
   ],
   [
    "1900",
-   "Vraagposten / kruisposten"
+   "Vraagposten / kruisposten",
+   ""
   ],
   [
    "4000",
-   "Brutolonen"
+   "Brutolonen",
+   ""
   ],
   [
    "4100",
-   "Huur bedrijfsruimte"
+   "Huur bedrijfsruimte",
+   "WBedHuiBeh"
   ],
   [
    "4110",
-   "Schoonmaakkosten"
+   "Schoonmaakkosten",
+   "WBedHuiSch"
   ],
   [
    "4310",
-   "Telefoon en internet"
+   "Telefoon en internet",
+   "WBedKanTef"
   ],
   [
    "4320",
-   "Kantoorbenodigdheden"
+   "Kantoorbenodigdheden",
+   "WBedKanKan"
   ],
   [
    "4330",
-   "Software en abonnementen"
+   "Software en abonnementen",
+   "WBedKanSof"
   ],
   [
    "4340",
-   "Hosting en domeinnamen"
+   "Hosting en domeinnamen",
+   ""
   ],
   [
    "4410",
-   "Brandstof auto"
+   "Brandstof auto",
+   "WBedAutBra"
   ],
   [
    "4420",
-   "Parkeerkosten"
+   "Parkeerkosten",
+   "WBedAutPar"
   ],
   [
    "4510",
-   "Reiskosten openbaar vervoer en taxi"
+   "Reiskosten openbaar vervoer en taxi",
+   ""
   ],
   [
    "4520",
-   "Representatiekosten"
+   "Representatiekosten",
+   "WBedVkkRep"
   ],
   [
    "4530",
-   "Kantinekosten"
+   "Kantinekosten",
+   ""
   ],
   [
    "4600",
-   "Reclame- en advertentiekosten"
+   "Reclame- en advertentiekosten",
+   "WBedVkkRea"
   ],
   [
    "4700",
-   "Uitbesteed werk / inhuur derden"
+   "Uitbesteed werk / inhuur derden",
+   "WKprKuwKuw"
   ],
   [
    "4800",
-   "Bankkosten"
+   "Bankkosten",
+   "WFbeOrlRkb"
   ],
   [
    "4900",
-   "Kleine aanschaffingen / overige kosten"
+   "Kleine aanschaffingen / overige kosten",
+   "WBedAlkOal"
   ],
   [
    "8000",
-   "Omzet ontwerp en webdesign 21%"
+   "Omzet ontwerp en webdesign 21%",
+   "WOmzNodOdh"
   ]
  ],
  "standaard": [
   [
    "0210",
-   "Inventaris en gereedschap"
+   "Inventaris en gereedschap",
+   ""
   ],
   [
    "1100",
-   "Bank"
+   "Bank",
+   "BLimBanRba"
   ],
   [
    "1600",
-   "Crediteuren"
+   "Crediteuren",
+   "BSchCreHac"
   ],
   [
    "1800",
-   "Rekening-courant DGA"
+   "Rekening-courant DGA",
+   ""
   ],
   [
    "4100",
-   "Huur bedrijfsruimte"
+   "Huur bedrijfsruimte",
+   "WBedHuiBeh"
   ],
   [
    "4310",
-   "Telefoon en internet"
+   "Telefoon en internet",
+   "WBedKanTef"
   ],
   [
    "4320",
-   "Kantoorbenodigdheden"
+   "Kantoorbenodigdheden",
+   "WBedKanKan"
   ],
   [
    "4410",
-   "Brandstof auto"
+   "Brandstof auto",
+   "WBedAutBra"
   ],
   [
    "4530",
-   "Kantinekosten"
+   "Kantinekosten",
+   ""
   ],
   [
    "4600",
-   "Reclamekosten"
+   "Reclamekosten",
+   "WBedVkkRea"
   ],
   [
    "4800",
-   "Bankkosten"
+   "Bankkosten",
+   "WFbeOrlRkb"
   ],
   [
    "4900",
-   "Klein gereedschap en overige kosten"
+   "Klein gereedschap en overige kosten",
+   ""
   ],
   [
    "7000",
-   "Inkoopwaarde onderdelen"
+   "Inkoopwaarde onderdelen",
+   "WKprInhInh"
   ],
   [
    "8000",
-   "Omzet 21%"
+   "Omzet 21%",
+   "WOmzNohOlh"
   ],
   [
    "8100",
-   "Omzet 9%"
+   "Omzet 9%",
+   "WOmzNohOlv"
+  ]
+ ],
+ "mkb": [
+  [
+   "0210",
+   "Inventaris",
+   "BMvaBeiVvp"
+  ],
+  [
+   "0220",
+   "Machines en installaties",
+   "BMvaMeiVvp"
+  ],
+  [
+   "1100",
+   "Bank",
+   "BLimBanRba"
+  ],
+  [
+   "1300",
+   "Debiteuren",
+   "BVorDebHad"
+  ],
+  [
+   "1400",
+   "Vooruitbetaalde facturen",
+   "BVorOvaVof"
+  ],
+  [
+   "1510",
+   "Voorbelasting btw",
+   "BSchBepBoo"
+  ],
+  [
+   "1520",
+   "Te betalen omzetbelasting",
+   "BSchBepBtw"
+  ],
+  [
+   "1600",
+   "Crediteuren",
+   "BSchCreHac"
+  ],
+  [
+   "1800",
+   "Privé / rekening-courant ondernemer",
+   ""
+  ],
+  [
+   "4100",
+   "Huur bedrijfsruimte",
+   "WBedHuiBeh"
+  ],
+  [
+   "4200",
+   "Gas, water en elektra",
+   "WBedHuiGwe"
+  ],
+  [
+   "4210",
+   "Schoonmaakkosten",
+   "WBedHuiSch"
+  ],
+  [
+   "4250",
+   "Afvalverwerking",
+   ""
+  ],
+  [
+   "4300",
+   "Onderhoud machines en inventaris",
+   "WBedEemOme"
+  ],
+  [
+   "4310",
+   "Telefoon en internet",
+   "WBedKanTef"
+  ],
+  [
+   "4320",
+   "Kantoorbenodigdheden",
+   "WBedKanKan"
+  ],
+  [
+   "4330",
+   "Software en abonnementen",
+   "WBedKanSof"
+  ],
+  [
+   "4410",
+   "Brandstof",
+   "WBedAutBra"
+  ],
+  [
+   "4420",
+   "Parkeerkosten",
+   "WBedAutPar"
+  ],
+  [
+   "4520",
+   "Representatiekosten",
+   "WBedVkkRep"
+  ],
+  [
+   "4530",
+   "Kantinekosten",
+   ""
+  ],
+  [
+   "4600",
+   "Reclame- en advertentiekosten",
+   "WBedVkkRea"
+  ],
+  [
+   "4700",
+   "Verzekeringen bedrijf",
+   "WBedAssBea"
+  ],
+  [
+   "4800",
+   "Bank- en pinkosten",
+   "WFbeOrlRkb"
+  ],
+  [
+   "4900",
+   "Algemene kosten",
+   "WBedAlkOal"
+  ],
+  [
+   "4960",
+   "Kredietbeperking en betalingsverschillen",
+   ""
+  ],
+  [
+   "7000",
+   "Inkoop grond- en hulpstoffen",
+   "WKprKvgKvg"
+  ],
+  [
+   "7010",
+   "Inkoop handelsgoederen",
+   "WKprInhInh"
+  ],
+  [
+   "7100",
+   "Verpakkingsmaterialen",
+   "WBedEemVpm"
+  ],
+  [
+   "7200",
+   "Uitbesteed werk",
+   "WKprKuwKuw"
+  ],
+  [
+   "8000",
+   "Omzet diensten hoog tarief",
+   "WOmzNodOdh"
+  ],
+  [
+   "8010",
+   "Omzet diensten laag tarief",
+   "WOmzNodOdl"
+  ],
+  [
+   "8100",
+   "Omzet goederen laag tarief",
+   "WOmzNopOlv"
+  ],
+  [
+   "8110",
+   "Omzet goederen hoog tarief",
+   "WOmzNopOlh"
   ]
  ]
 }

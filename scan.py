@@ -22,25 +22,36 @@ PDF_LOCK = threading.Lock()  # pdfium is not thread-safe
 IMAGE_EXT = {".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp", ".webp", ".heic"}
 
 
+MAX_SIDE = 2600  # a phone photo of 12 megapixels is scaled down to roughly a 300 dpi A4 before anything else
+
+
 def load_pages(name, data: bytes):
-    """Return a list of RGB page images for a PDF, a (multi-page) TIFF or a photo, from bytes in memory."""
+    """Yield RGB page images for a PDF, a (multi-page) TIFF or a photo, from bytes in memory.
+    One page at a time: a scan of a hundred pages never sits in memory as a hundred images."""
     ext = Path(name).suffix.lower()
     if ext == ".pdf":
         import pypdfium2 as pdfium
         with PDF_LOCK:
             doc = pdfium.PdfDocument(data)
-            try:
-                return [doc[i].render(scale=DPI / 72).to_pil().convert("RGB") for i in range(len(doc))]
-            finally:
+            n = len(doc)
+        try:
+            for i in range(n):
+                with PDF_LOCK:
+                    img = doc[i].render(scale=DPI / 72).to_pil().convert("RGB")
+                yield img
+        finally:
+            with PDF_LOCK:
                 doc.close()
-    if ext in IMAGE_EXT:
+    elif ext in IMAGE_EXT:
         img = Image.open(io.BytesIO(data))
-        pages = []
         for i in range(getattr(img, "n_frames", 1)):
             img.seek(i)
-            pages.append(ImageOps.exif_transpose(img.copy()).convert("RGB"))
-        return pages
-    raise ValueError(f"Bestandstype {ext} wordt niet ondersteund")
+            page = ImageOps.exif_transpose(img.copy()).convert("RGB")
+            if max(page.size) > MAX_SIDE:
+                page.thumbnail((MAX_SIDE, MAX_SIDE))
+            yield page
+    else:
+        raise ValueError(f"Bestandstype {ext} wordt niet ondersteund")
 
 
 def ink_ratio(img):
@@ -63,8 +74,10 @@ def read_cover_sheet(img):
     import cv2
     det = cv2.QRCodeDetector()
     g = np.asarray(img.convert("L"))
-    for scale in (1.0, 0.6, 1.5):
-        a = g if scale == 1.0 else cv2.resize(g, None, fx=scale, fy=scale)
+    # A cover sheet's code is large: half size finds it fastest. The other sizes are for photos and odd scans, and
+    # only tried when the page has the three finder squares of a QR code at all.
+    half = cv2.resize(g, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_AREA)
+    for a in (half, g):
         try:
             text, _, _ = det.detectAndDecode(a)
         except cv2.error:
@@ -72,6 +85,19 @@ def read_cover_sheet(img):
         nr = coversheet.parse(text)
         if nr:
             return nr
+    try:
+        found, _ = det.detect(half)
+    except cv2.error:
+        found = False
+    if found:
+        for scale in (0.6, 1.5):
+            try:
+                text, _, _ = det.detectAndDecode(cv2.resize(g, None, fx=scale, fy=scale))
+            except cv2.error:
+                text = ""
+            nr = coversheet.parse(text)
+            if nr:
+                return nr
     return None
 
 

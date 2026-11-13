@@ -73,13 +73,13 @@ def main(argv=None):
         sys.exit(f"Klant {args.client} niet gevonden. Kies uit: " + ", ".join(f"{c['nr']} {c['name']}" for c in clients))
     charts = json.loads((HERE / "samples" / "charts.json").read_text(encoding="utf-8"))
     chart = charts.get(client.get("chart", "standaard")) or charts.get("standaard", [])
-    accounts = [a for a, _ in chart] or ["4900"]
+    accounts = [row[0] for row in chart] or ["4900"]
 
     # 1 pages
     pages, skipped, covers = [], 0, 0
     for f in args.files:
         try:
-            imgs = scan.load_pages(f.name, f.read_bytes())
+            imgs = list(scan.load_pages(f.name, f.read_bytes()))
         except Exception as e:  # noqa: BLE001 - report and go on with the other files
             print(f"  ! {f.name}: niet te openen ({e})")
             continue
