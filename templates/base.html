@@ -35,6 +35,7 @@
       <a href="/koppelingen" class="{{ 'on' if nav=='integrations' }}">{{ ui.icon('integrations') }}Koppelingen</a>
       <a href="/gebruikers" class="{{ 'on' if nav=='users' }}">{{ ui.icon('users') }}Gebruikers</a>
       {% endif %}
+      <a href="/account/wachtwoord" class="m-only {{ 'on' if nav=='password' }}">Wachtwoord</a>
       {% endif %}
     </nav>
     <div class="foot">
@@ -59,5 +60,6 @@
   </div>
 </div>
 {% endblock %}
+<script>(function(){var n=document.querySelector('.side .nav'),a=n&&n.querySelector('a.on');if(a&&n.scrollWidth>n.clientWidth)n.scrollLeft=a.offsetLeft-(n.clientWidth-a.offsetWidth)/2})()</script>
 {% block scripts %}{% endblock %}
 </body></html>

@@ -5,14 +5,14 @@
 E-mailadres: <code>{{ created.email }}</code> · Tijdelijk wachtwoord: <code style="font-size:14px">{{ created.password }}</code></div></div>{% endif %}
 {% if error %}<div class="alert error" style="margin-bottom:18px"><span class="ic">!</span>{{ error }}</div>{% endif %}
 <div class="stack">
-<div class="card">
-  <table><tr><th>Naam</th><th>E-mailadres</th><th>Rol</th><th>Tweestaps</th><th>Laatst ingelogd</th><th>Status</th><th></th></tr>
+<div class="card tablewrap">
+  <table class="rt"><thead><tr><th>Naam</th><th>E-mailadres</th><th>Rol</th><th>Tweestaps</th><th>Laatst ingelogd</th><th>Status</th><th></th></tr></thead>
   {% for email, u in users.items() %}<tr>
-    <td class="strong">{{ u.name }}</td><td>{{ email }}</td><td>{{ roles[u.role] }}</td>
-    <td>{% if u.totp_secret %}<span class="badge green">Ingesteld</span>{% else %}<span class="badge amber">Bij volgende login</span>{% endif %}</td>
-    <td class="muted">{{ u.last_login|dt if u.last_login else "Nog niet" }}</td>
-    <td>{% if not u.get('active', True) %}<span class="badge red">Geblokkeerd</span>{% elif u.must_change %}<span class="badge amber">Tijdelijk wachtwoord</span>{% else %}<span class="badge green">Actief</span>{% endif %}</td>
-    <td class="num">{% if email != user.email %}<form method="post" style="display:inline-flex;gap:6px"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="email" value="{{ email }}">
+    <td class="strong rt-h">{{ u.name }}</td><td data-l="E-mail">{{ email }}</td><td data-l="Rol">{{ roles[u.role] }}</td>
+    <td data-l="Tweestaps">{% if u.totp_secret %}<span class="badge green">Ingesteld</span>{% else %}<span class="badge amber">Bij volgende login</span>{% endif %}</td>
+    <td class="muted" data-l="Laatst ingelogd">{{ u.last_login|dt if u.last_login else "Nog niet" }}</td>
+    <td data-l="Status">{% if not u.get('active', True) %}<span class="badge red">Geblokkeerd</span>{% elif u.must_change %}<span class="badge amber">Tijdelijk wachtwoord</span>{% else %}<span class="badge green">Actief</span>{% endif %}</td>
+    <td class="num rt-a">{% if email != user.email %}<form method="post" style="display:inline-flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="email" value="{{ email }}">
       <button class="btn sm" name="action" value="reset">Nieuw wachtwoord</button>
       {% if u.totp_secret %}<button class="btn sm" name="action" value="reset2fa" onclick="return confirm('Tweestapsverificatie van {{ u.name }} opnieuw laten instellen?')">2FA opnieuw</button>{% endif %}
       <button class="btn sm {{ 'danger' if u.get('active', True) }}" name="action" value="toggle">{{ 'Blokkeren' if u.get('active', True) else 'Activeren' }}</button></form>{% else %}<span class="sub">Dit ben jij</span>{% endif %}</td></tr>{% endfor %}

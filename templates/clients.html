@@ -1,40 +1,96 @@
-{% extends "base.html" %}{% set nav='clients' %}{% block title %}Klanten{% endblock %}
-{% block main %}
-<div class="head"><div><h1>Klanten en scheidingsbladen</h1><p>Elke klant heeft een scheidingsblad met een QR-code. Print het één keer en leg het bij de scanner. Het relatienummer is hetzelfde als in MijnKantoor, zodat de dossiermap klopt. Een <b>Wwft-stop</b> blokkeert alle berichten aan die klant, bijvoorbeeld zolang een melding aan FIU-Nederland wordt overwogen; de reden leg je vast in je eigen Wwft-dossier, niet hier.</p></div>
-<div class="actions"><a class="btn primary" href="/klanten/scheidingsbladen.pdf">Alle bladen printen</a></div></div>
-<div class="card tablewrap" style="margin-bottom:18px">
-  <table><tr><th>Relatie</th><th>Klant</th><th>KvK / btw</th><th>Rekeningschema</th><th>Exact-divisie</th><th>E-mail voor vragen</th><th class="num">Documenten</th><th>Wwft</th><th></th></tr>
-  {% for c in clients %}<tr>
-    <td class="strong">{{ c.nr }}</td><td><b>{{ c.name }}</b><div class="sub">{{ c.city }}</div></td>
-    <td class="sub">{{ c.kvk or '–' }}<br>{{ c.vat or '' }}</td>
-    {% if user.role == 'admin' %}<td colspan="3"><form method="post" style="display:flex;gap:6px;align-items:center"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="action" value="update"><input type="hidden" name="nr" value="{{ c.nr }}">
-      <select name="chart" style="width:auto">{% for k in charts %}<option value="{{ k }}" {{ 'selected' if k == c.chart }}>{{ k }}</option>{% endfor %}</select>
-      <input name="exact_division" value="{{ c.exact_division }}" placeholder="bijv. 123456" style="width:120px"><input name="email" type="email" value="{{ c.email or '' }}" placeholder="klant@voorbeeld.nl" style="width:180px"><button class="btn sm">Opslaan</button></form></td>
-    {% else %}<td>{{ c.chart }}</td><td>{{ c.exact_division or '–' }}</td><td>{{ c.email or '–' }}</td>{% endif %}
-    <td class="num">{{ counts.get(c.nr, 0) }}</td>
-    <td>{% if user.role == 'admin' %}<form method="post"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="action" value="wwft_stop"><input type="hidden" name="nr" value="{{ c.nr }}">
-      <button class="btn sm {{ 'danger' if c.wwft_stop }}" title="Zet aan als er een melding of onderzoek speelt: dan kan geen bericht naar deze klant worden verstuurd" onclick="return confirm('Wwft-stop {{ 'uitzetten' if c.wwft_stop else 'aanzetten' }} voor {{ c.name }}?')">{{ 'Stop aan' if c.wwft_stop else 'Geen stop' }}</button></form>
-      {% else %}{% if c.wwft_stop %}<span class="badge red">Stop</span>{% else %}<span class="sub">–</span>{% endif %}{% endif %}</td>
-    <td class="num"><a class="btn sm" href="/klanten/scheidingsbladen.pdf?nr={{ c.nr }}" target="_blank">Scheidingsblad</a></td></tr>
-  {% endfor %}
-  </table>
-</div>
-{% if user.role == 'admin' %}
-<form class="card" method="post" style="max-width:820px">
-  <input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="action" value="add">
-  <div class="card-h"><h2>Klant toevoegen</h2></div>
-  <div class="card-b">
-    <div class="grid2">
-      <div><label>Relatienummer (zoals in MijnKantoor)</label><input name="nr" inputmode="numeric" required></div>
-      <div><label>Naam</label><input name="name" required></div>
-      <div><label>KvK-nummer</label><input name="kvk"></div>
-      <div><label>Btw-nummer</label><input name="vat"></div>
-      <div><label>Plaats</label><input name="city"></div>
-      <div><label>Rekeningschema</label><select name="chart">{% for k in charts %}<option value="{{ k }}" {{ 'selected' if k == 'standaard' }}>{{ k }}</option>{% endfor %}</select></div>
-      <div><label>Exact-divisie (administratienummer)</label><input name="exact_division"><div class="hint">Leeg: de standaardadministratie van de Exact-koppeling.</div></div>
+{% extends "base.html" %}{% set nav='clients' %}{% block title %}Dossiers en scheidingsbladen{% endblock %}
+{% block main %}{% set admin = user and user.role == 'admin' and not guest %}
+<div class="head"><div><h1>Dossiers en scheidingsbladen</h1>
+<p>Elk dossier heeft één scheidingsblad met een QR-code. Eén keer printen, bij de scanner leggen en bovenop de papieren van die klant scannen: daarna weet de scanstraat zeker bij welk dossier de volgende pagina's horen. Het relatienummer is hetzelfde als in MijnKantoor, zodat de dossiermap klopt.</p></div>
+<div class="actions"><a class="btn primary" href="/klanten/scheidingsbladen.pdf" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M8 14h8v7H8z"/></svg>Alle bladen printen</a></div></div>
+
+<div class="card dz">
+  <div class="card-h"><h2>Dossiers</h2><span class="sub">{{ clients|length }} dossiers · op de bladen en in berichten staat <b>{{ firm }}</b>{% if admin %} · <a href="/koppelingen#general">wijzigen</a>{% endif %}</span></div>
+  {% for c in clients %}{% set n = counts.get(c.nr, 0) %}{% set bl = bank.get(c.nr, 0) %}
+  <details class="dz-row" id="d{{ c.nr }}">
+    <summary>
+      <span class="dz-nr">{{ c.nr }}</span>
+      <span class="dz-name"><b>{{ c.name }}</b><span class="sub">{{ c.city or 'Plaats onbekend' }}{% if c.kvk %} · KvK {{ c.kvk }}{% endif %}{% if c.vat %} · {{ c.vat }}{% endif %}</span></span>
+      <span class="dz-stat"><b>{{ n }}</b><span>{{ 'document' if n == 1 else 'documenten' }}</span></span>
+      <span class="dz-stat"><b>{{ bl }}</b><span>{{ 'bankregel' if bl == 1 else 'bankregels' }}</span></span>
+      <span class="dz-tags"><span class="badge grey plain">schema {{ c.chart or 'standaard' }}</span>{% if c.wwft_stop %}<span class="badge red">Wwft-stop</span>{% endif %}</span>
+      <span class="dz-chev" aria-hidden="true"></span>
+    </summary>
+    <div class="dz-body">
+      <div class="dz-sheet">
+        <a href="/klanten/scheidingsbladen.pdf?nr={{ c.nr }}" target="_blank" rel="noopener" title="Scheidingsblad van {{ c.name }} openen"><img src="/klanten/scheidingsblad.jpg?nr={{ c.nr }}" alt="Scheidingsblad van {{ c.name }}" loading="lazy" width="210" height="297"></a>
+        <a class="btn sm" href="/klanten/scheidingsbladen.pdf?nr={{ c.nr }}" target="_blank" rel="noopener">Blad printen</a>
+      </div>
+      <div class="dz-col">
+        <h3>Aanleveren door de klant</h3>
+        <p class="sub">Een persoonlijke link voor deze klant: foto van de bon maken, klaar. Zonder account en zonder app. De klant kan alleen aanleveren, niets inzien.</p>
+        <div class="copy"><input readonly value="{{ upload[c.nr] }}" data-path="{{ upload[c.nr] }}" aria-label="Aanleverlink van {{ c.name }}"><button type="button" class="btn sm" data-copy>Kopiëren</button></div>
+        <a class="sub" href="{{ upload[c.nr] }}" target="_blank" rel="noopener">De pagina bekijken zoals de klant hem ziet</a>
+        <h3 style="margin-top:16px">Bankregels</h3>
+        {% if admin %}
+        <p class="sub">CAMT.053-bestand van de bank (xml). De scanstraat gebruikt het alleen om betalingen zonder document te vinden.</p>
+        <form method="post" action="/klanten/bank" enctype="multipart/form-data" class="dz-file"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="nr" value="{{ c.nr }}">
+          <input type="file" name="camt" accept=".xml,text/xml,application/xml" required aria-label="CAMT.053-bestand voor {{ c.name }}"><button class="btn sm">Inlezen</button></form>
+        {% else %}
+        <p class="sub">{% if bl %}{{ bl }} bankregels ingelezen uit het CAMT.053-bestand van de bank. Betalingen zonder document staan in de werkbank onder Bonnenjacht.{% else %}Nog geen bankregels ingelezen. Een beheerder leest hier het CAMT.053-bestand van de bank in.{% endif %}</p>
+        {% endif %}
+      </div>
+      <div class="dz-col">
+        <h3>Instellingen van dit dossier</h3>
+        {% if admin %}
+        <form method="post" class="dz-form"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="action" value="update"><input type="hidden" name="nr" value="{{ c.nr }}">
+          <div><label for="ch{{ c.nr }}">Rekeningschema</label><select id="ch{{ c.nr }}" name="chart">{% for k in charts %}<option value="{{ k }}" {{ 'selected' if k == c.chart }}>{{ k }}</option>{% endfor %}</select></div>
+          <div><label for="ex{{ c.nr }}">Exact-divisie</label><input id="ex{{ c.nr }}" name="exact_division" value="{{ c.exact_division or '' }}" placeholder="bijv. 123456" inputmode="numeric"></div>
+          <div class="full"><label for="em{{ c.nr }}">E-mailadres voor vragen</label><input id="em{{ c.nr }}" name="email" type="email" value="{{ c.email or '' }}" placeholder="klant@voorbeeld.nl"></div>
+          <div class="full"><button class="btn sm primary">Opslaan</button></div>
+        </form>
+        <div class="dz-wwft">
+          <div><b>Wwft-stop {{ 'staat aan' if c.wwft_stop else 'staat uit' }}</b><span class="sub">Blokkeert alle berichten aan deze klant, bijvoorbeeld zolang een melding aan FIU-Nederland wordt overwogen. De reden leg je vast in je eigen Wwft-dossier, niet hier.</span></div>
+          <form method="post"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="action" value="wwft_stop"><input type="hidden" name="nr" value="{{ c.nr }}">
+            <button class="btn sm {{ '' if c.wwft_stop else 'danger' }}" onclick="return confirm('Wwft-stop {{ 'uitzetten' if c.wwft_stop else 'aanzetten' }} voor {{ c.name }}?')">{{ 'Stop uitzetten' if c.wwft_stop else 'Stop aanzetten' }}</button></form>
+        </div>
+        {% else %}
+        <dl class="kv">
+          <dt>Rekeningschema</dt><dd>{{ c.chart or 'standaard' }}</dd>
+          <dt>Exact-divisie</dt><dd>{{ c.exact_division or 'standaardadministratie' }}</dd>
+          <dt>E-mail voor vragen</dt><dd>{{ c.email or 'niet ingevuld' }}</dd>
+          <dt>Wwft-stop</dt><dd>{% if c.wwft_stop %}<span class="badge red">Aan</span>{% else %}uit{% endif %}</dd>
+        </dl>
+        <p class="sub" style="margin-bottom:0">Een Wwft-stop blokkeert alle berichten aan deze klant, bijvoorbeeld zolang een melding aan FIU-Nederland wordt overwogen. {{ 'In de rondleiding is dit alleen te bekijken.' if guest else 'Alleen een beheerder kan dit wijzigen.' }}</p>
+        {% endif %}
+      </div>
     </div>
-    <button class="btn primary" style="margin-top:14px">Toevoegen</button>
+  </details>
+  {% else %}<div class="card-b empty">Nog geen dossiers. Voeg hieronder het eerste dossier toe.</div>
+  {% endfor %}
+</div>
+
+{% if admin %}
+<form class="card" method="post" style="margin-top:16px">
+  <input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="action" value="add">
+  <div class="card-h"><h2>Dossier toevoegen</h2><span class="sub">daarna staat het scheidingsblad direct klaar om te printen</span></div>
+  <div class="card-b">
+    <div class="grid3">
+      <div><label for="a-nr">Relatienummer (zoals in MijnKantoor)</label><input id="a-nr" name="nr" inputmode="numeric" required></div>
+      <div><label for="a-name">Naam</label><input id="a-name" name="name" required></div>
+      <div><label for="a-city">Plaats</label><input id="a-city" name="city"></div>
+      <div><label for="a-kvk">KvK-nummer</label><input id="a-kvk" name="kvk" inputmode="numeric"></div>
+      <div><label for="a-vat">Btw-nummer</label><input id="a-vat" name="vat"></div>
+      <div><label for="a-chart">Rekeningschema</label><select id="a-chart" name="chart">{% for k in charts %}<option value="{{ k }}" {{ 'selected' if k == 'standaard' }}>{{ k }}</option>{% endfor %}</select></div>
+      <div><label for="a-ex">Exact-divisie (administratienummer)</label><input id="a-ex" name="exact_division" inputmode="numeric"><div class="hint">Leeg: de standaardadministratie van de Exact-koppeling.</div></div>
+    </div>
   </div>
+  <div class="actionbar"><button class="btn primary">Dossier toevoegen</button></div>
 </form>
 {% endif %}
 {% endblock %}
+{% block scripts %}<script>
+document.querySelectorAll('.copy input').forEach(i => { i.value = location.origin + i.dataset.path; i.addEventListener('focus', () => i.select()); });
+document.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', async () => {
+  const i = b.parentNode.querySelector('input');
+  try { await navigator.clipboard.writeText(i.value); } catch (e) { i.select(); document.execCommand('copy'); }
+  b.textContent = 'Gekopieerd'; setTimeout(() => { b.textContent = 'Kopiëren'; }, 1600);
+}));
+const want = document.getElementById(location.hash.slice(1)) || document.querySelector('.dz-row');
+if (want && want.tagName === 'DETAILS') want.open = true;
+</script>{% endblock %}

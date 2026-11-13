@@ -1650,11 +1650,13 @@ def clients_page():
         for d in sr["docs"]:
             counts[d["client_nr"]] = counts.get(d["client_nr"], 0) + 1
         return render_template("clients.html", nav="clients", clients=list(sr["clients"].values()), counts=counts,
-                               charts=sr["charts"], firm=sr["firm"], bank={k: len(v) for k, v in sr["bank_lines"].items()})
+                               charts=sr["charts"], firm=sr["firm"], bank={k: len(v) for k, v in sr["bank_lines"].items()},
+                               upload={nr: upload_url(nr) for nr in sr["clients"]})
     for d in state["docs"].values():
         counts[d.get("client_nr")] = counts.get(d.get("client_nr"), 0) + 1
     return render_template("clients.html", nav="clients", clients=CLIENTS.load(), counts=counts, charts=charts(),
-                           firm=firm_name(), bank={k: len(v) for k, v in BANK.load().items()})
+                           firm=firm_name(), bank={k: len(v) for k, v in BANK.load().items()},
+                           upload={c["nr"]: upload_url(c["nr"]) for c in CLIENTS.load()})
 
 
 @app.post("/klanten/bank")

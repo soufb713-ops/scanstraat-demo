@@ -223,6 +223,40 @@ input[type=checkbox],input[type=radio]{accent-color:var(--ink);width:15px;height
 .trustrow{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 0}
 .trustrow span{font:600 10.5px/1 var(--mono);letter-spacing:.03em;text-transform:uppercase;border:1px solid var(--line);padding:5px 7px;border-radius:3px;color:var(--s600);background:#fff}
 
+/* ------------------------------------------------------------ dossiers */
+.dz-row{border-bottom:1px solid var(--line2)}.dz-row:last-of-type{border-bottom:0}
+.dz-row>summary{display:grid;grid-template-columns:62px minmax(0,1.7fr) 92px 92px minmax(0,1fr) 18px;gap:14px;align-items:center;padding:12px 16px;cursor:pointer;list-style:none}
+.dz-row>summary::-webkit-details-marker{display:none}
+.dz-row>summary:hover{background:var(--s50)}
+.dz-row[open]>summary{background:var(--s50);border-bottom:1px solid var(--line2)}
+.dz-nr{font:600 13px/1 var(--mono);background:var(--s100);border:1px solid var(--line);border-radius:4px;padding:7px 0;text-align:center}
+.dz-name{min-width:0}.dz-name b{display:block}.dz-name .sub{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dz-stat{display:flex;flex-direction:column;align-items:flex-end;font-size:11.5px;color:var(--mute)}
+.dz-stat b{font-size:17px;font-weight:650;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1.2}
+.dz-tags{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.dz-chev{width:8px;height:8px;border-right:2px solid var(--s400);border-bottom:2px solid var(--s400);transform:rotate(45deg);transition:transform .15s;justify-self:center;margin-top:-4px}
+.dz-row[open] .dz-chev{transform:rotate(-135deg);margin-top:4px}
+.dz-body{display:grid;grid-template-columns:132px minmax(0,1fr) minmax(0,1fr);gap:24px;padding:18px 16px 20px}
+.dz-body h3{margin:0 0 6px}.dz-body p.sub{margin:0 0 10px}
+.dz-sheet{display:flex;flex-direction:column;gap:8px;align-items:stretch}
+.dz-sheet img{display:block;width:100%;height:auto;aspect-ratio:210/297;border:1px solid var(--s300);border-radius:3px;background:#fff}
+.copy{display:flex;gap:6px;margin-bottom:6px}.copy input{font:12px/1 var(--mono);min-width:0;flex:1;height:28px;padding:0 8px;color:var(--s700);background:var(--s50)}
+.dz-file{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.dz-file input[type=file]{flex:1;min-width:0;font-size:12.5px;padding:3px;height:auto}
+.dz-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px}.dz-form .full{grid-column:1/-1}
+.dz-wwft{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-top:14px;padding:10px 12px;border:1px solid var(--line);border-radius:5px;background:var(--s50)}
+.dz-wwft b{display:block;font-size:13px}.dz-wwft .sub{display:block;font-size:12px}
+dl.kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:5px 16px;margin:0 0 10px}dl.kv dt{color:var(--mute)}dl.kv dd{margin:0;font-weight:500;overflow-wrap:anywhere}
+.m-only{display:none!important}
+
+/* ------------------------------------------------------------ error pages */
+.err-code{font:600 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--am-d);background:var(--am-bg);border:1px solid var(--am-line);border-radius:3px;padding:5px 7px;display:inline-block;margin:0 0 12px}
+.err-why{color:var(--mute);margin:8px 0 18px;max-width:52ch}
+.err-go{display:flex;gap:8px;flex-wrap:wrap}
+.errc{padding:26px 24px;max-width:600px}
+.errp{min-height:100vh;display:grid;place-items:center;padding:24px 16px;background:var(--s50)}
+.errp-box{width:100%;max-width:480px;background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:28px}
+.errp-box .logo{display:flex;margin-bottom:26px}
+
 /* ------------------------------------------------------------ small screens */
 @media (max-width:1080px){
   .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.flow{grid-template-columns:repeat(2,minmax(0,1fr))}.flow .st{border-bottom:1px solid var(--line)}
@@ -244,6 +278,29 @@ input[type=checkbox],input[type=radio]{accent-color:var(--ink);width:15px;height
   .formside{padding:26px 20px;place-items:start center}
   th,td{padding:9px 12px}
   .doc-row{flex-wrap:wrap}
+  .shell{grid-template-rows:auto minmax(0,1fr)}
+  .nav{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 26px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 26px),transparent);padding-right:18px}
+  .nav a.m-only{display:flex!important}
+  .dz-row>summary{display:flex;flex-wrap:wrap;gap:8px 12px;padding:12px 14px}
+  .dz-nr{flex:none;width:54px}.dz-name{flex:1 1 calc(100% - 120px)}.dz-name .sub{white-space:normal}
+  .dz-chev{order:1;flex:none;margin-right:4px}
+  .dz-stat{order:2;flex-direction:row;align-items:baseline;gap:5px}.dz-stat b{font-size:14px}
+  .dz-tags{order:2;margin-left:auto}
+  .dz-body{grid-template-columns:minmax(0,1fr);gap:18px;padding:16px 14px 18px}
+  .dz-sheet{flex-direction:row;align-items:flex-end}.dz-sheet img{width:96px}
+  .dz-wwft{flex-direction:column;align-items:flex-start}
+  table.rt,table.rt tbody,table.rt tr,table.rt td{display:block;width:auto}
+  table.rt thead{display:none}
+  table.rt tr{padding:11px 14px;border-bottom:1px solid var(--line2)}table.rt tr:last-child{border-bottom:0}
+  table.rt td{padding:3px 0;border:0;display:flex;gap:14px;justify-content:space-between;align-items:baseline;text-align:right;white-space:normal}
+  table.rt td[data-l]::before{content:attr(data-l);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);font-weight:600;flex:none;text-align:left}
+  table.rt td.rt-h{display:block;text-align:left;padding-bottom:6px}
+  table.rt td.rt-a{justify-content:flex-start;padding-top:8px}
+  table.rt td:empty{display:none}
+  table.rt td.empty{display:block;text-align:center}
+  .errp-box{padding:22px 18px}
+  .hide-m{display:none!important}
+  .btn{white-space:normal;height:auto;min-height:34px;padding-top:6px;padding-bottom:6px;text-align:center;line-height:1.25}.btn.sm{min-height:28px;padding-top:4px;padding-bottom:4px}.btn.lg{min-height:44px;padding-top:9px;padding-bottom:9px}
 }
 @media (max-width:520px){.kpis{grid-template-columns:minmax(0,1fr)}.flow{grid-template-columns:minmax(0,1fr)}h1{font-size:19px}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
