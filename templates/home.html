@@ -1,95 +1,438 @@
-{% extends "base.html" %}{% block title %}Van papierstapel naar klaargezet dossier{% endblock %}
+{% extends "base.html" %}
+{% block title %}De btw-piek, zonder schoenendozen{% endblock %}
+{% block head %}
+<meta name="description" content="{{ brand }} voor administratie- en accountantskantoren: de stapel per dossier splitsen, elk stuk lezen en narekenen, een afwijkend IBAN tegenhouden en de ontbrekende bon opvragen. Uw medewerker keurt goed met één toets.">
+<link rel="stylesheet" href="{{ url_for('static', filename='work.css') }}?v={{ asset_v }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}?v={{ asset_v }}">
+{% endblock %}
+{% block bodyclass %}pub{% endblock %}
 {% block body %}
-<style>
-.pub{background:#fff;min-height:100vh}
-.pub .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
-.pub header{display:flex;align-items:center;justify-content:space-between;padding:18px 0}
-.pub .brandrow{display:flex;align-items:center;gap:10px;color:var(--brand);font-weight:700;font-size:18px}
-.pub .brandrow:hover{text-decoration:none}
-.pub header nav a{color:var(--ink2);font-weight:500;margin-left:18px;font-size:14px}
-.hero{background:linear-gradient(180deg,#0e2a47 0%,#12345a 100%);color:#fff;padding:56px 0 64px}
-.hero h1{font-size:clamp(28px,5vw,44px);line-height:1.12;letter-spacing:-.025em;font-weight:700;max-width:760px}
-.hero p.lead{font-size:clamp(16px,2.2vw,19px);color:#c9d7e6;max-width:640px;margin:18px 0 28px}
-.cta{display:flex;flex-wrap:wrap;gap:12px}
-.cta a{display:inline-flex;align-items:center;gap:8px;padding:13px 20px;border-radius:10px;font-weight:600;font-size:15px}
-.cta a:hover{text-decoration:none;filter:brightness(1.06)}
-.cta .go{background:#2dd4bf;color:#062a2a}
-.cta .alt{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.25)}
-.hero small{display:block;color:#8fa6bf;margin-top:14px;font-size:13px}
-.chain{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:34px}
-.chain span{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);padding:6px 12px;border-radius:20px;font-size:13px;color:#dbe6f2}
-.chain em{color:#2dd4bf;font-style:normal}
-.sec{padding:56px 0;border-bottom:1px solid var(--line)}
-.sec h2{font-size:clamp(21px,3vw,27px);letter-spacing:-.015em;font-weight:700;margin-bottom:8px}
-.sec .intro{color:var(--mute);max-width:640px;margin:0 0 28px;font-size:15.5px}
-.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
-.card2{border:1px solid var(--line);border-radius:14px;padding:22px;background:#fff}
-.card2 b.n{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;background:var(--brand-bg);color:var(--brand2);font-size:14px;margin-bottom:12px}
-.card2 h3{font-size:16px;color:var(--ink);text-transform:none;letter-spacing:-.01em;margin:0 0 6px;font-weight:650}
-.card2 p{margin:0;color:var(--ink2);font-size:14.5px}
-.offer{background:var(--accent-bg);border:1px solid #b7e4dd;border-radius:16px;padding:28px;display:grid;gap:10px}
-.offer .price{font-size:30px;font-weight:700;color:var(--brand);letter-spacing:-.02em}
-.offer ul{margin:4px 0 0;padding-left:20px;color:var(--ink2);font-size:15px}
-.safe{background:var(--bg);border-radius:16px;padding:28px}
-.safe ul{margin:0;padding-left:20px;color:var(--ink2);font-size:15px;display:grid;gap:8px}
-.pub footer{padding:32px 0 44px;color:var(--mute);font-size:13px}
-.pub footer .wrap{display:flex;flex-wrap:wrap;gap:12px 28px;justify-content:space-between}
-@media (max-width:560px){.pub header nav a.hide-s{display:none}.cta a{width:100%;justify-content:center}}
-</style>
-<div class="pub">
-  <div class="wrap"><header>
-    <a class="brandrow" href="/"><span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg></span>{{ brand }}</a>
-    <nav><a class="hide-s" href="#hoe">Hoe het werkt</a><a class="hide-s" href="#aanbod">Aanbod</a><a href="/login">Inloggen</a></nav>
-  </header></div>
-
-  <section class="hero"><div class="wrap">
-    <h1>Scan de hele stapel in één keer. De rest staat klaar om te controleren.</h1>
-    <p class="lead">Voor administratiekantoren: {{ brand }} verdeelt gescande bonnen en facturen per klant, leest ze uit en zet een boekingsvoorstel klaar voor uw eigen pakket. Uw medewerker controleert en keurt goed.</p>
-    <div class="cta">
-      <a class="go" href="{{ tour_url }}">Bekijk de rondleiding →</a>
-      {% if wa_url %}<a class="alt" href="{{ wa_url }}">Plan een demo via WhatsApp</a>{% elif contact_phone %}<a class="alt" href="tel:{{ contact_phone }}">Bel {{ contact_phone }}</a>{% endif %}
+{% set sep = '&' if '?' in tour_url else '?' %}
+{% set fd = hero.fraud.doc if hero.fraud else none %}
+{% set ch = hero.chase %}
+{% set reds = hero.groups|sum(attribute='red') %}
+<a class="skip" href="#inhoud">Naar de inhoud</a>
+<header class="pnav">
+  <div class="wrap">
+    {{ ui.logo('/') }}
+    <nav class="pnav-links" aria-label="Hoofdmenu">
+      <a href="#product">Product</a>
+      <a href="#sandbox">Test uw factuur</a>
+      <a href="#rekenvoorbeeld">Rekenvoorbeeld</a>
+      <a href="#prijzen">Prijzen</a>
+      <a href="#veiligheid">Veiligheid</a>
+    </nav>
+    <div class="pnav-cta">
+      <a class="pnav-login" href="/login"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V8a4 4 0 018 0v3"/></svg><span>Kantoorportaal</span></a>
+      <a class="btn go" href="{{ tour_url }}"><span class="w-l">Bekijk de rondleiding</span><span class="w-s">Rondleiding</span></a>
     </div>
-    <small>De rondleiding toont een fictief kantoor met fictieve klanten. U hoeft geen account aan te maken.</small>
-    <div class="chain"><span>Scanner</span><em>→</em><span>Splitsen per klant</span><em>→</em><span>Controle</span><em>→</em><span>MijnKantoor</span><em>+</em><span>Exact / SnelStart</span><em>+</em><span>Excel</span></div>
-  </div></section>
+  </div>
+</header>
 
-  <section class="sec" id="hoe"><div class="wrap">
-    <h2>Hoe het werkt</h2>
-    <p class="intro">Geen nieuw boekhoudpakket. {{ brand }} zit vóór uw bestaande pakket en neemt het sorteer- en overtikwerk over.</p>
-    <div class="grid3">
-      <div class="card2"><b class="n">1</b><h3>Eén scan voor de hele stapel</h3><p>Een scheidingsblad per klant. Lege achterkanten gaan eruit, pagina's worden per document samengevoegd.</p></div>
-      <div class="card2"><b class="n">2</b><h3>Voorstel per document</h3><p>Leverancier, bedragen, btw en grootboekrekening staan klaar. Afwijkingen, zoals een ander IBAN dan eerder, krijgen een rode vlag.</p></div>
-      <div class="card2"><b class="n">3</b><h3>Uw medewerker keurt goed</h3><p>Pas na goedkeuring gaat het naar MijnKantoor, Exact, SnelStart (UBL) of het Excel-register.</p></div>
-    </div>
-  </div></section>
-
-  <section class="sec" id="aanbod"><div class="wrap">
-    <h2>Q4 btw-druk garantietraject</h2>
-    <p class="intro">Probeer het eerst op uw drie lastigste dossiers.</p>
-    <div class="offer">
-      <div class="price">vanaf €{{ price_from }} <span style="font-size:16px;font-weight:500;color:var(--mute)">per maand</span></div>
-      <ul>
-        <li>14 dagen proef op drie dossiers van uw keuze</li>
-        <li>Minstens {{ saving_bar }} minder verwerkingstijd, anders betaalt u niets</li>
-        <li>Daarna maandelijks opzegbaar</li>
+<main id="inhoud">
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <p class="eyebrow"><i></i>Voor administratie- en accountantskantoren</p>
+      <h1>De btw-piek, zonder schoenen&shy;dozen.</h1>
+      <p class="lead">Uw boekhoudpakket herkent een factuur. {{ brand }} doet het werk dat daarvóór zit: de stapel per dossier splitsen, elk stuk lezen en narekenen, een afwijkend IBAN tegenhouden en de ontbrekende bon bij de klant opvragen. Uw medewerker keurt goed met één toets.</p>
+      <div class="hero-cta">
+        <a class="btn go lg" href="{{ tour_url }}">Bekijk de rondleiding<kbd>↵</kbd></a>
+        <a class="btn lg on-ink" href="#sandbox">Test uw eigen factuur</a>
+      </div>
+      <p class="hero-sub">Geen account nodig. Fictief kantoor, echte controles.{% if wa_url %} <a href="{{ wa_url }}" rel="noopener">Plan een demo via WhatsApp</a>{% elif contact_phone %} <a href="tel:{{ contact_phone|replace('-', '') }}">Bel {{ contact_phone }}</a>{% endif %}</p>
+      <ul class="hero-pts">
+        <li><b>Niets wordt ingediend.</b> {{ brand }} bereidt voor, een mens tekent af.</li>
+        <li><b>Geen nieuw pakket.</b> Export naar wat u al gebruikt.</li>
+        <li><b>14 dagen op uw lastigste dossiers.</b> {{ saving_bar }} sneller of u betaalt niets.</li>
       </ul>
     </div>
-  </div></section>
 
-  <section class="sec"><div class="wrap">
-    <h2>Wat {{ brand }} wel en niet doet</h2>
-    <p class="intro">Duidelijk vooraf, zodat u weet waar u aan toe bent.</p>
-    <div class="safe"><ul>
-      <li><b>Er wordt niets ingediend of definitief geboekt.</b> {{ brand }} bereidt voor; een medewerker van uw kantoor controleert en tekent altijd zelf af.</li>
-      <li>{{ brand }} geeft geen fiscaal of juridisch advies. De verantwoordelijkheid voor de administratie blijft bij uw kantoor.</li>
-      <li>Op deze website draait alleen een demo met fictieve gegevens. Hier worden geen gegevens van klanten verwerkt.</li>
-      <li>Werken met echte klantstukken gebeurt pas na een getekende verwerkersovereenkomst, in een afgeschermde omgeving voor uw kantoor.</li>
-    </ul></div>
-  </div></section>
+    <div class="win" id="hc" data-tour="{{ tour_url }}{{ sep }}next=">
+      <div class="win-bar">
+        <div class="hc-tabs" role="tablist" aria-label="Drie situaties uit de praktijk">
+          <button role="tab" id="hc-t-a" aria-controls="hc-p-a" aria-selected="true" data-sc="a"><kbd>1</kbd><span class="w-l">De 42-pagina schoenendoos</span><span class="w-s">Schoenendoos</span></button>
+          <button role="tab" id="hc-t-b" aria-controls="hc-p-b" aria-selected="false" data-sc="b" tabindex="-1"><kbd>2</kbd><span class="w-l">Rode vlag: afwijkend IBAN</span><span class="w-s">IBAN-vlag</span></button>
+          <button role="tab" id="hc-t-c" aria-controls="hc-p-c" aria-selected="false" data-sc="c" tabindex="-1"><kbd>3</kbd><span class="w-l">Ontbrekende bon via WhatsApp</span><span class="w-s">Bon ontbreekt</span></button>
+        </div>
+      </div>
+      <div class="win-body">
 
-  <footer><div class="wrap">
-    <div><b style="color:var(--ink)">{{ brand }}</b>{% if contact_name %} · {{ contact_name }}{% endif %}{% if contact_place %}, {{ contact_place }}{% endif %}{% if kvk %} · KvK {{ kvk }}{% endif %}</div>
-    <div>{% if contact_phone %}<a href="tel:{{ contact_phone }}">{{ contact_phone }}</a>{% endif %}{% if contact_email %} · <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>{% endif %} · <a href="/login">Inloggen voor kantoren</a></div>
-  </div></footer>
-</div>
+        {# ---------- A: the 42-page shoebox scan #}
+        <div class="hc-pane hc-a" id="hc-p-a" role="tabpanel" aria-labelledby="hc-t-a" data-pane="a">
+          <div class="hc-scanbar">
+            <span class="hc-state" id="hc-a-state">Gesplitst</span>
+            <code id="hc-a-cover">SCHEIDINGSBLAD - DOSSIER {{ hero.groups[0].nr }} ({{ hero.groups[0].name }})</code>
+            <button class="btn sm" type="button" id="hc-a-replay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.6-5.9"/><path d="M4 4v4.5h4.5"/></svg>Scan opnieuw</button>
+          </div>
+          <div class="hc-strip" id="hc-strip" aria-label="De {{ hero.counts.pages }} pagina's van de ruwe scan">
+            {% for p in hero.pages %}<i class="hc-pg k-{{ p.kind }}" data-n="{{ p.n }}" style="--col:{{ (p.n - 1) % 14 }};--row:{{ (p.n - 1) // 14 }}"></i>{% endfor %}
+          </div>
+          <div class="hc-lanes" id="hc-lanes">
+            {% for g in hero.groups %}
+            <button type="button" class="hc-lane d{{ loop.index0 }} in" data-nr="{{ g.nr }}">
+              <span class="av">{{ g.nr }}</span>
+              <span class="nm"><b>{{ g.name }}</b><small><span data-docs>{{ g.docs }}</span> documenten · <span data-pages>{{ g.pages }}</span> pagina's</small></span>
+              <span class="lights" aria-label="groen, oranje, rood"><i class="l-green"></i><span data-g>{{ g.green }}</span><i class="l-amber"></i><span data-a>{{ g.amber }}</span><i class="l-red"></i><span data-r>{{ g.red }}</span></span>
+            </button>
+            {% endfor %}
+          </div>
+          <div class="hc-sum" id="hc-a-sum">
+            <span><b>{{ hero.counts.pages }}</b> pagina's</span><span><b id="hc-a-docs">{{ hero.counts.docs }}</b> documenten</span><span><b>{{ hero.groups|length }}</b> dossiers</span><span><b id="hc-a-blank">{{ hero.counts.blank }}</b> lege achterkanten eruit</span><span class="zero"><b>0</b> met de hand gesorteerd</span>
+          </div>
+        </div>
+
+        {# ---------- B: red flag, a changed IBAN #}
+        {% if fd %}
+        <div class="hc-pane hc-b" id="hc-p-b" role="tabpanel" aria-labelledby="hc-t-b" data-pane="b" hidden>
+          <div class="hc-doc">
+            <div class="hc-doc-v" id="hc-b-view"><div class="hc-doc-in" id="hc-b-sheet">
+              <img src="{{ url_for('static', filename='demo/pagina-m-bgr-iban.jpg') }}" alt="Inkoopfactuur van {{ fd.result.counterparty }} (fictief)" width="900" height="1273" loading="lazy">
+              {% set b = fd.boxes.iban.box %}
+              <span class="box f-iban bad" id="hc-b-box" style="left:{{ b[0] * 100 }}%;top:{{ b[1] * 100 }}%;width:{{ (b[2] - b[0]) * 100 }}%;height:{{ (b[3] - b[1]) * 100 }}%"><span>IBAN</span></span>
+            </div></div>
+            <div class="hc-doc-cap">Dossier {{ fd.client_nr }} · pagina {{ fd.pages[0] }} van {{ hero.counts.pages }}</div>
+          </div>
+          <div class="hc-side">
+            <div class="hc-h l-red" id="hc-b-head"><i class="lamp"></i><div><b>{{ fd.result.counterparty }}</b><small>Factuur {{ fd.result.reference }} · {{ fd.result.gross_total|eur }} · vervalt {{ (fd.result.due_date|d)[:5] }}</small></div></div>
+            <div class="hc-flag" id="hc-b-flag">
+              <b>IBAN wijkt af van eerdere boekingen</b>
+              <dl>
+                <dt>Op deze factuur</dt><dd class="bad">{{ fd.result.iban|batch(4)|map('join')|join(' ') }}</dd>
+                <dt>Bekend uit {{ hero.fraud.earlier }} eerdere boekingen</dt><dd class="ok">{{ (hero.fraud.known[0] if hero.fraud.known else '')|batch(4)|map('join')|join(' ') }}</dd>
+              </dl>
+              <p>Niet betalen voordat het nummer is bevestigd via een telefoonnummer dat u al kende.</p>
+              <button class="btn sm" type="button" id="hc-b-call">Teruggebeld: nieuw IBAN bevestigd</button>
+            </div>
+            <ol class="hc-trail" id="hc-b-trail" aria-label="Controlespoor"></ol>
+            <p class="hc-msg" id="hc-b-msg" role="status" aria-live="polite"></p>
+            <div class="hc-actions">
+              <button class="btn go" type="button" id="hc-b-ok">Goedkeuren<kbd>↵</kbd></button>
+              <button class="btn danger" type="button" id="hc-b-no">Afkeuren</button>
+              <button class="btn ghost sm" type="button" id="hc-b-reset" hidden>Opnieuw</button>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        {# ---------- C: the missing receipt, asked for by WhatsApp #}
+        {% if ch %}
+        <div class="hc-pane hc-c" id="hc-p-c" role="tabpanel" aria-labelledby="hc-t-c" data-pane="c" hidden>
+          <div class="hc-side">
+            <div class="bank-card s-ontbreekt" id="hc-c-card">
+              <div class="bk-top"><span>{{ ch.line.type_label }} · {{ ch.line.date|d }}</span><span>Dossier {{ ch.line.client_nr }}</span></div>
+              <div class="bk-amt">{{ ch.line.amount|abs|eur }}</div>
+              <div class="bk-desc">{{ ch.line.description }}</div>
+              <div class="bk-st" id="hc-c-st"><i></i><span>Bon ontbreekt bij deze betaling</span></div>
+            </div>
+            <div class="hc-concept" id="hc-c-concept">
+              <h3>Concept aan {{ ch.client.contact if ch.client and ch.client.contact else 'de klant' }}</h3>
+              <p>{{ ch.line.text }}</p>
+            </div>
+            <ol class="hc-trail" id="hc-c-trail" aria-label="Controlespoor"></ol>
+            <div class="hc-actions">
+              <button class="btn go" type="button" id="hc-c-send">Goedkeuren en versturen<kbd>W</kbd></button>
+              <button class="btn ghost sm" type="button" id="hc-c-reset" hidden>Opnieuw</button>
+            </div>
+            <p class="hc-fine">Bij uw kantoor gaat er niets de deur uit zonder akkoord van een medewerker. Hier wordt niets verstuurd.</p>
+          </div>
+          <div class="phone" aria-label="De telefoon van de klant">
+            <div class="ph-top"><span class="ph-av">{{ hero.firm[:1] }}</span><span><b>{{ hero.firm }}</b><small>zakelijk account</small></span></div>
+            <div class="ph-chat" id="hc-c-chat"><span class="ph-day">Vandaag</span><span class="ph-note" id="hc-c-wait">Zo ziet uw klant het. Keur links het concept goed.</span></div>
+            <div class="ph-in"><span>Bericht</span><i>▶</i></div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      <div class="win-foot"><span>De voorbeeldstapel uit de rondleiding. Fictieve dossiers, echte controles.</span><a href="{{ tour_url }}" id="hc-deep">Zelf doen in de rondleiding</a></div>
+    </div>
+  </div>
+</section>
+
+<section class="proof" aria-label="Cijfers uit de voorbeeldstapel">
+  <div class="wrap">
+    <dl>
+      <div><dt><b>{{ hero.counts.pages }}</b><i></i><b>{{ hero.counts.docs }}</b></dt><dd>pagina's worden documenten, zonder dat iemand sorteert</dd></div>
+      <div><dt><b>{{ hero.counts.blank }}</b></dt><dd>lege achterkanten eruit voordat iemand ze ziet</dd></div>
+      <div><dt><b>{{ reds }}</b></dt><dd>rode vlaggen tegengehouden vóór de boeking</dd></div>
+      <div><dt><b>{{ hero.counts.missing }}</b></dt><dd>betalingen zonder bon klaargezet om op te vragen</dd></div>
+    </dl>
+    <p>Geteld in de voorbeeldstapel van de rondleiding: {{ hero.groups|length }} fictieve dossiers, één scan. Geen klantcijfers.</p>
+  </div>
+</section>
+
+<section class="sec" id="product">
+  <div class="wrap">
+    <div class="sec-h">
+      <p class="eyebrow ink"><i></i>Product</p>
+      <h2>Herkennen kan uw pakket al. Het werk zit ervoor.</h2>
+      <p>Scannen en herkennen zit in elk boekhoudpakket. De uren gaan zitten in wat daarvóór gebeurt: sorteren, narekenen en nabellen. Daar is {{ brand }} voor gebouwd.</p>
+    </div>
+    <div class="wedge">
+      <article><span class="tg">Scheidingsblad</span><h3>De hele stapel in één scan</h3><p>Eén blad met QR-code per dossier. Lege achterkanten gaan eruit, facturen van meer pagina's blijven bij elkaar en elk stuk komt in het juiste dossier.</p></article>
+      <article><span class="tg">BR-CO-15</span><h3>Nagerekend tot op de cent</h3><p>Grondslag plus btw moet het totaal zijn, per tarief. 9% en 21% door elkaar, btw-verlegd, kredietbeperking: wat niet sluit, krijgt een vlag in plaats van een boeking.</p></article>
+      <article><span class="tg">IBAN</span><h3>Een ander IBAN dan vorige maand</h3><p>Het rekeningnummer wordt vergeleken met eerdere boekingen van dezelfde crediteur. Wijkt het af, dan blijft goedkeuren geblokkeerd tot iemand heeft teruggebeld.</p></article>
+      <article><span class="tg">Bonnenjacht</span><h3>De bon die er niet is</h3><p>Bankregels zonder stuk komen bovendrijven. De klant krijgt één bericht met bedrag, winkel en datum en stuurt een foto terug. Die wordt gelezen en aan de betaling gekoppeld.</p></article>
+      <article><span class="tg">Enter</span><h3>Goedkeuren met één toets</h3><p>Groen betekent dat alle controles kloppen. <kbd>↵</kbd> keurt goed, <kbd>J</kbd> en <kbd>K</kbd> lopen door de stapel, <kbd>R</kbd> keurt af met reden. Elk besluit staat met naam en tijd in het controlespoor.</p></article>
+      <article><span class="tg">SI-UBL 2.0</span><h3>Naar het pakket dat u al heeft</h3><p>Export als SI-UBL 2.0 (NLCIUS) met de pdf erin, als dossiermappen voor MijnKantoor of als Excel-register. {{ brand }} vervangt uw pakket niet, het levert klaar aan.</p></article>
+    </div>
+    <ol class="pipeline" aria-label="De route van een stuk">
+      <li><span>Scanner of foto</span><small>kantoor of klant</small></li>
+      <li class="auto"><span>Splitsen per dossier</span><small>automatisch</small></li>
+      <li class="auto"><span>Lezen en narekenen</span><small>automatisch</small></li>
+      <li class="human"><span>Goedkeuren</span><small>uw medewerker</small></li>
+      <li><span>Export naar uw pakket</span><small>na goedkeuring</small></li>
+    </ol>
+  </div>
+</section>
+
+<section class="sec alt" id="sandbox">
+  <div class="wrap">
+    <div class="sec-h">
+      <p class="eyebrow ink"><i></i>Probeer het zelf</p>
+      <h2>Test uw eigen factuur of bon</h2>
+      <p>Sleep een pdf-factuur in het vak of kies een van de drie lastige gevallen. De velden, de btw-controle en het SI-UBL-bestand ontstaan terwijl u kijkt. Uw bestand blijft in uw browser.</p>
+    </div>
+    <div class="sb" id="sb" data-base="{{ url_for('static', filename='demo/sandbox/') }}" data-pdfjs="{{ url_for('static', filename='vendor/pdfjs/') }}">
+      <div class="sb-pick">
+        <label class="sb-drop" id="sb-drop">
+          <input type="file" id="sb-file" accept="application/pdf,image/*">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
+          <b>Sleep uw factuur hierheen</b><span>of kies een bestand (pdf of foto)</span>
+        </label>
+        <p class="sb-or"><span>of een lastig geval</span></p>
+        <button type="button" class="sb-sample" data-sample="bon"><i style="background-image:url({{ url_for('static', filename='demo/sandbox/kassabon-eetcafe.jpg') }})"></i><span><b>Verfrommelde horecabon</b><small>Foto · 9% en 21% door elkaar</small></span></button>
+        <button type="button" class="sb-sample" data-sample="groothandel"><i style="background-image:url({{ url_for('static', filename='demo/sandbox/factuur-groothandel-9-21-p1.jpg') }})"></i><span><b>Groothandelsfactuur, 2 pagina's</b><small>Pdf · 9% en 21% · IBAN</small></span></button>
+        <button type="button" class="sb-sample" data-sample="eu"><i style="background-image:url({{ url_for('static', filename='demo/sandbox/invoice-reverse-charge-p1.jpg') }})"></i><span><b>Factuur uit Ierland</b><small>Pdf · btw verlegd binnen de EU</small></span></button>
+      </div>
+
+      <div class="sb-doc">
+        <div class="sb-doc-h"><b id="sb-name">Kies links een voorbeeld</b><span id="sb-meta"></span></div>
+        <div class="sb-view" id="sb-view">
+          <div class="sb-empty" id="sb-empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 12h7M9 16h5"/></svg>
+            <p>Hier verschijnt het document, met een gekleurd kader om elk veld dat is gelezen.</p>
+          </div>
+          <div class="sb-sheet" id="sb-sheet" hidden></div>
+        </div>
+        <div class="sb-pager" id="sb-pager" hidden></div>
+      </div>
+
+      <div class="sb-out">
+        <div class="sb-tabs" role="tablist">
+          <button type="button" role="tab" aria-selected="true" data-t="fields">Velden en controles</button>
+          <button type="button" role="tab" aria-selected="false" data-t="ubl">SI-UBL 2.0</button>
+        </div>
+        <div class="sb-body" id="sb-fields">
+          <p class="sb-hint">Nog geen document. De uitkomst staat hier binnen een seconde.</p>
+        </div>
+        <div class="sb-body" id="sb-ubl" hidden></div>
+      </div>
+    </div>
+    <p class="honest">Deze test draait in uw browser: uw bestand wordt niet geüpload en niet bewaard. Een pdf met tekstlaag wordt hier echt gelezen, met vaste regels en zonder AI. Een foto of scan lezen we in deze test niet uit; de bon hierboven toont de uitkomst van dat ene voorbeeld. De grootboekrekening is een voorstel: uw medewerker beslist.</p>
+  </div>
+</section>
+
+<section class="sec" id="rekenvoorbeeld">
+  <div class="wrap">
+    <div class="sec-h">
+      <p class="eyebrow ink"><i></i>Rekenvoorbeeld</p>
+      <h2>Wat levert het op in de btw-piek?</h2>
+      <p>Schuif naar uw eigen kantoor. We rekenen met {{ saving_bar }} minder verwerkingstijd: de ondergrens van de garantie, geen belofte daarboven.</p>
+    </div>
+    <div class="calc" id="calc" data-saving="{{ saving_bar|replace('%', '')|int or 40 }}" data-starter="{{ price_from|int or 295 }}">
+      <div class="calc-in">
+        <div class="rng">
+          <label for="rc-d">Aantal MKB-dossiers</label><output id="rc-d-o" for="rc-d">120</output>
+          <input type="range" id="rc-d" min="10" max="400" step="5" value="120">
+          <div class="rng-s"><span>10</span><span>100</span><span>200</span><span>300</span><span>400</span></div>
+        </div>
+        <div class="rng">
+          <label for="rc-h">Gemiddelde sorteer- en inboektijd per dossier per maand</label><output id="rc-h-o" for="rc-h">2,0 uur</output>
+          <input type="range" id="rc-h" min="0.5" max="8" step="0.25" value="2">
+          <div class="rng-s"><span>0,5 uur</span><span>2</span><span>4</span><span>6</span><span>8 uur</span></div>
+        </div>
+        <p class="calc-how" id="rc-how" aria-live="polite"><span><b>120</b> dossiers × <b>2,0</b> uur = <b>240</b> uur per maand</span><span><b>240</b> uur × <b>40%</b> = <b>96</b> uur vrijgespeeld</span></p>
+        <details class="calc-as">
+          <summary>Aannames aanpassen</summary>
+          <div class="calc-as-g">
+            <label for="rc-a">Loonkosten assistent-accountant, per uur</label><div class="eur"><span>€</span><input type="number" id="rc-a" min="15" max="120" step="1" value="34" inputmode="decimal"></div>
+            <label for="rc-i">Tarief zzp interim-boekhouder, per uur</label><div class="eur"><span>€</span><input type="number" id="rc-i" min="30" max="200" step="1" value="65" inputmode="decimal"></div>
+          </div>
+          <p class="sub">€ 34 is een schatting van loon plus werkgeverslasten. Vul uw eigen cijfers in. Een fte rekenen we als 1.600 werkbare uren per jaar.</p>
+        </details>
+      </div>
+      <div class="calc-out">
+        <div class="calc-big"><small>Vrijgespeeld per maand</small><b id="rc-hours">96 uur</b><span id="rc-fte">0,72 fte op jaarbasis</span></div>
+        <dl class="calc-rows">
+          <div><dt>Sorteren en inboeken nu</dt><dd id="rc-now">240 uur per maand</dd></div>
+          <div><dt>Vrijgespeeld per btw-kwartaal</dt><dd id="rc-q">288 uur</dd></div>
+          <div><dt>Waarde tegen een extra assistent-accountant</dt><dd id="rc-va">€ 3.264 per maand</dd></div>
+          <div><dt>Waarde tegen een zzp interim-boekhouder</dt><dd id="rc-vi">€ 6.240 per maand</dd></div>
+          <div class="plan"><dt><span id="rc-tier">Kantoor</span> <small id="rc-tier-s">tot 300 dossiers</small></dt><dd id="rc-price">€ 595 per maand</dd></div>
+        </dl>
+        <div class="calc-net" id="rc-net-box"><span>Netto per maand, tegen loonkosten</span><b id="rc-net">€ 2.669</b></div>
+        <p class="calc-fine" id="rc-fine">Rekenvoorbeeld, geen toezegging. De werkelijke winst meten we samen in het garantietraject.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec alt" id="prijzen">
+  <div class="wrap">
+    <div class="sec-h">
+      <p class="eyebrow ink"><i></i>Prijzen</p>
+      <h2>Eerst bewijzen, dan betalen</h2>
+      <p>Elk kantoor begint met hetzelfde traject van 14 dagen. Daarna een vast bedrag per maand, maandelijks opzegbaar. Geen uurtarief, geen prijs per document.</p>
+    </div>
+    <div class="guar">
+      <div class="guar-l"><span class="tg">Instap</span><h3>14-dagen btw-druk garantietraject</h3>
+        <p>U kiest uw drie lastigste dossiers. We meten de verwerkingstijd vóór en tijdens de proef. Minstens {{ saving_bar }} minder, anders betaalt u niets.</p></div>
+      <ol class="guar-steps">
+        <li><b>Dag 0</b><span>Verwerkers&shy;overeenkomst getekend, scheidings&shy;bladen geprint</span></li>
+        <li><b>Dag 1 tot 13</b><span>Drie dossiers door {{ brand }}, uw medewerker keurt goed</span></li>
+        <li><b>Dag 14</b><span>Meting naast elkaar: {{ saving_bar }} sneller of € 0</span></li>
+      </ol>
+      <a class="btn go lg" href="{% if wa_url %}{{ wa_url }}{% elif contact_email %}mailto:{{ contact_email }}{% else %}{{ tour_url }}{% endif %}"{% if wa_url %} rel="noopener"{% endif %}>Start het garantietraject</a>
+    </div>
+    <div class="tiers">
+      <article class="tier">
+        <header><h3>Starter</h3><p>tot 100 dossiers</p></header>
+        <div class="price"><b>€ {{ price_from }}</b><span>per maand</span></div>
+        <ul>
+          <li>Stapel splitsen met scheidingsbladen</li>
+          <li>Lezen, narekenen en rode vlaggen</li>
+          <li>Werkbank met sneltoetsen en controlespoor</li>
+          <li>Export als SI-UBL 2.0, dossiermappen en Excel-register</li>
+          <li>Tweestapsverificatie voor elk account</li>
+        </ul>
+        <a class="btn block" href="{{ tour_url }}">Bekijk de rondleiding</a>
+      </article>
+      <article class="tier hl">
+        <header><h3>Kantoor</h3><p>tot 300 dossiers</p><span class="tg">Met bonnenjacht</span></header>
+        <div class="price"><b>€ 595</b><span>per maand</span></div>
+        <ul>
+          <li>Alles uit Starter</li>
+          <li>Bonnenjacht: bankregels zonder stuk, concept-bericht aan de klant</li>
+          <li>Persoonlijke aanleverlink per klant</li>
+          <li>Importbestand voor Exact Online</li>
+          <li>Bankafschrift inlezen (CAMT.053)</li>
+        </ul>
+        <a class="btn primary block" href="{{ tour_url }}{{ sep }}next=/werkbank">Probeer de werkbank</a>
+      </article>
+      <article class="tier">
+        <header><h3>Kantoor Plus <small>white-label</small></h3><p>meer dan 300 dossiers</p></header>
+        <div class="price"><small>vanaf</small><b>€ 995</b><span>per maand</span></div>
+        <ul>
+          <li>Alles uit Kantoor</li>
+          <li>Uw kantoornaam op scheidingsbladen, aanleverpagina en klantberichten</li>
+          <li>Vaste contactpersoon bij de inrichting</li>
+          <li>Prijs op maat boven 300 dossiers</li>
+        </ul>
+        <a class="btn block" href="{% if contact_email %}mailto:{{ contact_email }}?subject={{ 'Scanstraat Kantoor Plus'|urlencode }}{% elif wa_url %}{{ wa_url }}{% else %}{{ tour_url }}{% endif %}">Vraag een voorstel</a>
+      </article>
+    </div>
+    <p class="tiers-fine">Prijzen per maand, exclusief btw. Eenmalige inrichting € 750; voor de eerste vijf kantoren vervalt die. Werken met echte klantstukken begint pas na een getekende verwerkersovereenkomst.</p>
+  </div>
+</section>
+
+<section class="sec ink" id="veiligheid">
+  <div class="wrap">
+    <div class="sec-h">
+      <p class="eyebrow"><i></i>Veiligheid en toezicht</p>
+      <h2>Gebouwd voor een beroep waar een fout geld kost</h2>
+      <p>Controle in de EU, een mens die aftekent en een spoor dat u kunt laten zien. Zo werkt de software, niet alleen het contract.</p>
+    </div>
+    <div class="trust">
+      <article>
+        <span class="n"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="8" r="3.5"/><path d="M3.5 20a6.5 6.5 0 0113 0"/><path d="M16.5 11.5l2 2 3.5-4"/></svg></span>
+        <h3>100% menselijke eindcontrole</h3>
+        <p>{{ brand }} bereidt voor. Er wordt niets ingediend, geboekt of naar een klant verstuurd zonder akkoord van een medewerker van uw kantoor. Dat zit vast in de software en is niet uit te zetten.</p>
+        <ul><li>Concept eerst, verzenden na akkoord</li><li>Wwft-stop per klant</li></ul>
+      </article>
+      <article>
+        <span class="n"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4" width="17" height="6.5" rx="1.2"/><rect x="3.5" y="13.5" width="17" height="6.5" rx="1.2"/><path d="M7 7.25h.01M7 16.75h.01M11 7.25h6M11 16.75h6"/></svg></span>
+        <h3>Verwerking in de EU, geen AI-training</h3>
+        <p>Een kantooromgeving draait op servers in Duitsland; met een andere locatie start de software niet. Scans blijven daar. Naar een taalmodel gaat hooguit tekst waarin persoonsgegevens zijn vervangen, en volgens de voorwaarden van die dienst worden uw gegevens niet gebruikt om modellen te trainen.</p>
+        <ul><li>Opslag versleuteld met AES-256-GCM</li><li>Bijzondere gegevens blijven lokaal</li></ul>
+      </article>
+      <article>
+        <span class="n"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5h9l4 4V20.5H6z"/><path d="M9 9h3M9 12.5h7M9 16h7"/></svg></span>
+        <h3>Volledig controlespoor per boeking</h3>
+        <p>Van scan tot export staat elke stap met tijd en naam in de auditlog: wie keurde goed, welke vlag stond open, welk bericht ging naar de klant. Het origineel wordt gewist nadat de export is bevestigd, het spoor blijft.</p>
+        <ul><li>Tweestapsverificatie verplicht</li><li>Wwft-audittrail per dossier</li></ul>
+      </article>
+    </div>
+    <p class="trust-fine">{{ brand }} geeft geen fiscaal of juridisch advies; de verantwoordelijkheid voor de administratie blijft bij uw kantoor. Wij claimen geen keurmerk of certificering: vraag de technische beschrijving op en beoordeel zelf. Op deze website draait een demonstratie met fictieve dossiers. Hier worden geen gegevens van klanten verwerkt.</p>
+  </div>
+</section>
+
+<section class="sec" id="vragen">
+  <div class="wrap faq-grid">
+    <div class="sec-h">
+      <p class="eyebrow ink"><i></i>Vragen</p>
+      <h2>Wat kantoren eerst willen weten</h2>
+      <p>Staat uw vraag er niet bij? {% if wa_url %}<a href="{{ wa_url }}" rel="noopener">Stel hem via WhatsApp</a>{% elif contact_email %}<a href="mailto:{{ contact_email }}">Mail hem</a>{% endif %}{% if contact_phone %} of bel <a href="tel:{{ contact_phone|replace('-', '') }}">{{ contact_phone }}</a>{% endif %}.</p>
+    </div>
+    <div class="faq">
+      <details open><summary>Vervangt {{ brand }} ons boekhoudpakket?</summary><p>Nee. {{ brand }} zit ervoor. Het neemt het sorteren, overtikken, narekenen en nabellen over en levert elk goedgekeurd stuk aan in het formaat van uw pakket. Boeken en aangifte doen blijft waar het nu gebeurt.</p></details>
+      <details><summary>Met welke pakketten werkt het?</summary><p>De export is SI-UBL 2.0 (NLCIUS), het e-factuurformaat dat de gangbare Nederlandse pakketten kunnen inlezen. Daarnaast een importbestand voor Exact Online, dossiermappen voor MijnKantoor en een Excel-register. De eerste import in uw pakket testen we samen in de proefperiode.</p></details>
+      <details><summary>Wat gebeurt er met onze documenten?</summary><p>Ze staan versleuteld in de omgeving van uw kantoor op servers in Duitsland. Na een bevestigde export wordt het origineel gewist; wat blijft is het controlespoor. Met echte stukken werken we pas na een getekende verwerkersovereenkomst.</p></details>
+      <details><summary>Hoe werkt de garantie van 14 dagen?</summary><p>U kiest drie dossiers. We leggen vooraf vast hoeveel tijd het sorteren en inboeken nu kost en meten dat opnieuw tijdens de proef. Is de winst kleiner dan {{ saving_bar }}, dan betaalt u niets en stopt het daar.</p></details>
+      <details><summary>Wat moeten onze klanten anders doen?</summary><p>Niets. Papier gaat met een scheidingsblad door uw eigen scanner. Mist er een bon, dan krijgt de klant één bericht en stuurt een foto terug of gebruikt een persoonlijke aanleverlink. Geen app en geen account.</p></details>
+      <details><summary>Leest de software altijd goed?</summary><p>Nee, en daar is het ontwerp op gebouwd. Elk bedrag wordt nagerekend, afwijkingen krijgen een vlag en een medewerker keurt elk stuk goed. Waar het systeem twijfelt, staat dat erbij in plaats van een zeker klinkend percentage.</p></details>
+    </div>
+  </div>
+</section>
+
+<section class="cta">
+  <div class="wrap">
+    <div><h2>Zie het eerst op de voorbeeldstapel. Daarna op uw eigen drie dossiers.</h2><p>De rondleiding duurt ongeveer drie minuten en vraagt geen account.</p></div>
+    <div class="cta-b">
+      <a class="btn go lg" href="{{ tour_url }}">Bekijk de rondleiding</a>
+      {% if wa_url %}<a class="btn lg on-ink" href="{{ wa_url }}" rel="noopener">Plan een demo via WhatsApp</a>{% endif %}
+      {% if contact_phone %}<a class="btn lg on-ink" href="tel:{{ contact_phone|replace('-', '') }}">Bel {{ contact_phone }}</a>{% endif %}
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="pfoot">
+  <div class="wrap">
+    <div class="pfoot-g">
+      <div class="pfoot-b">
+        {{ ui.logo('/') }}
+        <p>Van papierstapel naar klaargezet dossier, voor administratie- en accountantskantoren.</p>
+      </div>
+      <nav aria-label="Product">
+        <h4>Product</h4>
+        <a href="{{ tour_url }}">Rondleiding</a>
+        <a href="#sandbox">Test uw factuur</a>
+        <a href="#rekenvoorbeeld">Rekenvoorbeeld</a>
+        <a href="#prijzen">Prijzen</a>
+        <a href="#veiligheid">Veiligheid</a>
+      </nav>
+      <nav aria-label="Kantoren">
+        <h4>Kantoren</h4>
+        <a href="/login">Inloggen voor kantoren</a>
+        <a href="{{ tour_url }}{{ sep }}next=/afhandelen">Exporthub bekijken</a>
+        <a href="#vragen">Veelgestelde vragen</a>
+      </nav>
+      <address>
+        <h4>Contact</h4>
+        {% if contact_name %}<span>{{ contact_name }}{% if contact_place %}, {{ contact_place }}{% endif %}</span>{% endif %}
+        {% if contact_phone %}<a href="tel:{{ contact_phone|replace('-', '') }}">{{ contact_phone }}</a>{% endif %}
+        {% if contact_email %}<a href="mailto:{{ contact_email }}">{{ contact_email }}</a>{% endif %}
+        {% if wa_url %}<a href="{{ wa_url }}" rel="noopener">WhatsApp</a>{% endif %}
+        {% if kvk %}<span>KvK {{ kvk }}</span>{% endif %}
+      </address>
+    </div>
+    <p class="pfoot-fine">{{ brand }} bereidt voor: er wordt niets ingediend of definitief geboekt zonder een medewerker van uw kantoor. Geen fiscaal of juridisch advies. Alle namen, bedragen en documenten op deze website zijn fictief.</p>
+  </div>
+</footer>
+{% endblock %}
+{% block scripts %}
+<script type="application/json" id="hero-data">{{ hero|tojson }}</script>
+<script src="{{ url_for('static', filename='js/site.js') }}?v={{ asset_v }}" defer></script>
+<script src="{{ url_for('static', filename='js/sandbox.js') }}?v={{ asset_v }}" defer></script>
 {% endblock %}

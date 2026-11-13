@@ -2436,7 +2436,8 @@ def hero_data():
             "chase": {"line": line, "reply": reply, "client": pub["clients"].get("1057")} if line and reply else None,
             "firm": pub["firm"], "counts": {"pages": len(pub["pages"]), "blank": sum(p["kind"] == "blank" for p in pub["pages"]),
                                             "cover": sum(p["kind"] == "cover" for p in pub["pages"]), "docs": len(pub["docs"]),
-                                            "multi": sum(len(d["pages"]) > 1 for d in pub["docs"])}}
+                                            "multi": sum(len(d["pages"]) > 1 for d in pub["docs"]),
+                                            "missing": sum(l.get("status") == "ontbreekt" for l in pub["bank"])}}
 
 
 # ---------------------------------------------------------------- status (the login page's badge, and for monitoring)

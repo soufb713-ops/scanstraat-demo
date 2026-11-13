@@ -23,7 +23,9 @@
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 html,body{height:100%}
-body{margin:0;font:14px/1.5 var(--sans);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;font-feature-settings:"cv11","ss03"}
+body{margin:0;font:14px/1.5 var(--sans);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;font-feature-settings:"cv11","ss03"}
+/* tabular figures where amounts line up, not in running text: in Inter they also widen the hyphen */
+.num,.tnum,td.num,th.num,input,output,.kpi .v,.flow .n,.bk-amt,table.mini td:last-child{font-variant-numeric:tabular-nums}
 a{color:var(--bl);text-decoration:none}a:hover{text-decoration:underline}
 img{max-width:100%}
 code,.mono{font-family:var(--mono);font-size:.86em}
@@ -33,7 +35,7 @@ h1{font-size:22px;line-height:1.25;margin:0;font-weight:650;letter-spacing:-.018
 h2{font-size:15px;margin:0;font-weight:600;letter-spacing:-.005em}
 h3{font-size:11px;margin:0 0 10px;font-weight:600;color:var(--mute);text-transform:uppercase;letter-spacing:.07em}
 p{margin:0 0 12px}
-.muted{color:var(--mute)}.sub{color:var(--mute);font-size:12.5px}.strong{font-weight:600}.num{text-align:right;font-variant-numeric:tabular-nums}
+.muted{color:var(--mute)}.sub{color:var(--mute);font-size:12.5px}.strong{font-weight:600}.num{text-align:right}
 .nowrap{white-space:nowrap}.hide{display:none!important}
 :focus-visible{outline:2px solid var(--bl);outline-offset:1px}
 ::selection{background:#bfdbfe}
@@ -132,7 +134,7 @@ input[type=checkbox],input[type=radio]{accent-color:var(--ink);width:15px;height
 .hint{font-size:12px;color:var(--mute);margin-top:4px}
 .f{margin-bottom:14px}
 .alert{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:5px;border:1px solid;font-size:13px;margin-bottom:12px}
-.alert .ic{font-weight:700;width:18px;height:18px;border-radius:3px;display:grid;place-items:center;flex:none;font-size:12px;color:#fff;background:currentColor}
+.alert .ic{font-weight:700;width:18px;height:18px;border-radius:3px;display:grid;place-items:center;flex:none;font-size:12px;background:currentColor}
 .alert .ic{-webkit-text-fill-color:#fff}
 .alert.error{background:var(--rd-bg);border-color:var(--rd-line);color:var(--rd-d)}
 .alert.warning{background:var(--am-bg);border-color:var(--am-line);color:var(--am-d)}

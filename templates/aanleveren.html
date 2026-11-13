@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Aanleveren bij {{ firm }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}?v={{ asset_v }}"><meta name="robots" content="noindex">{% endblock %}
+{% block bodyclass %}upl{% endblock %}
+{% block body %}
+{% set first = (client.contact or '').split(' ')[0] %}
+<main class="upl-card">
+  <header class="upl-firm"><span class="upl-av">{{ firm[:1] }}</span><span><b>{{ firm }}</b><small>Aanleveren voor {{ client.name }}</small></span></header>
+
+  {% if done %}
+  <div class="upl-done"><span class="upl-check" aria-hidden="true"></span><h1>Ontvangen</h1>
+    <p>{{ done }} bestand{{ 'en' if done != 1 }} {{ 'zijn' if done != 1 else 'is' }} binnen bij {{ firm }}. Je hoeft verder niets te doen.</p>
+    <a class="btn lg block" href="/aanleveren/{{ token }}">Nog een bon aanleveren</a></div>
+  {% else %}
+  <h1>Hoi{{ ' ' + first if first }}, lever je bon aan</h1>
+  <p class="upl-lead">Maak een foto van de bon of factuur, of kies een pdf. {{ firm }} zet hem klaar voor je administratie.</p>
+
+  <form method="post" enctype="multipart/form-data" id="upl-form">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <label class="upl-drop" id="upl-drop">
+      <input type="file" name="files" id="upl-files" accept="image/*,application/pdf" capture="environment" multiple>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 011 1v9a1 1 0 01-1 1H4a1 1 0 01-1-1V9a1 1 0 011-1z"/><circle cx="12" cy="13" r="3.5"/></svg>
+      <b>Maak een foto</b><span>of kies een bestand van je telefoon</span>
+    </label>
+    <div class="upl-list" id="upl-list" hidden></div>
+    <button class="btn go lg block" id="upl-send" hidden>Verstuur naar {{ firm }}</button>
+  </form>
+
+  <div class="upl-done" id="upl-sim" hidden><span class="upl-check" aria-hidden="true"></span><h1>Zo ziet de klant het</h1>
+    <p>In het echt staat de bon nu bij {{ firm }} in de werkbank: gelezen, gecontroleerd en gekoppeld aan de bankregel. Dit is een demonstratie: je bestand is <b>niet verstuurd</b> en staat alleen op dit apparaat.</p>
+    <button class="btn lg block" type="button" id="upl-again">Nog een keer proberen</button></div>
+
+  <ul class="upl-tips">
+    <li>Leg de bon plat, met de hele bon in beeld.</li>
+    <li>Totaalbedrag, datum en winkelnaam moeten leesbaar zijn.</li>
+    <li>Meer bonnen? Kies ze in één keer of stuur ze na elkaar.</li>
+  </ul>
+  {% endif %}
+
+  {% if demo %}<p class="honest">Demonstratie met een fictieve klant. Op deze pagina wordt niets verstuurd of bewaard.</p>{% endif %}
+  <footer class="upl-foot">Deze link is persoonlijk voor {{ client.name }}. Je kunt er alleen documenten mee aanleveren, niets inzien. Vragen? Neem contact op met {{ firm }}.<span>Verwerkt met {{ brand }}</span></footer>
+</main>
+{% endblock %}
+{% block scripts %}{% if not done %}<script>
+(() => {
+  const DEMO = {{ 'true' if demo else 'false' }};
+  const input = document.getElementById('upl-files'), list = document.getElementById('upl-list'), send = document.getElementById('upl-send');
+  const form = document.getElementById('upl-form'), sim = document.getElementById('upl-sim'), drop = document.getElementById('upl-drop');
+  const OK = /\.(pdf|jpe?g|png|tiff?|heic|webp)$/i;
+  let urls = [];
+  function show() {
+    urls.forEach(URL.revokeObjectURL); urls = [];
+    const files = [...input.files].filter(f => OK.test(f.name) || f.type.startsWith('image/')).slice(0, 10);
+    list.replaceChildren(...files.map(f => {
+      const row = document.createElement('div'); row.className = 'upl-file';
+      const th = document.createElement('span'); th.className = 'th';
+      if (f.type.startsWith('image/')) { const u = URL.createObjectURL(f); urls.push(u); th.style.backgroundImage = `url("${u}")`; } else th.textContent = 'PDF';
+      const name = document.createElement('b'); name.textContent = f.name;
+      const size = document.createElement('small'); size.textContent = (f.size / 1024 / 1024).toLocaleString('nl-NL', {maximumFractionDigits: 1}) + ' MB';
+      row.append(th, name, size); return row;
+    }));
+    list.hidden = send.hidden = !files.length;
+    if ([...input.files].length && !files.length) { list.hidden = false; list.textContent = 'Dit bestandstype kan niet worden aangeleverd. Kies een foto of een pdf.'; }
+  }
+  input.addEventListener('change', show);
+  ['dragover', 'dragenter'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', e => { if (e.dataTransfer && e.dataTransfer.files.length) { input.files = e.dataTransfer.files; show(); } });
+  form.addEventListener('submit', e => {
+    if (!DEMO) { send.disabled = true; send.textContent = 'Bezig met versturen'; return; }
+    e.preventDefault();                       // demonstration: nothing leaves this device
+    send.disabled = true; send.textContent = 'Bezig met versturen';
+    setTimeout(() => { form.hidden = true; sim.hidden = false; send.disabled = false; }, 900);
+  });
+  document.getElementById('upl-again').addEventListener('click', () => { form.reset(); show(); form.hidden = false; sim.hidden = true; send.textContent = send.textContent.replace('Bezig met versturen', 'Verstuur'); location.reload(); });
+})();
+</script>{% endif %}{% endblock %}

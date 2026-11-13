@@ -1,4 +1,4 @@
-{% import "_ui.html" as ui %}<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+{% import "_ui.html" as ui with context %}<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{% block title %}{{ brand }}{% endblock %} · {{ brand }}</title>
 <meta name="csrf" content="{{ csrf_token() }}"><meta name="theme-color" content="#0b1f33">
 <link rel="preload" href="{{ url_for('static', filename='fonts/inter-latin-400-normal.woff2') }}" as="font" type="font/woff2" crossorigin>

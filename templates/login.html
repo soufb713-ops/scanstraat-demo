@@ -1,34 +1,28 @@
 {% extends "base.html" %}{% block title %}Inloggen{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}?v={{ asset_v }}">{% endblock %}
+{% block bodyclass %}kp{% endblock %}
 {% block body %}
-<div class="auth">
-  <div class="brandside">
-    <div class="logo" style="padding:0"><span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg></span><span>{{ brand }}<small>Van papier naar dossier</small></span></div>
-    <div>
-      <h2>Scan de hele stapel in één keer. De rest staat klaar om te controleren.</h2>
-      <ul>
-        <li>Scheidingsblad per klant: de stapel wordt automatisch per klant verdeeld</li>
-        <li>Lege achterkanten eruit, pagina's per document samengevoegd</li>
-        <li>Voorstel voor de MijnKantoor-map, de Exact-boeking, UBL voor SnelStart en andere pakketten, en het Excel-register</li>
-        <li>Niets gaat door zonder goedkeuring van een medewerker</li>
-        {% if demo_live %}<li>Deze demo leest live: paginabeelden van fictieve documenten gaan naar Claude via {{ destination }}. Bij een kantoor gaat hooguit geanonimiseerde tekst naar buiten, nooit een scan</li>{% else %}<li>Lokaal verwerkt; naar Claude gaat hooguit geanonimiseerde tekst, nooit een scan</li>{% endif %}
-      </ul>
-      <div class="chain"><span>Scanner</span><em>→</em><span>Splitsen</span><em>→</em><span>Controle</span><em>→</em><span>MijnKantoor</span><em>+</em><span>Exact</span><em>+</em><span>Excel</span></div>
+<div class="kp-grid">
+  {% include "_kp_side.html" %}
+  <main class="kp-form">
+    <div class="kp-box">
+      <p class="kp-step"><i class="on"></i><i></i>Stap 1 van 2</p>
+      <h1>Inloggen bij het Kantoorportaal</h1>
+      <p class="lead">Log in met je account. Daarna vragen we de code uit je authenticator-app.</p>
+      {% if error %}<div class="alert error" role="alert"><span class="ic">!</span><span>{{ error }}</span></div>{% endif %}
+      {% with msgs = get_flashed_messages() %}{% for m in msgs %}<div class="alert error" role="alert"><span class="ic">!</span><span>{{ m }}</span></div>{% endfor %}{% endwith %}
+      <form method="post">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <div class="f"><label for="email">E-mailadres</label><input id="email" name="email" type="email" autocomplete="username" value="{{ email or '' }}" required autofocus></div>
+        <div class="f"><label for="pw">Wachtwoord</label><input id="pw" name="password" type="password" autocomplete="current-password" required></div>
+        <button class="btn primary block">Inloggen</button>
+      </form>
+      <div class="kp-trust" aria-label="Beveiliging van dit portaal">
+        <span>Tweestapsverificatie verplicht</span><span>Opslag AES-256-GCM</span><span>5 pogingen, dan 15 min. op slot</span>
+      </div>
+      {% if tour_on %}<p class="kp-alt">Geen account? <a href="/rondleiding">Start direct de interactieve <span style="white-space:nowrap">kantoor-simulatie →</span></a></p>{% endif %}
+      <p class="kp-help">Wachtwoord kwijt? Vraag de beheerder van je kantoor om een nieuw tijdelijk wachtwoord.</p>
     </div>
-    <div class="sub" style="color:#8fa6bf">Demo-omgeving · fictieve klanten</div>
-  </div>
-  <div class="formside">
-    <form method="post">
-      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-      <h1 style="margin-bottom:6px">Inloggen</h1>
-      <p class="muted" style="margin:0 0 22px">Log in met je account. Daarna vragen we de code uit je authenticator-app.</p>
-      {% if error %}<div class="alert error"><span class="ic">!</span>{{ error }}</div>{% endif %}
-      {% with msgs = get_flashed_messages() %}{% for m in msgs %}<div class="alert error"><span class="ic">!</span>{{ m }}</div>{% endfor %}{% endwith %}
-      <div class="f"><label for="email">E-mailadres</label><input id="email" name="email" type="email" autocomplete="username" value="{{ email or '' }}" required autofocus></div>
-      <div class="f"><label for="pw">Wachtwoord</label><input id="pw" name="password" type="password" autocomplete="current-password" required></div>
-      <button class="btn primary block" style="margin-top:6px">Inloggen</button>
-      <p class="sub" style="margin-top:18px">Wachtwoord kwijt? Vraag de beheerder om een nieuw tijdelijk wachtwoord.</p>
-      {% if tour_on %}<p class="sub" style="margin-top:6px">Eerst rondkijken zonder account? <a href="/rondleiding">Open de rondleiding</a> (alleen bekijken, fictieve klanten).</p>{% endif %}
-    </form>
-  </div>
+  </main>
 </div>
 {% endblock %}
