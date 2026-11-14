@@ -377,6 +377,55 @@ def test_visitor_from_the_qr_code_sees_the_public_homepage(batches):
     assert post(c, "/logout").headers["Location"].endswith("/")    # leaving the tour goes back to the homepage
 
 
+def test_security_page_runs_the_real_filter_and_claims_no_certificate_of_its_own(batches):
+    for c in (client(), guest()):                                   # a visitor and a tour guest both see it
+        r = c.get("/veiligheid")
+        page = r.get_data(as_text=True)
+        assert r.status_code == 200 and "Niet op ons woord" in page
+        data = json.loads(page.split('id="vg-data">', 1)[1].split("</script>", 1)[0])
+        foto, fysio = data["fotograaf"], data["fysio"]
+        assert foto["gate_original"] and not foto["gate_filtered"]          # the gate blocks the original, passes the filtered text
+        assert "NL91ABNA0417164300" not in foto["filtered"] and "[IBAN_1]" in foto["filtered"]
+        assert "06-12345678" not in foto["filtered"] and "Jan de Vries" not in foto["filtered"]
+        assert len(foto["sha256"]) == 64 and foto["sent_chars"] == len(foto["filtered"])
+        assert fysio["stays_local"] and fysio["filtered"] == "" and fysio["sent_chars"] == 0   # health data never leaves
+        assert "checks.py, regel" in page and "def iban_valid" in page and "BR-CO-15" in page  # code read from the running app
+        assert "heeft zelf geen ISO-, SOC- of ander certificaat" in page and "ISO/IEC 27001:2022" in page
+        assert "eigen-stapel.pdf" not in page and "admin@demo.local" not in page
+    home = client().get("/").get_data(as_text=True)
+    assert 'href="/veiligheid#inspector"' in home and "Vijf facturen van uw eigen kantoor" in home
+    for word in ("waterdicht", "100% veilig", "gegarandeerd AVG", "Scanstraat is gecertificeerd"):
+        assert word not in home and word not in client().get("/veiligheid").get_data(as_text=True)
+
+
+def test_security_filter_endpoint_is_stateless_and_needs_csrf():
+    c = client()
+    before = len(appmod.state["docs"])
+    r = c.post("/api/veiligheid/filter", json={"text": "Mail jan@voorbeeld.example, IBAN NL91 ABNA 0417 1643 00, huisarts"},
+               headers={"X-CSRF": CSRF})
+    out = r.get_json()
+    assert r.status_code == 200 and r.headers["Cache-Control"] == "no-store"
+    assert any("EMAIL" in x and "IBAN" in x for x in out["gate_original"]) and out["stays_local"]
+    assert len(appmod.state["docs"]) == before
+    assert c.post("/api/veiligheid/filter", json={"text": "x"}).status_code == 400          # no CSRF token
+    big = c.post("/api/veiligheid/filter", json={"text": "a" * 50000}, headers={"X-CSRF": CSRF}).get_json()
+    assert len(big["original"]) == 4000
+
+
+def test_toms_pdf_and_security_txt_are_served():
+    c = client()
+    r = c.get("/veiligheid/technische-beschrijving.pdf")
+    assert r.status_code == 200 and r.mimetype == "application/pdf" and r.data[:5] == b"%PDF-"
+    os.environ["CONTACT_EMAIL"] = "melden@demo.local"
+    try:
+        t = c.get("/.well-known/security.txt")
+        body = t.get_data(as_text=True)
+        assert t.status_code == 200 and "Contact: mailto:melden@demo.local" in body and "Expires: " in body
+    finally:
+        os.environ.pop("CONTACT_EMAIL")
+    assert c.get("/.well-known/security.txt").status_code == 404          # no address set: no file
+
+
 def test_canonical_host_forwards_old_qr_links(monkeypatch):
     monkeypatch.setattr(appmod, "CANONICAL_HOST", "descanstraat.nl")
     c = appmod.app.test_client()

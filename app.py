@@ -35,11 +35,11 @@ import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import quote
 
-from flask import (Flask, abort, flash, has_request_context, jsonify, redirect, render_template, request,
+from flask import (Flask, Response, abort, flash, has_request_context, jsonify, redirect, render_template, request,
                    send_file, session, url_for)
 from werkzeug.utils import secure_filename
 
@@ -57,6 +57,7 @@ import models
 import outbox as outbox_mod
 import privacy
 import scan
+import trust
 import ubl
 import whatsapp
 from exact_api import Exact, ExactError, auth_url as exact_auth_url, configured as exact_configured
@@ -787,21 +788,71 @@ def kpis():
     return k
 
 
+def public_ctx():
+    """What every public page of a demo instance shows: contact details, the tour link with the letter's code."""
+    k = re.sub(r"[^a-z0-9-]", "", (request.args.get("k") or "").lower())[:60]
+    phone_intl = re.sub(r"\D", "", os.environ.get("CONTACT_WHATSAPP", ""))
+    wa_text = quote("Hallo, ik wil graag een demo van Scanstraat inplannen.")
+    return dict(touring=guest(), k=k,
+                tour_url=url_for("guest_tour", k=k) if k else url_for("guest_tour"),
+                wa_url=f"https://wa.me/{phone_intl}?text={wa_text}" if phone_intl else "",
+                contact_name=os.environ.get("CONTACT_NAME", ""), contact_phone=os.environ.get("CONTACT_PHONE", ""),
+                contact_email=os.environ.get("CONTACT_EMAIL", ""), contact_place=os.environ.get("CONTACT_PLACE", ""),
+                kvk=os.environ.get("KVK_NUMBER", ""), price_from=os.environ.get("PRICE_FROM", "295"),
+                saving_bar=os.environ.get("SAVING_BAR", "40%"), toms_pdf=TOMS_PDF.is_file())
+
+
+TOMS_PDF = HERE / "static" / "docs" / "technische-beschrijving-veiligheid.pdf"
+
+
 @app.get("/welkom")
 def public_home():
     """Public homepage of a demo instance (GUEST_TOUR=1): where the QR code on the letters lands. No client data here."""
     if not auth.GUEST_TOUR:
         return redirect(url_for("login"))
-    k = re.sub(r"[^a-z0-9-]", "", (request.args.get("k") or "").lower())[:60]
-    phone_intl = re.sub(r"\D", "", os.environ.get("CONTACT_WHATSAPP", ""))
-    wa_text = quote("Hallo, ik wil graag een demo van Scanstraat inplannen.")
-    return render_template("home.html", hero=hero_data(), touring=guest(),
-                           tour_url=url_for("guest_tour", k=k) if k else url_for("guest_tour"),
-                           wa_url=f"https://wa.me/{phone_intl}?text={wa_text}" if phone_intl else "",
-                           contact_name=os.environ.get("CONTACT_NAME", ""), contact_phone=os.environ.get("CONTACT_PHONE", ""),
-                           contact_email=os.environ.get("CONTACT_EMAIL", ""), contact_place=os.environ.get("CONTACT_PLACE", ""),
-                           kvk=os.environ.get("KVK_NUMBER", ""), price_from=os.environ.get("PRICE_FROM", "295"),
-                           saving_bar=os.environ.get("SAVING_BAR", "40%"))
+    return render_template("home.html", hero=hero_data(), **public_ctx())
+
+
+@app.get("/veiligheid")
+def public_security():
+    """Public page: how the privacy step, the egress gate and the rule checks work, run live on fictional text,
+    which certificates belong to which sub-processor, and the three-step proof without client data."""
+    if not auth.GUEST_TOUR:
+        return redirect(url_for("security_page"))
+    return render_template("veiligheid.html", samples=trust.samples(), code=trust.code_blocks(), ibans=trust.iban_demo(),
+                           ai_mode=ai.label(), where=hosting_label(), **public_ctx())
+
+
+@app.post("/api/veiligheid/filter")
+def security_filter():
+    """Stateless: the visitor's own test text through the real fixed rules and the egress gate. Nothing is stored or logged."""
+    if not auth.GUEST_TOUR:
+        abort(404)
+    body = request.get_json(silent=True) or {}
+    text = body.get("text") if isinstance(body.get("text"), str) else ""
+    resp = jsonify(trust.live(text))
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
+
+
+@app.get("/veiligheid/technische-beschrijving.pdf")
+def toms_pdf():
+    if not TOMS_PDF.is_file():
+        abort(404)
+    return send_file(TOMS_PDF, mimetype="application/pdf", download_name="technische-beschrijving-veiligheid-scanstraat.pdf")
+
+
+@app.get("/.well-known/security.txt")
+def security_txt():
+    """RFC 9116: where to report a vulnerability. Only on the public demo, and only when a contact address is set."""
+    mail = os.environ.get("SECURITY_CONTACT") or os.environ.get("CONTACT_EMAIL", "")
+    if not auth.GUEST_TOUR or not mail:
+        abort(404)
+    expires = (datetime.now(timezone.utc) + timedelta(days=180)).strftime("%Y-%m-%dT00:00:00Z")
+    host = os.environ.get("CANONICAL_HOST") or request.host
+    body = (f"Contact: mailto:{mail}\nExpires: {expires}\nPreferred-Languages: nl, en\n"
+            f"Canonical: https://{host}/.well-known/security.txt\nPolicy: https://{host}/veiligheid#melden\n")
+    return Response(body, mimetype="text/plain")
 
 
 @app.get("/")

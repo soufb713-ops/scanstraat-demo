@@ -1,0 +1,57 @@
+{# Header and footer of the public pages (homepage and /veiligheid). pre = '' on the homepage, '/' elsewhere. #}
+{% import "_ui.html" as ui with context %}
+{% macro pnav(pre='', active='') %}
+<header class="pnav">
+  <div class="wrap">
+    {{ ui.logo('/') }}
+    <nav class="pnav-links" aria-label="Hoofdmenu">
+      <a href="{{ pre }}#product">Product</a>
+      <a href="{{ pre }}#sandbox">Test uw factuur</a>
+      <a href="{{ pre }}#rekenvoorbeeld">Rekenvoorbeeld</a>
+      <a href="{{ pre }}#prijzen">Prijzen</a>
+      <a href="/veiligheid"{% if active == 'veiligheid' %} aria-current="page"{% endif %}>Veiligheid</a>
+    </nav>
+    <div class="pnav-cta">
+      <a class="pnav-login" href="/login"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V8a4 4 0 018 0v3"/></svg><span>Kantoorportaal</span></a>
+      <a class="btn go" href="{{ tour_url }}"><span class="w-l">Bekijk de rondleiding</span><span class="w-s">Rondleiding</span></a>
+    </div>
+  </div>
+</header>
+{% endmacro %}
+
+{% macro pfoot(pre='') %}
+<footer class="pfoot">
+  <div class="wrap">
+    <div class="pfoot-g">
+      <div class="pfoot-b">
+        {{ ui.logo('/') }}
+        <p>Van papierstapel naar klaargezet dossier, voor administratie- en accountantskantoren.</p>
+      </div>
+      <nav aria-label="Product">
+        <h4>Product</h4>
+        <a href="{{ tour_url }}">Rondleiding</a>
+        <a href="{{ pre }}#sandbox">Test uw factuur</a>
+        <a href="{{ pre }}#rekenvoorbeeld">Rekenvoorbeeld</a>
+        <a href="{{ pre }}#prijzen">Prijzen</a>
+        <a href="/veiligheid">Veiligheid en privacy</a>
+        {% if toms_pdf %}<a href="/veiligheid/technische-beschrijving.pdf">Technische beschrijving (pdf)</a>{% endif %}
+      </nav>
+      <nav aria-label="Kantoren">
+        <h4>Kantoren</h4>
+        <a href="/login">Inloggen voor kantoren</a>
+        <a href="{{ tour_url }}{{ sep }}next=/afhandelen">Exporthub bekijken</a>
+        <a href="{{ pre }}#vragen">Veelgestelde vragen</a>
+      </nav>
+      <address>
+        <h4>Contact</h4>
+        {% if contact_name %}<span>{{ contact_name }}{% if contact_place %}, {{ contact_place }}{% endif %}</span>{% endif %}
+        {% if contact_phone %}<a href="tel:{{ contact_phone|replace('-', '') }}">{{ contact_phone }}</a>{% endif %}
+        {% if contact_email %}<a href="mailto:{{ contact_email }}">{{ contact_email }}</a>{% endif %}
+        {% if wa_url %}<a href="{{ wa_url }}" rel="noopener">WhatsApp</a>{% endif %}
+        {% if kvk %}<span>KvK {{ kvk }}</span>{% endif %}
+      </address>
+    </div>
+    <p class="pfoot-fine">{{ brand }} bereidt voor: er wordt niets ingediend of definitief geboekt zonder een medewerker van uw kantoor. Geen fiscaal of juridisch advies. Alle namen, bedragen en documenten op deze website zijn fictief.</p>
+  </div>
+</footer>
+{% endmacro %}
