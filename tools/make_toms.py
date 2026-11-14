@@ -22,7 +22,7 @@ from reportlab.platypus import KeepTogether, Paragraph, SimpleDocTemplate, Space
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 OUT = ROOT / "static" / "docs" / "technische-beschrijving-veiligheid.pdf"
-VERSION, DATE, CHECKED = "1.0", "14 november 2026", "14 november 2026"
+VERSION, DATE, CHECKED = "1.1", "14 november 2026", "14 november 2026"
 
 pdfmetrics.registerFont(TTFont("Sans", str(HERE / "fonts" / "LiberationSans-Regular.ttf")))
 pdfmetrics.registerFont(TTFont("Sans-Bold", str(HERE / "fonts" / "LiberationSans-Bold.ttf")))
@@ -65,7 +65,7 @@ MEASURES = [
     ("M2", "Versleuteling in rust", "Alle bestanden (scans, paginabeelden, pdf's, velden, koppeltabellen, gebruikers met hun "
                                     "2FA-sleutels, berichten, auditlog) met AES-256-GCM; de sleutel staat buiten de datamap "
                                     "(vault.py). Back-ups apart versleuteld met een eigen sleutel (backup.py)."),
-    ("M3", "Versleuteling onderweg", "Alle verbindingen via HTTPS (TLS). Sessiecookies HttpOnly, SameSite=Lax en Secure; "
+    ("M3", "Versleuteling onderweg", "Alle verbindingen via HTTPS: minimaal TLS 1.2, TLS 1.3 waar de browser dat ondersteunt. Sessiecookies HttpOnly, SameSite=Lax en Secure; "
                                      "HSTS. Elk formulier en elke wijzigende aanroep met een CSRF-token."),
     ("M4", "Toegang", "Persoonlijke accounts, rollen beheerder en medewerker, wachtwoord plus verplichte tweestapsverificatie "
                       "(TOTP). Na 5 foute pogingen 15 minuten blokkering. Een 2FA-code werkt maar één keer. Eerste inlog "
@@ -113,9 +113,11 @@ LIMITS = ("<b>Wat nog niet is gedaan.</b> Er is nog geen externe penetratietest 
           "stand is nog niet gemeten op echte stukken; dat gebeurt in de proef op facturen van het Kantoor zelf. Geen "
           "filter is foutloos: daarom zijn er twee lagen (M5 en M6) en blijft een twijfelgeval lokaal.")
 
-PROOF = ("<b>Bewijs zonder klantdata.</b> 1. In de browsertest op descanstraat.nl leest de browser een pdf-factuur zonder "
-         "upload. 2. Vijf facturen van het Kantoor zelf (internet, huur, kantoorartikelen) gaan door de hele straat tot in "
-         "het eigen pakket, na ondertekening van de verwerkersovereenkomst. 3. Pas daarna drie klantdossiers.")
+PROOF = ("<b>Bewijs zonder klantdata.</b> 1. In de browsertest op descanstraat.nl leest de browser een pdf-factuur; er wordt "
+         "niets geüpload. 2. Het Kantoor doet hetzelfde met vijf eigen inkoopfacturen (internet, huur, kantoorartikelen) en "
+         "leest het SI-UBL-bestand in een testadministratie van het eigen pakket in; ook dan verlaat er niets de computer van "
+         "het Kantoor. 3. Pas daarna tekenen partijen de verwerkersovereenkomst en gaan drie klantdossiers door de volledige "
+         "straat op de server van het Kantoor.")
 
 
 def table(rows, widths, head=None, zebra=False):

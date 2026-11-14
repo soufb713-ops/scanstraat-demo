@@ -27,6 +27,7 @@ import hashlib
 import hmac
 import io
 import json
+import mimetypes
 import os
 import re
 import secrets
@@ -56,6 +57,7 @@ import exports
 import models
 import outbox as outbox_mod
 import privacy
+import ratelimit
 import scan
 import trust
 import ubl
@@ -99,6 +101,7 @@ def _secret():
 
 app.secret_key = os.environ.get("SECRET_KEY") or _secret()
 app.config["MAX_CONTENT_LENGTH"] = 200 * 1024 * 1024
+mimetypes.add_type("text/javascript", ".mjs")   # pdf.js 4 is an ES module: browsers refuse it without a JS type
 
 lock = threading.RLock()
 
@@ -227,6 +230,7 @@ def to_canonical_host():
     return None
 
 
+ratelimit.install(app)   # before auth: limits and the Origin check run first
 auth.init(app, users, audit)
 exact = Exact(DATA / "exact-token.json")
 outbox = outbox_mod.Outbox(DATA / "outbox.json", audit)
@@ -804,13 +808,26 @@ def public_ctx():
 
 TOMS_PDF = HERE / "static" / "docs" / "technische-beschrijving-veiligheid.pdf"
 
+# The public pages load only their own scripts (no inline code, no third parties): a strict policy that anyone can check,
+# for example with securityheaders.com. The staff screens still have small inline scripts and keep the base headers.
+PUBLIC_CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; "
+              "font-src 'self'; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; "
+              "form-action 'self'; frame-ancestors 'self'")
+
+
+def public_headers(html):
+    resp = app.make_response(html)
+    resp.headers["Content-Security-Policy"] = PUBLIC_CSP
+    resp.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+    return resp
+
 
 @app.get("/welkom")
 def public_home():
     """Public homepage of a demo instance (GUEST_TOUR=1): where the QR code on the letters lands. No client data here."""
     if not auth.GUEST_TOUR:
         return redirect(url_for("login"))
-    return render_template("home.html", hero=hero_data(), **public_ctx())
+    return public_headers(render_template("home.html", hero=hero_data(), **public_ctx()))
 
 
 @app.get("/veiligheid")
@@ -819,8 +836,8 @@ def public_security():
     which certificates belong to which sub-processor, and the three-step proof without client data."""
     if not auth.GUEST_TOUR:
         return redirect(url_for("security_page"))
-    return render_template("veiligheid.html", samples=trust.samples(), code=trust.code_blocks(), ibans=trust.iban_demo(),
-                           ai_mode=ai.label(), where=hosting_label(), **public_ctx())
+    return public_headers(render_template("veiligheid.html", samples=trust.samples(), code=trust.code_blocks(),
+                                          ibans=trust.iban_demo(), ai_mode=ai.label(), where=hosting_label(), **public_ctx()))
 
 
 @app.post("/api/veiligheid/filter")
@@ -828,6 +845,8 @@ def security_filter():
     """Stateless: the visitor's own test text through the real fixed rules and the egress gate. Nothing is stored or logged."""
     if not auth.GUEST_TOUR:
         abort(404)
+    if (request.content_length or 0) > 64 * 1024:
+        abort(413)
     body = request.get_json(silent=True) or {}
     text = body.get("text") if isinstance(body.get("text"), str) else ""
     resp = jsonify(trust.live(text))
@@ -850,6 +869,8 @@ def security_txt():
         abort(404)
     expires = (datetime.now(timezone.utc) + timedelta(days=180)).strftime("%Y-%m-%dT00:00:00Z")
     host = os.environ.get("CANONICAL_HOST") or request.host
+    if not re.fullmatch(r"[A-Za-z0-9.-]{1,253}(:\d{1,5})?", host):    # never echo a crafted Host header
+        abort(404)
     body = (f"Contact: mailto:{mail}\nExpires: {expires}\nPreferred-Languages: nl, en\n"
             f"Canonical: https://{host}/.well-known/security.txt\nPolicy: https://{host}/veiligheid#melden\n")
     return Response(body, mimetype="text/plain")

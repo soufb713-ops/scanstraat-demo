@@ -30,7 +30,7 @@ os.environ.update(SCAN_DATA=str(TMP / "data"), VAULT_KEY=base64.b64encode(os.ura
                   DEMO_INSTANCE="1", GUEST_TOUR="1", AI_PROVIDER="anthropic", ANTHROPIC_API_KEY="test-standin",
                   ANTHROPIC_BASE_URL=f"http://127.0.0.1:{srv.server_port}", ADMIN_EMAIL="admin@demo.local",
                   ADMIN_PASSWORD="EenLangWachtwoord1", ADMIN_NAME="Soufyan", ADMIN_TOTP_SECRET=SECRET.lower(),
-                  SCAN_ENV_FILE=str(TMP / "none.env"), RETENTION_INTERVAL="3600")
+                  SCAN_ENV_FILE=str(TMP / "none.env"), RATE_LIMITS="login=100000/600,sample=100000/600,filter=100000/600", RETENTION_INTERVAL="3600")
 os.environ.pop("APP_ENV", None)
 sys.path.insert(0, str(HERE))
 
@@ -398,6 +398,22 @@ def test_security_page_runs_the_real_filter_and_claims_no_certificate_of_its_own
         assert word not in home and word not in client().get("/veiligheid").get_data(as_text=True)
 
 
+def test_public_pages_send_a_strict_csp_and_the_sandbox_never_uploads():
+    for url in ("/", "/veiligheid"):
+        r = client().get(url)
+        csp = r.headers.get("Content-Security-Policy", "")
+        assert "script-src 'self'" in csp and "object-src 'none'" in csp and "frame-ancestors 'self'" in csp
+        assert "unsafe-eval" not in csp and "<script>" not in r.get_data(as_text=True)   # no inline code on public pages
+    js = (HERE / "static" / "js" / "sandbox.js").read_text(encoding="utf-8")
+    assert js.count("fetch(") == 1 and "fetch(BASE + s.pdf)" in js                        # only the built-in samples are fetched
+    assert "XMLHttpRequest" not in js and "sendBeacon" not in js and "FormData" not in js
+    assert "isEvalSupported: false" in js and "pdf.min.mjs" in js
+    r = client().get("/static/vendor/pdfjs/pdf.min.mjs")
+    assert r.status_code == 200 and r.mimetype == "text/javascript"
+    assert b"4.10.38" in r.data                                                           # pdf.js with the CVE-2024-4367 fix
+    assert 'href="/veiligheid#bewijs"' in guest().get("/stapel").get_data(as_text=True)   # the tour links to the proof steps
+
+
 def test_security_filter_endpoint_is_stateless_and_needs_csrf():
     c = client()
     before = len(appmod.state["docs"])
@@ -410,6 +426,30 @@ def test_security_filter_endpoint_is_stateless_and_needs_csrf():
     assert c.post("/api/veiligheid/filter", json={"text": "x"}).status_code == 400          # no CSRF token
     big = c.post("/api/veiligheid/filter", json={"text": "a" * 50000}, headers={"X-CSRF": CSRF}).get_json()
     assert len(big["original"]) == 4000
+    assert c.post("/api/veiligheid/filter", json={"text": "a" * 70000}, headers={"X-CSRF": CSRF}).status_code == 413
+
+
+def test_rate_limit_and_cross_site_origin():
+    import ratelimit
+    from werkzeug.exceptions import TooManyRequests
+    old = ratelimit.LIMITS["filter"]
+    ratelimit.LIMITS["filter"] = (3, 600)
+    try:
+        for t in range(3):
+            ratelimit.hit("filter", "198.51.100.7", now=1000 + t)
+        with pytest.raises(TooManyRequests) as e:
+            ratelimit.hit("filter", "198.51.100.7", now=1010)
+        assert e.value.retry_after == 591
+        ratelimit.hit("filter", "198.51.100.8", now=1010)            # another visitor is not affected
+        ratelimit.hit("filter", "198.51.100.7", now=1601)            # the window has passed
+    finally:
+        ratelimit.LIMITS["filter"] = old
+        ratelimit.reset()
+    r = client().post("/api/veiligheid/filter", json={"text": "x"},
+                      headers={"X-CSRF": CSRF, "Origin": "https://concurrent.example"})
+    assert r.status_code == 403 and "Access-Control-Allow-Origin" not in r.headers
+    r = client().post("/api/veiligheid/filter", json={"text": "x"}, headers={"X-CSRF": CSRF, "Origin": "http://localhost"})
+    assert r.status_code == 200 and "Access-Control-Allow-Origin" not in r.headers
 
 
 def test_toms_pdf_and_security_txt_are_served():
@@ -421,6 +461,11 @@ def test_toms_pdf_and_security_txt_are_served():
         t = c.get("/.well-known/security.txt")
         body = t.get_data(as_text=True)
         assert t.status_code == 200 and "Contact: mailto:melden@demo.local" in body and "Expires: " in body
+    finally:
+        os.environ.pop("CONTACT_EMAIL")
+    os.environ["CONTACT_EMAIL"] = "melden@demo.local"
+    try:
+        assert c.get("/.well-known/security.txt", headers={"Host": "evil.example/<x>"}).status_code == 404
     finally:
         os.environ.pop("CONTACT_EMAIL")
     assert c.get("/.well-known/security.txt").status_code == 404          # no address set: no file

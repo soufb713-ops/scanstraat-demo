@@ -81,14 +81,11 @@ const group4 = s => String(s || '').replace(/\s/g, '').replace(/(.{4})/g, '$1 ')
 
 /* ---------------------------------------------------------------- pdf: text with positions */
 let pdfjs;
-function loadPdfJs() {
-  return pdfjs || (pdfjs = new Promise((res, rej) => {
-    const s = document.createElement('script');
-    s.src = PDFJS + 'pdf.min.js';
-    s.onload = () => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS + 'pdf.worker.min.js'; res(window.pdfjsLib); };
-    s.onerror = () => { pdfjs = null; rej(new Error('pdf.js niet geladen')); };
-    document.head.append(s);
-  }));
+function loadPdfJs() {   // pdf.js 4.10.38 (legacy build, ES module): fixes CVE-2024-4367; isEvalSupported stays off as well
+  return pdfjs || (pdfjs = import(PDFJS + 'pdf.min.mjs').then(lib => {
+    lib.GlobalWorkerOptions.workerSrc = PDFJS + 'pdf.worker.min.mjs';
+    return lib;
+  }, err => { pdfjs = null; throw new Error('pdf.js niet geladen'); }));
 }
 function toLines(items) {
   const rows = [];

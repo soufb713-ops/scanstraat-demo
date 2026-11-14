@@ -37,7 +37,7 @@ if (root && Object.keys(data).length) {
         html += verdict(true, 'Blijft volledig lokaal', `<p>Mogelijk bijzondere persoonsgegevens (AVG art. 9): ${esc(cats)}. Het lokale model op de server leest dit stuk.</p>`);
         html += '<p class="vg-n">0 tekens naar een externe dienst.</p>';
       } else {
-        head.innerHTML = '<span>Dit is alles wat het taalmodel ziet</span><i class="ext">naar Claude, EU-regio</i>';
+        head.innerHTML = '<span>Dit is alles wat het taalmodel ziet</span><i class="ext">via TLS naar Claude, EU-regio</i>';
         text.innerHTML = marked(s.filtered);
         html += verdict(true, 'De poort laat dit door', '<p>Geen persoonsgegevens en geen bijzondere gegevens meer gevonden.</p>');
         html += `<p class="vg-n">${s.sent_chars} tekens, geen afbeelding</p><p class="vg-hash" title="SHA-256 van precies deze tekst, zoals in het log van uw kantoor">SHA-256 <code>${esc(s.sha256.slice(0, 16))}…</code></p>`;

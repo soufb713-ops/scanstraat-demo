@@ -15,7 +15,7 @@ HERE = Path(__file__).resolve().parent.parent
 TMP = Path(tempfile.mkdtemp())
 os.environ.update(SCAN_DATA=str(TMP / "data"), VAULT_KEY=base64.b64encode(os.urandom(32)).decode(), SCAN_AI="replay",
                   ADMIN_EMAIL="admin@demo.local", ADMIN_PASSWORD="EenLangWachtwoord1", ADMIN_NAME="Soufyan",
-                  REJECTED_GRACE_HOURS="0", RETENTION_INTERVAL="3600", SCAN_ENV_FILE=str(TMP / "none.env"))
+                  REJECTED_GRACE_HOURS="0", RETENTION_INTERVAL="3600", SCAN_ENV_FILE=str(TMP / "none.env"), RATE_LIMITS="login=100000/600,sample=100000/600,filter=100000/600")
 sys.path.insert(0, str(HERE))
 
 import app as appmod  # noqa: E402
