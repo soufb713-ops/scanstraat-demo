@@ -20,6 +20,7 @@
       <div class="sect">Meer</div>
       <a href="/klanten" class="{{ 'on' if nav=='clients' }}">{{ ui.icon('clients') }}Dossiers &amp; bladen</a>
       <a href="/beveiliging" class="{{ 'on' if nav=='security' }}">{{ ui.icon('security') }}Privacy &amp; beveiliging</a>
+      <a href="/veiligheid#bewijs">{{ ui.icon('audit') }}Bewijs zonder klantdata</a>
       <a href="/">{{ ui.icon('home') }}Naar de website</a>
       {% else %}
       <a href="/" class="{{ 'on' if nav=='overview' }}">{{ ui.icon('overview') }}Overzicht</a>
@@ -59,7 +60,7 @@
     </div>
   </div>
 </div>
-{% endblock %}
 <script>(function(){var n=document.querySelector('.side .nav'),a=n&&n.querySelector('a.on');if(a&&n.scrollWidth>n.clientWidth)n.scrollLeft=a.offsetLeft-(n.clientWidth-a.offsetWidth)/2})()</script>
+{% endblock %}
 {% block scripts %}{% endblock %}
 </body></html>

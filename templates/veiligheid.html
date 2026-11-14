@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% block title %}Veiligheid en privacy, zelf na te kijken{% endblock %}
+{% block head %}
+<meta name="description" content="Hoe {{ brand }} met de stukken van uw kantoor omgaat: het privacyfilter en de poort naar het taalmodel draaien hier live op een fictieve factuur, met de echte code, de certificaten van onze subverwerkers en een bewijsroute zonder klantdata.">
+<link rel="stylesheet" href="{{ url_for('static', filename='work.css') }}?v={{ asset_v }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}?v={{ asset_v }}">
+{% endblock %}
+{% block bodyclass %}pub{% endblock %}
+{% block body %}
+{% import "_pub.html" as pub with context %}
+<a class="skip" href="#inhoud">Naar de inhoud</a>
+{{ pub.pnav('/', 'veiligheid') }}
+<main id="inhoud">
+
+<section class="sec ink vg-hero">
+  <div class="wrap">
+    <div class="sec-h">
+      <p class="eyebrow"><i></i>Veiligheid en privacy</p>
+      <h1>Niet op ons woord. Kijk het zelf na.</h1>
+      <p>Een kantoor dat stukken van klanten uit handen geeft, wil bewijs. Op deze pagina draait de echte code van {{ brand }} op een fictieve factuur: wat er wordt weggefilterd, wat de poort tegenhoudt en welke controles vaste code doet in plaats van AI. Daaronder staan de certificaten van de partijen waarop we bouwen, met de bron erbij.</p>
+    </div>
+    <div class="vg-cta">
+      {% if toms_pdf %}<a class="btn go lg" href="/veiligheid/technische-beschrijving.pdf">Download de technische beschrijving (pdf)</a>{% endif %}
+      <a class="btn lg on-ink" href="#bewijs">Bewijs in drie stappen, zonder klantdata</a>
+    </div>
+    <dl class="vg-now">
+      <div><dt>Deze website</dt><dd>Demonstratie met fictieve dossiers{% if where %}, gehost in {{ where }}{% endif %}. Hier worden geen gegevens van klanten verwerkt.</dd></div>
+      <div><dt>AI op deze website</dt><dd>{{ ai_mode }}</dd></div>
+      <div><dt>Omgeving van een kantoor</dt><dd>Eigen server bij Hetzner in Duitsland, ingericht na een getekende verwerkersovereenkomst.</dd></div>
+    </dl>
+  </div>
+</section>
+
+<nav class="vg-toc wrap" aria-label="Op deze pagina">
+  <a href="#inspector">Privacyfilter live</a><a href="#stroom">Waar uw stukken gaan</a><a href="#regels">AI of vaste code</a>
+  <a href="#certificaten">Certificaten</a><a href="#bewijs">Bewijs zonder klantdata</a><a href="#grenzen">Wat we niet claimen</a>
+</nav>
+
+<section class="sec" id="inspector">
+  <div class="wrap">
+    <div class="sec-h">
+      <p class="eyebrow ink"><i></i>1 · Privacyfilter, live</p>
+      <h2>Wat het taalmodel te zien krijgt, en wat niet</h2>
+      <p>Kies een fictief document en wissel tussen de drie standen. De vervangingen en het oordeel van de poort komen uit dezelfde functies als in het product (<code>privacy.py</code> en <code>egress.py</code>).</p>
+    </div>
+    <div class="vg-insp" id="vg-insp">
+      <div class="vg-bar">
+        <div class="vg-seg" role="tablist" aria-label="Voorbeeld">
+          {% for key, s in samples.items() %}<button type="button" role="tab" data-sample="{{ key }}" aria-selected="{{ 'true' if loop.first else 'false' }}"><b>{{ s.title }}</b><small>{{ s.sub }}</small></button>{% endfor %}
+        </div>
+        <div class="vg-seg vg-modes" role="tablist" aria-label="Stand">
+          <button type="button" role="tab" data-mode="original" aria-selected="false">Originele tekst</button>
+          <button type="button" role="tab" data-mode="filtered" aria-selected="true">Wat naar het taalmodel gaat</button>
+          <button type="button" role="tab" data-mode="local" aria-selected="false">Lokale modus</button>
+        </div>
+      </div>
+      <div class="vg-grid">
+        <div class="vg-doc"><div class="vg-doc-h" id="vg-doc-h"></div><pre id="vg-text"></pre></div>
+        <aside class="vg-side" id="vg-side" aria-live="polite"></aside>
+      </div>
+      <p class="vg-fine">Namen van personen en woonadressen vindt bij een kantoor een lokaal taalmodel (Apache 2.0-licentie) op de eigen server. Dat model draait niet op deze website: bij deze twee voorbeelden is die uitkomst vast ingevuld en gemarkeerd als <span class="vg-by m">lokaal model</span>. De vaste regels (<span class="vg-by r">regel</span>) draaien live.</p>
+    </div>
+
+    <div class="vg-live">
+      <div>
+        <h3>Probeer de poort zelf</h3>
+        <p>Typ of plak een verzonnen tekst met een IBAN, e-mailadres, telefoonnummer of een woord als <i>huisarts</i>. De tekst gaat alleen naar de controle op deze server en wordt niet opgeslagen of gelogd. Gebruik geen echte gegevens.</p>
+      </div>
+      <form id="vg-live-form">
+        <label for="vg-live-in" class="sr-only">Testtekst</label>
+        <textarea id="vg-live-in" rows="5" maxlength="4000" spellcheck="false">Factuur 2026-044 van Bakkerij Voorbeeld
+Betalen op NL91 ABNA 0417 1643 00, vragen? 010-1234567 of info@bakkerij.example</textarea>
+        <button class="btn" type="submit">Controleer met de echte regels</button>
+      </form>
+      <div class="vg-live-out" id="vg-live-out" aria-live="polite" hidden></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec alt" id="stroom">
+  <div class="wrap">
+    <div class="sec-h">
+      <p class="eyebrow ink"><i></i>2 · De weg van een document</p>
+      <h2>Waar een stuk van uw kantoor komt, en waar het nooit komt</h2>
+      <p>In de omgeving van een kantoor. Het taalmodel is een keuze per kantoor: met de lokale modus verlaat er niets de server.</p>
+    </div>
+    <ol class="vg-flow">
+      <li><b>Scan, foto of pdf</b><span>Via uw scanner, de aanleverlink of WhatsApp van uw kantoor.</span></li>
+      <li class="hz"><b>Server in Duitsland</b><span>Opslag versleuteld met AES-256-GCM. Met een andere locatie weigert de software te starten.</span></li>
+      <li class="hz"><b>Tekst lezen op de server</b><span>De paginabeelden blijven op de server. In de kantoorinstelling gaat er nooit een afbeelding naar buiten.</span></li>
+      <li class="hz"><b>Privacyfilter en bijzondere gegevens</b><span>IBAN, e-mail, telefoon, BSN, geboortedatum, namen en woonadressen worden vervangen. Zorg, vakbond, religie of strafrecht: het hele stuk blijft lokaal.</span></li>
+      <li class="hz"><b>De poort</b><span>Een tweede, losse controle. Vindt die nog iets, dan gaat er niets weg. Elke poging komt met een SHA-256-vingerafdruk in het log.</span></li>
+      <li class="ext"><b>Alleen in de stand hybride: Claude via Amazon Bedrock, EU-regio</b><span>Krijgt alleen de gefilterde tekst en stelt velden voor. De echte waarden worden daarna op de server teruggezet.</span></li>
+      <li class="hz"><b>Vaste rekenregels</b><span>Btw, totalen, IBAN en eerdere facturen van dezelfde leverancier: Python-code, geen AI.</span></li>
+      <li class="hz"><b>Een medewerker van uw kantoor keurt goed</b><span>Zonder dat akkoord wordt niets geëxporteerd of naar een klant gestuurd. Dat zit vast in de software en is niet uit te zetten.</span></li>
+      <li class="hz"><b>Export naar uw pakket, origineel gewist</b><span>Na een bevestigde import wordt de scan gewist. Het controlespoor blijft.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="sec" id="regels">
+  <div class="wrap">
+    <div class="sec-h">
+      <p class="eyebrow ink"><i></i>3 · Scheiding van taken</p>
+      <h2>AI doet een voorstel. Rekenen en fraudecontrole doet vaste code.</h2>
+      <p>Een taalmodel kan zich vergissen. Daarom hangt geen enkele controle op geld af van AI. De code hieronder is uitgelezen uit de software die deze website draait, met bestand en regelnummer.</p>
+    </div>
+    <div class="vg-split">
+      <div><h3>Taalmodel (voorstel)</h3><ul><li>Velden van een factuur lezen</li><li>Grootboekrekening voorstellen</li><li>Een stapel in losse stukken splitsen</li></ul><p>Elk voorstel staat als voorstel in beeld, met de plek op het document.</p></div>
+      <div class="hard"><h3>Vaste code (beslist)</h3><ul><li>Btw per tarief en totalen narekenen</li><li>IBAN-controlegetal (modulo 97)</li><li>IBAN vergelijken met eerdere facturen van dezelfde leverancier</li><li>EN 16931-rekenregels op elk exportbestand</li><li>Wwft-stop per klant en menselijke goedkeuring</li></ul></div>
+    </div>
+    <div class="vg-ibans">
+      {% for i in ibans %}<div class="{{ 'ok' if i.ok else 'bad' }}"><code>{{ i.iban }}</code><span>{{ i.label }}: {{ 'goedgekeurd' if i.ok else 'afgekeurd' }} door <code>iban_valid()</code></span></div>{% endfor %}
+    </div>
+    {% for c in code %}
+    <details class="vg-code"{% if loop.first %} open{% endif %}>
+      <summary><b>{{ c.title }}</b><span>{{ c.why }}</span><code>{{ c.file }}, regel {{ c.start }}</code></summary>
+      <pre><code>{{ c.code }}</code></pre>
+    </details>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="sec ink" id="certificaten">
+  <div class="wrap">
+    <div class="sec-h">
+      <p class="eyebrow"><i></i>4 · Waar we op bouwen</p>
+      <h2>Gecertificeerde datacenters. De certificaten zijn van hen, niet van ons.</h2>
+      <p>De omgeving van een kantoor draait bij twee partijen die zwaar geaudit worden. Hun certificaten zeggen iets over het datacenter en de clouddienst. Over de software en werkwijze van {{ brand }} zeggen ze niets: die staan in onze technische beschrijving.</p>
+    </div>
+    <div class="vg-subs">
+      <article>
+        <header><h3>Hetzner Online GmbH</h3><span class="tg">Duitsland</span></header>
+        <p class="role">Server en versleutelde back-ups van de kantooromgeving, in Falkenstein of Neurenberg.</p>
+        <dl>
+          <dt>Certificaat</dt><dd>ISO/IEC 27001:2022, door SOCOTEC Certification. Bereik: infrastructuur, beheer en support van de datacenterparken in Neurenberg, Falkenstein en Helsinki.</dd>
+          <dt>Niet</dt><dd>Hetzner noemt geen SOC 2 of BSI C5.</dd>
+          <dt>Afspraak</dt><dd>Verwerkersovereenkomst (art. 28 AVG), af te sluiten via het Hetzner-klantaccount bij het inrichten van de eerste kantooromgeving.</dd>
+          <dt>Bron</dt><dd><a href="https://www.hetzner.com/unternehmen/zertifizierung/" rel="noopener">hetzner.com/unternehmen/zertifizierung</a></dd>
+        </dl>
+      </article>
+      <article>
+        <header><h3>Amazon Web Services EMEA SARL</h3><span class="tg">Amazon Bedrock · eu-west-1</span></header>
+        <p class="role">Voert het taalmodel Claude uit in de EU-regio Ierland. Alleen in de stand hybride, alleen gefilterde tekst.</p>
+        <dl>
+          <dt>Certificaten</dt><dd>ISO/IEC 27001:2022, 27017, 27018 en 27701. SOC 1, 2 en 3. BSI C5. Amazon Bedrock staat op de AWS-lijsten van diensten binnen het bereik.</dd>
+          <dt>Afspraak</dt><dd>AWS-verwerkersvoorwaarden met standaardcontractbepalingen, onderdeel van de AWS-dienstvoorwaarden. AWS gebruikt invoer en uitvoer van Bedrock niet om modellen te trainen.</dd>
+          <dt>Bronnen</dt><dd><a href="https://aws.amazon.com/compliance/iso-certified/" rel="noopener">ISO</a> · <a href="https://aws.amazon.com/compliance/services-in-scope/SOC/" rel="noopener">SOC</a> · <a href="https://aws.amazon.com/compliance/services-in-scope/C5/" rel="noopener">BSI C5</a></dd>
+        </dl>
+      </article>
+    </div>
+    <p class="trust-fine">Nagekeken op de websites van Hetzner en AWS op 14 november 2026. {{ brand }} heeft zelf geen ISO-, SOC- of ander certificaat en zegt dat ook niet. Deze demonstratiewebsite draait bij Render in Frankfurt en bevat alleen fictieve gegevens; Render is geen subverwerker voor gegevens van een kantoor.</p>
+  </div>
+</section>
+
+<section class="sec alt" id="bewijs">
+  <div class="wrap">
+    <div class="sec-h">
+      <p class="eyebrow ink"><i></i>5 · Bewijs zonder klantdata</p>
+      <h2>Drie stappen. Pas bij de derde verlaat er een document uw kantoor.</h2>
+      <p>U hoeft niets te geloven voordat u het hebt gezien. En wat u ziet, ziet u eerst op stukken die niet van uw klanten zijn.</p>
+    </div>
+    <ol class="vg-steps">
+      <li>
+        <p class="when">Minuut 1</p><h3>In uw eigen browser</h3>
+        <p>Sleep een pdf-factuur in de <a href="/#sandbox">browsertest</a>. De velden, de btw-controle en het SI-UBL-bestand ontstaan op uw computer. Er wordt niets geüpload.</p>
+        <p class="check">Zelf nagaan: open het netwerkoverzicht van uw browser (F12) en zie dat er geen bestand vertrekt.</p>
+      </li>
+      <li>
+        <p class="when">Dag 1</p><h3>Vijf facturen van uw eigen kantoor, in uw eigen pakket</h3>
+        <p>Uw internetrekening, de huur, kantoorartikelen, software. U sleept ze in dezelfde browsertest, downloadt per factuur het SI-UBL-bestand en leest dat in een testadministratie van uw eigen pakket in. Geen klantdossier, en er verlaat niets uw computer.</p>
+        <p class="check">Zo ziet u op uw eigen papier of de velden, de btw-controle en de import kloppen, voordat er iets getekend is.</p>
+      </li>
+      <li>
+        <p class="when">Dag 4 tot 14</p><h3>Drie klantdossiers, pas na het bewijs</h3>
+        <p>Alleen als stap 2 u overtuigde. Eerst tekenen we de verwerkersovereenkomst; dan kiest u drie dossiers en gaan ze door de volledige straat op de server van uw kantoor in Duitsland. We meten vooraf en tijdens de proef de verwerkingstijd. Minder dan {{ saving_bar }} winst: u betaalt niets.</p>
+        <p class="check">U kunt op elk moment stoppen. Na een bevestigde export wordt het origineel gewist.</p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section class="sec" id="grenzen">
+  <div class="wrap vg-two">
+    <div class="sec-h">
+      <p class="eyebrow ink"><i></i>6 · Eerlijk over de grenzen</p>
+      <h2>Wat we niet claimen</h2>
+      <p>Een leverancier die alles belooft, heeft iets niet uitgezocht. Dit is de stand van zaken.</p>
+    </div>
+    <ul class="vg-limits">
+      <li><b>Geen eigen certificaat.</b> {{ brand }} heeft geen ISO 27001 of SOC 2. De maatregelen staan in de technische beschrijving; u of uw adviseur kan ze toetsen.</li>
+      <li><b>Nog geen externe penetratietest.</b> De beveiliging is door ons zelf getest, niet door een onafhankelijke partij.</li>
+      <li><b>De browsertest leest alleen pdf's met tekst.</b> Foto's, het splitsen van een stapel en het lezen met AI ziet u in de rondleiding en, met uw eigen dossiers, in stap 3.</li>
+      <li><b>Geen filter is foutloos.</b> Daarom zijn er twee lagen (filter en poort), blijft een twijfelgeval lokaal en kan uw kantoor kiezen voor de lokale modus.</li>
+      <li><b>Lokale modus is langzamer.</b> De leeskwaliteit op uw eigen stukken meten we in de proef, voordat u kiest.</li>
+      <li><b>Geen advies.</b> {{ brand }} bereidt voor. Boeken, aangifte en de verantwoordelijkheid voor de administratie blijven bij uw kantoor.</li>
+    </ul>
+  </div>
+  <div class="wrap vg-report" id="melden">
+    <h3>Een kwetsbaarheid gevonden?</h3>
+    <p>Meld die{% if contact_email %} via <a href="mailto:{{ contact_email }}?subject={{ 'Beveiligingsmelding Scanstraat'|urlencode }}">{{ contact_email }}</a>{% endif %}. We reageren binnen twee werkdagen en vragen u de melding niet openbaar te maken voordat het is opgelost. Zie ook <a href="/.well-known/security.txt">security.txt</a>.</p>
+  </div>
+</section>
+
+<section class="cta">
+  <div class="wrap">
+    <div><h2>Liever op papier?</h2><p>De technische beschrijving en de verwerkersovereenkomst liggen klaar. U krijgt ze vóór er één document binnenkomt.</p></div>
+    <div class="cta-b">
+      {% if toms_pdf %}<a class="btn go lg" href="/veiligheid/technische-beschrijving.pdf">Download de technische beschrijving</a>{% endif %}
+      {% if wa_url %}<a class="btn lg on-ink" href="{{ wa_url }}" rel="noopener">Stel een vraag via WhatsApp</a>{% endif %}
+      {% if contact_phone %}<a class="btn lg on-ink" href="tel:{{ contact_phone|replace('-', '') }}">Bel {{ contact_phone }}</a>{% endif %}
+    </div>
+  </div>
+</section>
+</main>
+{{ pub.pfoot('/') }}
+{% endblock %}
+{% block scripts %}
+<script type="application/json" id="vg-data">{{ samples|tojson }}</script>
+<script src="{{ url_for('static', filename='js/site.js') }}?v={{ asset_v }}" defer></script>
+<script src="{{ url_for('static', filename='js/veiligheid.js') }}?v={{ asset_v }}" defer></script>
+{% endblock %}

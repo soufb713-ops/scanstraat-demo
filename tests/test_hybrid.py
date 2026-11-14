@@ -68,7 +68,7 @@ srv = HTTPServer(("127.0.0.1", 0), Ollama)
 threading.Thread(target=srv.serve_forever, daemon=True).start()
 os.environ.update(SCAN_DATA=str(TMP / "data"), VAULT_KEY=base64.b64encode(os.urandom(32)).decode(), SCAN_AI="hybrid",
                   OLLAMA_URL=f"http://127.0.0.1:{srv.server_port}", ANTHROPIC_API_KEY="test-not-used", SCAN_SEED="0",
-                  ADMIN_PASSWORD="EenLangWachtwoord1", SCAN_ENV_FILE=str(TMP / "none.env"))
+                  ADMIN_PASSWORD="EenLangWachtwoord1", SCAN_ENV_FILE=str(TMP / "none.env"), RATE_LIMITS="login=100000/600,sample=100000/600,filter=100000/600")
 sys.path.insert(0, str(HERE))
 
 import ai  # noqa: E402

@@ -194,7 +194,8 @@ def init(app, users: Users, audit):
                          totp_preset=True)
 
     open_endpoints = {"login", "login_code", "setup_2fa", "static", "health", "whatsapp_webhook", "retention_trigger",
-                      "guest_tour", "public_home", "showroom_json", "showroom_page", "status_json", "client_upload"}
+                      "guest_tour", "public_home", "showroom_json", "showroom_page", "status_json", "client_upload",
+                      "public_security", "security_filter", "toms_pdf", "security_txt"}
 
     @app.before_request
     def guard():
